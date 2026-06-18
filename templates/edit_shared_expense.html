@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Edit Expense</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>✏️ Edit Shared Expense</h1>
+
+        <form
+        action="/update_shared_expense/{{ expense[0] }}"
+        method="POST">
+
+            <input
+                type="hidden"
+                name="group_id"
+                value="{{ expense[1] }}">
+
+            <input
+                type="text"
+                name="description"
+                value="{{ expense[2] }}"
+                required>
+
+            <input
+                type="number"
+                step="0.01"
+                name="amount"
+                value="{{ expense[3] }}"
+                required>
+
+            <select name="paid_by">
+
+                {% for member in members %}
+
+                <option
+                {% if member[2] == expense[4] %}
+                selected
+                {% endif %}
+                >
+                    {{ member[2] }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+            <button type="submit">
+                Update Expense
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

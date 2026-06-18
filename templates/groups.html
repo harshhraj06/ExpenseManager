@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Split Groups</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>👥 Split Expense Groups</h1>
+
+        <p>
+            <a href="/">Dashboard</a> |
+            <a href="/groups">Split Groups</a>
+        </p>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Create Group</h2>
+
+        <form action="/add_group" method="POST">
+
+            <input
+                type="text"
+                name="group_name"
+                placeholder="Group Name"
+                required>
+
+            <button type="submit">
+                Create Group
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Groups</h2>
+
+        <table>
+
+            <tr>
+                <th>ID</th>
+                <th>Group Name</th>
+                <th>Open</th>
+                <th>Delete</th>
+            </tr>
+
+            {% for group in groups %}
+
+            <tr>
+
+                <td>{{ group[0] }}</td>
+
+                <td>{{ group[1] }}</td>
+
+                <td>
+
+                    <a href="/group/{{ group[0] }}">
+                        Open
+                    </a>
+
+                </td>
+
+                <td>
+
+                    <a
+                    href="/delete_group/{{ group[0] }}"
+                    onclick="return confirm('Delete this group and all its data?')">
+
+                        ❌ Delete
+
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>

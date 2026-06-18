@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{ group[1] }}</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <h1>👥 {{ group[1] }}</h1>
+
+        <p>
+            <a href="/">Dashboard</a> |
+            <a href="/groups">Groups</a>
+        </p>
+    </div>
+
+    <!-- MEMBERS -->
+
+    <div class="card">
+
+        <h2>Add Member</h2>
+
+        <form action="/add_member/{{ group[0] }}"
+              method="POST">
+
+            <input
+                type="text"
+                name="member_name"
+                placeholder="Member Name"
+                required>
+
+            <button type="submit">
+                Add Member
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Members</h2>
+
+        <table>
+
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Action</th>
+            </tr>
+
+            {% for member in members %}
+
+            <tr>
+
+                <td>{{ member[0] }}</td>
+
+                <td>{{ member[2] }}</td>
+
+                <td>
+
+                    <a
+                    href="/delete_member/{{ member[0] }}/{{ group[0] }}"
+                    onclick="return confirm('Delete this member?')">
+
+                        ❌ Delete
+
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+    <!-- ADD EXPENSE -->
+
+    <div class="card">
+
+        <h2>Add Shared Expense</h2>
+
+        <form action="/add_shared_expense/{{ group[0] }}"
+              method="POST">
+
+            <input
+                type="text"
+                name="description"
+                placeholder="Description"
+                required>
+
+            <input
+                type="number"
+                step="0.01"
+                name="amount"
+                placeholder="Amount"
+                required>
+
+            <select name="paid_by" required>
+
+                {% for member in members %}
+
+                <option>{{ member[2] }}</option>
+
+                {% endfor %}
+
+            </select>
+
+            <button type="submit">
+                Add Shared Expense
+            </button>
+
+        </form>
+
+    </div>
+
+    <!-- EXPENSE LIST -->
+
+    <div class="card">
+
+        <h2>Shared Expenses</h2>
+
+        <table>
+
+            <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Paid By</th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+
+            {% for expense in expenses %}
+
+            <tr>
+
+                <td>{{ expense[2] }}</td>
+
+                <td>₹{{ expense[3] }}</td>
+
+                <td>{{ expense[4] }}</td>
+
+                <td>
+
+                    <a href="/edit_shared_expense/{{ expense[0] }}">
+                        ✏️ Edit
+                    </a>
+
+                </td>
+
+                <td>
+
+                    <a
+                    href="/delete_shared_expense/{{ expense[0] }}/{{ group[0] }}"
+                    onclick="return confirm('Delete this expense?')">
+
+                        ❌ Delete
+
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+    <!-- BREAKDOWN -->
+
+    <div class="card">
+
+        <h2>Expense Wise Breakdown</h2>
+
+        {% for item in expense_breakdown %}
+
+        <h3>
+            {{ item.description }}
+            (₹{{ item.amount }})
+            - Paid by {{ item.paid_by }}
+        </h3>
+
+        <ul>
+
+            {% for detail in item.details %}
+
+            <li>{{ detail }}</li>
+
+            {% endfor %}
+
+        </ul>
+
+        {% endfor %}
+
+    </div>
+
+    <!-- FINAL SETTLEMENT -->
+
+    <div class="card">
+
+        <h2>Final Settlement</h2>
+
+        <ul>
+
+            {% for balance in balances %}
+
+            <li>
+
+                {{ balance.text }}
+
+                <a
+                href="/settle_up/{{ group[0] }}?payer={{ balance.payer }}&receiver={{ balance.receiver }}&amount={{ balance.amount }}"
+                onclick="return confirm('Mark this payment as settled?')">
+
+                    ✅ Settle
+
+                </a>
+
+            </li>
+
+            {% endfor %}
+
+        </ul>
+
+    </div>
+
+    <!-- PAYMENT HISTORY -->
+
+    <div class="card">
+
+        <h2>Payment History</h2>
+
+        <table>
+
+            <tr>
+                <th>Payer</th>
+                <th>Receiver</th>
+                <th>Amount</th>
+                <th>Date</th>
+            </tr>
+
+            {% for payment in settlement_history %}
+
+            <tr>
+
+                <td>{{ payment[2] }}</td>
+
+                <td>{{ payment[3] }}</td>
+
+                <td>₹{{ payment[4] }}</td>
+
+                <td>{{ payment[5] }}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>
