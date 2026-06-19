@@ -1,8 +1,87 @@
-from flask import Flask, render_template, request, redirect
+import os
 import sqlite3
 from collections import defaultdict
 
+from flask import Flask, render_template, request, redirect, session
+from werkzeug.security import generate_password_hash, check_password_hash
+
+import database  # ensures all tables exist on startup
+
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "harsh_secret_key_123")
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    error = None
+
+    if request.method == "POST":
+
+        username = request.form["username"]
+        email = request.form["email"]
+
+        password = generate_password_hash(
+            request.form["password"]
+        )
+
+        conn = sqlite3.connect("expenses.db")
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                """
+                INSERT INTO users
+                (username,email,password)
+                VALUES (?,?,?)
+                """,
+                (username,email,password)
+            )
+            conn.commit()
+            conn.close()
+            return redirect("/login")
+
+        except sqlite3.IntegrityError:
+            conn.close()
+            error = "An account with that email already exists."
+
+    return render_template("register.html", error=error)
+@app.route("/login", methods=["GET","POST"])
+def login():
+
+    error = None
+
+    if request.method == "POST":
+
+        email = request.form["email"]
+        password = request.form["password"]
+
+        conn = sqlite3.connect("expenses.db")
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM users WHERE email=?",
+            (email,)
+        )
+
+        user = cursor.fetchone()
+
+        conn.close()
+
+        if user and check_password_hash(user[3], password):
+
+            session["user_id"] = user[0]
+            session["username"] = user[1]
+
+            return redirect("/")
+
+        error = "Invalid email or password."
+
+    return render_template("login.html", error=error)
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect("/login")
 
 
 # =========================
@@ -12,32 +91,48 @@ app = Flask(__name__)
 @app.route("/")
 def home():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     # Expenses
-    cursor.execute("SELECT * FROM expenses ORDER BY id DESC")
+    cursor.execute(
+        "SELECT * FROM expenses WHERE user_id=? ORDER BY id DESC",
+        (session["user_id"],)
+    )
     expenses = cursor.fetchall()
 
     # Income History
-    cursor.execute("SELECT * FROM income ORDER BY id DESC")
+    cursor.execute(
+        "SELECT * FROM income WHERE user_id=? ORDER BY id DESC",
+        (session["user_id"],)
+    )
     income_history = cursor.fetchall()
 
     # Total Expense
-    cursor.execute("SELECT SUM(amount) FROM expenses")
+    cursor.execute(
+        "SELECT SUM(amount) FROM expenses WHERE user_id=?",
+        (session["user_id"],)
+    )
     total_expense = cursor.fetchone()[0] or 0
 
     # Total Income
-    cursor.execute("SELECT SUM(amount) FROM income")
+    cursor.execute(
+        "SELECT SUM(amount) FROM income WHERE user_id=?",
+        (session["user_id"],)
+    )
     total_income = cursor.fetchone()[0] or 0
 
     # Category Summary
     cursor.execute("""
     SELECT category, SUM(amount)
     FROM expenses
+    WHERE user_id=?
     GROUP BY category
     ORDER BY SUM(amount) DESC
-    """)
+    """, (session["user_id"],))
     category_summary = cursor.fetchall()
 
     balance = total_income - total_expense
@@ -61,16 +156,20 @@ def home():
 @app.route("/add", methods=["POST"])
 def add_expense():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
         """
         INSERT INTO expenses
-        (amount, category, description, date)
-        VALUES (?, ?, ?, ?)
+        (user_id, amount, category, description, date)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
+            session["user_id"],
             request.form["amount"],
             request.form["category"],
             request.form["description"],
@@ -87,12 +186,21 @@ def add_expense():
 @app.route("/delete/<int:id>")
 def delete_expense(id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "DELETE FROM expenses WHERE id=?",
-        (id,)
+        """
+        DELETE FROM expenses
+        WHERE id=? AND user_id=?
+        """,
+        (
+            id,
+            session["user_id"]
+        )
     )
 
     conn.commit()
@@ -108,16 +216,20 @@ def delete_expense(id):
 @app.route("/add_income", methods=["POST"])
 def add_income():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
         """
         INSERT INTO income
-        (amount, source, date)
-        VALUES (?, ?, ?)
+        (user_id, amount, source, date)
+        VALUES (?, ?, ?, ?)
         """,
         (
+            session["user_id"],
             request.form["amount"],
             request.form["source"],
             request.form["date"]
@@ -131,12 +243,15 @@ def add_income():
 @app.route("/delete_income/<int:id>")
 def delete_income(id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "DELETE FROM income WHERE id=?",
-        (id,)
+        "DELETE FROM income WHERE id=? AND user_id=?",
+        (id, session["user_id"])
     )
 
     conn.commit()
@@ -146,12 +261,15 @@ def delete_income(id):
 @app.route("/edit_income/<int:id>")
 def edit_income(id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM income WHERE id=?",
-        (id,)
+        "SELECT * FROM income WHERE id=? AND user_id=?",
+        (id, session["user_id"])
     )
 
     income = cursor.fetchone()
@@ -167,6 +285,9 @@ def edit_income(id):
 @app.route("/update_income/<int:id>", methods=["POST"])
 def update_income(id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
@@ -176,13 +297,14 @@ def update_income(id):
         SET amount=?,
             source=?,
             date=?
-        WHERE id=?
+        WHERE id=? AND user_id=?
         """,
         (
             request.form["amount"],
             request.form["source"],
             request.form["date"],
-            id
+            id,
+            session["user_id"]
         )
     )
 
@@ -199,15 +321,18 @@ def update_income(id):
 @app.route("/groups")
 def groups():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM groups_table ORDER BY id DESC"
+        "SELECT * FROM groups_table WHERE user_id=?",
+        (session["user_id"],)
     )
 
     groups = cursor.fetchall()
-    
 
     conn.close()
 
@@ -220,12 +345,22 @@ def groups():
 @app.route("/add_group", methods=["POST"])
 def add_group():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO groups_table(group_name) VALUES(?)",
-        (request.form["group_name"],)
+        """
+        INSERT INTO groups_table
+        (user_id, group_name)
+        VALUES (?, ?)
+        """,
+        (
+            session["user_id"],
+            request.form["group_name"]
+        )
     )
 
     conn.commit()
@@ -240,6 +375,9 @@ def add_group():
 
 @app.route("/add_member/<int:group_id>", methods=["POST"])
 def add_member(group_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
@@ -263,6 +401,9 @@ def add_member(group_id):
 @app.route("/delete_member/<int:member_id>/<int:group_id>")
 def delete_member(member_id, group_id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
@@ -277,6 +418,9 @@ def delete_member(member_id, group_id):
     return redirect(f"/group/{group_id}")
 @app.route("/delete_group/<int:group_id>")
 def delete_group(group_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
@@ -306,9 +450,16 @@ def delete_group(group_id):
 @app.route("/settle_up/<int:group_id>")
 def settle_up(group_id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     payer = request.args.get("payer")
     receiver = request.args.get("receiver")
-    amount = float(request.args.get("amount"))
+
+    try:
+        amount = float(request.args.get("amount", 0))
+    except (TypeError, ValueError):
+        amount = 0
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
@@ -339,7 +490,9 @@ def settle_up(group_id):
 
 @app.route("/add_shared_expense/<int:group_id>", methods=["POST"])
 def add_shared_expense(group_id):
-    
+
+    if "user_id" not in session:
+        return redirect("/login")
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
@@ -365,6 +518,9 @@ def add_shared_expense(group_id):
 @app.route("/delete_shared_expense/<int:expense_id>/<int:group_id>")
 def delete_shared_expense(expense_id, group_id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
@@ -380,6 +536,9 @@ def delete_shared_expense(expense_id, group_id):
 @app.route("/edit_shared_expense/<int:expense_id>")
 def edit_shared_expense(expense_id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
@@ -389,6 +548,10 @@ def edit_shared_expense(expense_id):
     )
 
     expense = cursor.fetchone()
+
+    if expense is None:
+        conn.close()
+        return redirect("/groups")
 
     group_id = expense[1]
 
@@ -411,8 +574,16 @@ def edit_shared_expense(expense_id):
 @app.route("/update_shared_expense/<int:expense_id>", methods=["POST"])
 def update_shared_expense(expense_id):
 
+    if "user_id" not in session:
+        return redirect("/login")
+
     description = request.form["description"]
-    amount = float(request.form["amount"])
+
+    try:
+        amount = float(request.form["amount"])
+    except (TypeError, ValueError):
+        amount = 0
+
     paid_by = request.form["paid_by"]
     group_id = request.form["group_id"]
 
@@ -446,6 +617,9 @@ def update_shared_expense(expense_id):
 
 @app.route("/group/<int:group_id>")
 def group_details(group_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
@@ -603,4 +777,5 @@ def group_details(group_id):
     )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

@@ -1,0 +1,206 @@
+/* ============================================
+   Expense Manager — Auth screens (login/register)
+   Dark mode, mint accent
+   ============================================ */
+
+:root {
+    --auth-bg: #0B0E14;
+    --auth-surface: #151B26;
+    --auth-input: #1A2230;
+    --auth-border: #232C3B;
+    --auth-text: #EDEFF2;
+    --auth-text-muted: #8B95A5;
+    --auth-accent: #3DDC97;
+    --auth-accent-dim: rgba(61, 220, 151, 0.14);
+    --auth-error: #E2554B;
+    --auth-error-bg: rgba(226, 85, 75, 0.1);
+}
+
+.auth-body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--auth-bg);
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--auth-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-screen {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(61, 220, 151, 0.06), transparent 60%),
+        var(--auth-bg);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--auth-surface);
+    border: 1px solid var(--auth-border);
+    border-radius: 16px;
+    padding: 40px 36px 32px;
+    box-sizing: border-box;
+}
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+}
+
+.auth-brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--auth-accent-dim);
+    color: var(--auth-accent);
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.auth-brand-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    color: var(--auth-text-muted);
+}
+
+.auth-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    color: var(--auth-text);
+}
+
+.auth-subtitle {
+    margin: 0 0 28px;
+    font-size: 14px;
+    color: var(--auth-text-muted);
+    line-height: 1.5;
+}
+
+.auth-error {
+    background: var(--auth-error-bg);
+    border: 1px solid rgba(226, 85, 75, 0.35);
+    color: #F2A9A3;
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.auth-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--auth-text-muted);
+}
+
+.auth-field input {
+    background: var(--auth-input);
+    border: 1px solid var(--auth-border);
+    border-bottom: 2px solid var(--auth-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    color: var(--auth-text);
+    outline: none;
+    transition: border-bottom-color 0.25s ease, border-color 0.2s ease;
+}
+
+.auth-field input::placeholder {
+    color: #4F5A6B;
+}
+
+.auth-field input:focus {
+    border-color: var(--auth-border);
+    border-bottom-color: var(--auth-accent);
+}
+
+.auth-field input:focus-visible {
+    box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.15);
+}
+
+.auth-submit {
+    margin-top: 6px;
+    padding: 13px 0;
+    border: none;
+    border-radius: 8px;
+    background: var(--auth-accent);
+    color: #07140E;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.auth-submit:hover {
+    filter: brightness(1.08);
+}
+
+.auth-submit:active {
+    transform: scale(0.99);
+}
+
+.auth-switch {
+    margin: 24px 0 0;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--auth-text-muted);
+}
+
+.auth-switch a {
+    color: var(--auth-accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 420px) {
+    .auth-card {
+        padding: 32px 24px 28px;
+        border-radius: 12px;
+    }
+    .auth-title {
+        font-size: 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-field input,
+    .auth-submit {
+        transition: none;
+    }
+}

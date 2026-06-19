@@ -20,11 +20,12 @@
         <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
     </div>
 
-    <div class="nav-links">
-        <a href="/">Dashboard</a>
-        <a href="/groups">Groups</a>
-        <a href="#expense-form" class="add-btn">+ Add Expense</a>
-    </div>
+   <div class="nav-links">
+     <span>Welcome {{ session['username'] }}</span> 
+     <a href="/">Dashboard</a> 
+    <a href="/groups">Groups</a> <a href="/logout">Logout</a>
+     <a href="#expense-form" class="add-btn">+ Add Expense</a>
+ </div>
 </div>
 
 <div class="hero">
@@ -125,8 +126,8 @@
 
         <tr>
 
-            <td>₹{{ income[1] }}</td>
-            <td>{{ income[2] }}</td>
+            <td>₹{{ income[1] }}</td> 
+            <td>{{ income[2] }}</td> 
             <td>{{ income[3] }}</td>
 
             <td>
@@ -219,11 +220,10 @@
 
         <tr>
 
-            <td>₹{{ expense[1] }}</td>
-            <td>{{ expense[2] }}</td>
-            <td>{{ expense[3] }}</td>
+           <td>₹{{ expense[1] }}</td>
+            <td>{{ expense[2] }}</td> 
+            <td>{{ expense[3] }}</td> 
             <td>{{ expense[4] }}</td>
-
             <td>
 
                 <a
