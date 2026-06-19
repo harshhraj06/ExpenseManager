@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bills · Expense Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="nav">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+    </div>
+    <div class="nav-links">
+      <span>Welcome {{ session['username'] }}</span>
+      <a href="/">Dashboard</a>
+      <a href="/groups">Groups</a>
+      <a href="/bills">Bills</a>
+      <a href="/logout">Logout</a>
+      <a href="#bill-form" class="add-btn">+ Add Bill</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>
+      SCHEDULE.<br>
+      AUTOMATE.<br>
+      FORGET.
+    </h1>
+    <p>Add a bill once. We'll turn it into an expense when it's due.</p>
+  </div>
+
+</div>
+
+<!-- ── Add Bill Form ── -->
+<div class="card" id="bill-form">
+  <h2>Add Bill</h2>
+  <form action="/add_bill" method="POST">
+    <input type="text"   name="name"       placeholder="Bill Name (e.g. Electricity)" required>
+    <input type="number" name="amount"     step="0.01" placeholder="Amount" required>
+    <select name="category" required>
+      <option value="">Select Category</option>
+      <option>Food</option>
+      <option>Travel</option>
+      <option>Shopping</option>
+      <option>Bills</option>
+      <option>Entertainment</option>
+      <option>Education</option>
+    </select>
+    <input type="date" name="due_date" required>
+    <select name="recurrence">
+      <option value="none">One-time</option>
+      <option value="weekly">Repeats weekly</option>
+      <option value="monthly">Repeats monthly</option>
+    </select>
+    <button type="submit">Add Bill</button>
+  </form>
+</div>
+
+<!-- ── Pending Bills ── -->
+<div class="card">
+  <h2>Pending Bills</h2>
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Amount</th>
+      <th>Category</th>
+      <th>Due Date</th>
+      <th>Repeats</th>
+      <th>Last Paid</th>
+      <th>Action</th>
+      <th>Delete</th>
+    </tr>
+
+    {% for bill in pending_bills %}
+    <tr{% if bill[5] <= today %} class="bill-overdue"{% endif %}>
+      <td>{{ bill[2] }}</td>
+      <td>₹{{ bill[3] }}</td>
+      <td>{{ bill[4] }}</td>
+      <td>
+        {{ bill[5] }}
+        {% if bill[5] <= today %}
+        <span class="bill-tag">Due</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if bill[6] == 'weekly' %}Weekly
+        {% elif bill[6] == 'monthly' %}Monthly
+        {% else %}One-time{% endif %}
+      </td>
+      <td>
+        {% if bill[8] %}
+          <span style="font-size:0.8rem; color:#6b7280;">Last paid: {{ bill[8] }}</span>
+        {% else %}
+          <span style="font-size:0.8rem; color:#9ca3af;">Never paid</span>
+        {% endif %}
+      </td>
+      <td>
+        <a class="pay-btn" href="/pay_bill_page/{{ bill[0] }}">Pay Now</a>
+      </td>
+      <td>
+        <a class="delete-btn" href="/delete_bill/{{ bill[0] }}"
+           onclick="return confirm('Delete this bill?')">Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+
+    {% if pending_bills|length == 0 %}
+    <tr>
+      <td colspan="8" class="bill-empty">No pending bills. Add one above.</td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+<!-- ── Paid Bills ── -->
+<div class="card">
+  <h2>Paid Bills</h2>
+
+  <!-- Success banner shown after a payment is confirmed -->
+  {% if request.args.get('paid') %}
+  <div style="background:#d1fae5; color:#065f46; padding:0.9rem 1rem;
+              border-radius:8px; margin-bottom:1rem; font-weight:500; line-height:1.5;">
+    ✅ Payment recorded successfully!
+    <div style="font-weight:400; font-size:0.85rem; margin-top:4px; color:#047857;">
+      If it was a recurring bill (weekly/monthly), it stays in Pending Bills with the next due date and shows "Last paid" above. One-time bills move here to Paid Bills.
+    </div>
+  </div>
+  {% endif %}
+
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Amount</th>
+      <th>Category</th>
+      <th>Last Paid</th>
+      <th>Repeats</th>
+      <th>Receipt</th>
+      <th>Delete</th>
+    </tr>
+
+    {% for bill in paid_bills %}
+    <tr>
+      <td>{{ bill[2] }}</td>
+      <td>₹{{ bill[3] }}</td>
+      <td>{{ bill[4] }}</td>
+      <td>{{ bill[8] }}</td>
+      <td>
+        {% if bill[6] == 'weekly' %}Weekly
+        {% elif bill[6] == 'monthly' %}Monthly
+        {% else %}One-time{% endif %}
+      </td>
+      <td>
+        <a class="pay-btn" href="/bill_receipt/{{ bill[0] }}"
+           style="display:inline-block; padding:4px 12px; font-size:0.85rem;">
+          Download Receipt
+        </a>
+      </td>
+      <td>
+        <a class="delete-btn" href="/delete_bill/{{ bill[0] }}"
+           onclick="return confirm('Delete this bill?')">Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+
+    {% if paid_bills|length == 0 %}
+    <tr>
+      <td colspan="7" class="bill-empty">No paid bills yet.</td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+</body>
+</html>

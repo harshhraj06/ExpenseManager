@@ -87,6 +87,23 @@ CREATE TABLE IF NOT EXISTS settlements (
 )
 """)
 
+# ================= BILLS =================
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS bills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    name TEXT NOT NULL,
+    amount REAL NOT NULL,
+    category TEXT NOT NULL,
+    due_date TEXT NOT NULL,
+    recurrence TEXT NOT NULL DEFAULT 'none',
+    status TEXT NOT NULL DEFAULT 'pending',
+    last_generated_date TEXT,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+)
+""")
+
 # =====================================================
 # MIGRATION: add user_id to tables created before this
 # column existed in expenses / income / groups_table.
