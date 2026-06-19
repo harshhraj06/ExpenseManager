@@ -1,31 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Expense Manager</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 </head>
 <body>
 
-<h2>Login</h2>
+<div class="auth-container">
 
-<form method="POST">
+    <div class="auth-card">
 
-    <input type="email"
-           name="email"
-           placeholder="Email"
-           required>
+        <div class="brand-section">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="login-logo">
 
-    <input type="password"
-           name="password"
-           placeholder="Password"
-           required>
+            <div>
+                <div class="brand-name">Expense Manager</div>
+                <div class="brand-tagline">Track • Save • Grow</div>
+            </div>
+        </div>
 
-    <button type="submit">
-        Login
-    </button>
+        <h1 class="main-title">
+            Financial Clarity Starts Here.
+        </h1>
 
-</form>
+        <p class="hero-text">
+            Track smarter. Spend wiser. Build wealth every day.
+        </p>
 
-<a href="/register">Register</a>
+        <form method="POST">
+
+            <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                required>
+
+            <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                required>
+
+            <button type="submit">
+                Login
+            </button>
+
+        </form>
+
+        <div class="auth-link">
+            Don't have an account?
+            <a href="/register">Register</a>
+        </div>
+
+        <div class="credit">
+            Developed & Designed by Harsh Raj
+        </div>
+
+    </div>
+
+</div>
 
 </body>
 </html>
