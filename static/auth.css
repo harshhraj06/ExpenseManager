@@ -129,7 +129,7 @@ body::after{
 /* Logo inside white card */
 
 .login-logo{
-    width:130px;
+    width:280px;
     height:auto;
     object-fit:contain;
 
