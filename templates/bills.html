@@ -62,6 +62,18 @@
 <!-- ── Pending Bills ── -->
 <div class="card">
   <h2>Pending Bills</h2>
+
+  <!-- NEW: note for recurring bills that exist but aren't due soon yet -->
+  {% if upcoming_count and upcoming_count > 0 %}
+  <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+              padding:0.9rem 1rem; border-radius:14px; margin-bottom:1rem;
+              font-size:0.9rem; color:#cfcfcf;">
+    📅 {{ upcoming_count }} recurring bill{{ 's' if upcoming_count != 1 else '' }}
+    scheduled but not due yet{% if upcoming_next_date %} — next one due {{ upcoming_next_date }}{% endif %}.
+    It'll appear here automatically once it's within 7 days.
+  </div>
+  {% endif %}
+
   <table>
     <tr>
       <th>Name</th>
@@ -125,7 +137,7 @@
               border-radius:8px; margin-bottom:1rem; font-weight:500; line-height:1.5;">
     ✅ Payment recorded successfully!
     <div style="font-weight:400; font-size:0.85rem; margin-top:4px; color:#047857;">
-      If it was a recurring bill (weekly/monthly), it stays in Pending Bills with the next due date and shows "Last paid" above. One-time bills move here to Paid Bills.
+      If it was a recurring bill (weekly/monthly), it moves to "upcoming" above with its next due date until it's within 7 days. One-time bills move here to Paid Bills.
     </div>
   </div>
   {% endif %}

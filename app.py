@@ -55,31 +55,32 @@ def _next_due_date(due_date_str, recurrence):
 
 def process_due_bills(user_id):
     """
-    Finds pending bills that are due (due_date <= today) for this user,
-    converts each into a real expense, and marks the bill as paid.
+    Finds pending RECURRING bills (weekly/monthly) that are due
+    (due_date <= today) for this user, converts each into a real
+    expense, and rolls them forward to their next due date.
 
-    Recurring bills (weekly/monthly) are rolled forward to their next
-    due date and reset to pending. One-time bills stay marked as paid.
+    One-time bills are intentionally NOT touched here. They only
+    become an expense and move to Paid Bills when the user explicitly
+    clicks "Pay Now" -> "I've Paid" (see /confirm_payment below).
+    This keeps one-time bills sitting in Pending Bills, with a "Due"
+    tag once their date arrives, until the user actually pays them.
     """
-
     today_str = date.today().strftime("%Y-%m-%d")
 
     conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT id, name, amount, category, due_date, recurrence
         FROM bills
         WHERE user_id=? AND status='pending' AND due_date<=?
+        AND recurrence IN ('weekly', 'monthly')
         """,
         (user_id, today_str)
     )
-
     due_bills = cursor.fetchall()
 
     for bill_id, name, amount, category, due_date_str, recurrence in due_bills:
-
         cursor.execute(
             """
             INSERT INTO expenses
@@ -89,28 +90,17 @@ def process_due_bills(user_id):
             (user_id, amount, category, f"Bill: {name}", due_date_str)
         )
 
-        if recurrence in ("weekly", "monthly"):
-            next_due = _next_due_date(due_date_str, recurrence)
-            cursor.execute(
-                """
-                UPDATE bills
-                SET status='pending',
-                    due_date=?,
-                    last_generated_date=?
-                WHERE id=?
-                """,
-                (next_due.strftime("%Y-%m-%d"), today_str, bill_id)
-            )
-        else:
-            cursor.execute(
-                """
-                UPDATE bills
-                SET status='paid',
-                    last_generated_date=?
-                WHERE id=?
-                """,
-                (today_str, bill_id)
-            )
+        next_due = _next_due_date(due_date_str, recurrence)
+        cursor.execute(
+            """
+            UPDATE bills
+            SET status='pending',
+                due_date=?,
+                last_generated_date=?
+            WHERE id=?
+            """,
+            (next_due.strftime("%Y-%m-%d"), today_str, bill_id)
+        )
 
     conn.commit()
     conn.close()
@@ -401,32 +391,48 @@ def update_income(id):
 
 @app.route("/bills")
 def bills():
-
     if "user_id" not in session:
         return redirect("/login")
 
     process_due_bills(session["user_id"])
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
     # Show all manually added pending bills always.
     # Auto-created recurring bills (last_generated_date is set) only appear
-    # when their due date is within 7 days, so they don't clutter the list
-    # right after payment.
+    # in this table when their due date is within 7 days, so they don't
+    # clutter the list right after payment. One-time bills always show
+    # here until paid, since last_generated_date stays NULL for them.
     cursor.execute(
         """
         SELECT * FROM bills
         WHERE user_id=? AND status='pending'
-          AND (
+        AND (
             last_generated_date IS NULL
             OR due_date <= date('now', '+7 days')
-          )
+        )
         ORDER BY due_date ASC
         """,
         (session["user_id"],)
     )
     pending_bills = cursor.fetchall()
+
+    # Recurring bills that exist but aren't due soon yet (hidden from the
+    # table above on purpose) -- surfaced as a count/note instead of being
+    # silently invisible.
+    cursor.execute(
+        """
+        SELECT COUNT(*), MIN(due_date) FROM bills
+        WHERE user_id=? AND status='pending'
+        AND last_generated_date IS NOT NULL
+        AND due_date > date('now', '+7 days')
+        """,
+        (session["user_id"],)
+    )
+    upcoming_row = cursor.fetchone()
+    upcoming_count = upcoming_row[0] or 0
+    upcoming_next_date = upcoming_row[1]
 
     cursor.execute(
         """
@@ -446,13 +452,14 @@ def bills():
         "bills.html",
         pending_bills=pending_bills,
         paid_bills=paid_bills,
-        today=today_str
+        today=today_str,
+        upcoming_count=upcoming_count,
+        upcoming_next_date=upcoming_next_date
     )
 
 
 @app.route("/add_bill", methods=["POST"])
 def add_bill():
-
     if "user_id" not in session:
         return redirect("/login")
 
@@ -460,9 +467,8 @@ def add_bill():
     if recurrence not in ("none", "weekly", "monthly"):
         recurrence = "none"
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
-
     cursor.execute(
         """
         INSERT INTO bills
@@ -478,24 +484,20 @@ def add_bill():
             recurrence
         )
     )
-
     conn.commit()
     conn.close()
     return redirect("/bills")
 
 
-# ── NEW: Payment page – shows PhonePe / Paytm / GPay / UPI options ──
-
+# ── Payment page – shows PhonePe / Paytm / GPay / UPI options ──
 @app.route("/pay_bill_page/<int:bill_id>")
 def pay_bill_page(bill_id):
     """Show the payment options page."""
-
     if "user_id" not in session:
         return redirect("/login")
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT id, name, amount, category, due_date, recurrence
@@ -513,21 +515,19 @@ def pay_bill_page(bill_id):
     return render_template("pay_bill_page.html", bill=bill, upi_id=UPI_ID)
 
 
-# ── NEW: Confirm payment – called after user pays in their UPI app ──
-
+# ── Confirm payment – called after user pays in their UPI app ──
 @app.route("/confirm_payment/<int:bill_id>", methods=["POST"])
 def confirm_payment(bill_id):
     """
-    User taps 'I've Paid'. Mark the bill as paid and record it as an expense.
-    Recurring bills roll forward to their next due date.
+    User taps 'I've Paid'. Mark the bill as paid and record it as an
+    expense. Recurring bills roll forward to their next due date as a
+    new pending row; one-time bills simply move to Paid Bills.
     """
-
     if "user_id" not in session:
         return redirect("/login")
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT id, name, amount, category, due_date, recurrence
@@ -554,7 +554,7 @@ def confirm_payment(bill_id):
         (session["user_id"], amount, category, f"Bill: {name}", today_str)
     )
 
-    # 2. Always mark the current bill as PAID so it appears in Paid Bills
+    # 2. Mark the current bill as PAID so it appears in Paid Bills
     cursor.execute(
         """
         UPDATE bills
@@ -580,27 +580,23 @@ def confirm_payment(bill_id):
                 category,
                 next_due.strftime("%Y-%m-%d"),
                 recurrence,
-                today_str   # marks this as auto-created, hides it until due soon
+                today_str  # marks this as auto-created, hides it until due soon
             )
         )
 
     conn.commit()
     conn.close()
-
     return redirect("/bills?paid=1")
 
 
 # ── KEPT for backwards compatibility (direct pay without payment page) ──
-
 @app.route("/pay_bill/<int:bill_id>")
 def pay_bill(bill_id):
-
     if "user_id" not in session:
         return redirect("/login")
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT id, name, amount, category, due_date, recurrence
@@ -627,24 +623,32 @@ def pay_bill(bill_id):
         (session["user_id"], amount, category, f"Bill: {name}", today_str)
     )
 
+    cursor.execute(
+        """
+        UPDATE bills
+        SET status='paid', last_generated_date=?
+        WHERE id=?
+        """,
+        (today_str, bill_id)
+    )
+
     if recurrence in ("weekly", "monthly"):
         next_due = _next_due_date(due_date_str, recurrence)
         cursor.execute(
             """
-            UPDATE bills
-            SET status='pending', due_date=?, last_generated_date=?
-            WHERE id=?
+            INSERT INTO bills
+            (user_id, name, amount, category, due_date, recurrence, status, last_generated_date)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
             """,
-            (next_due.strftime("%Y-%m-%d"), today_str, bill_id)
-        )
-    else:
-        cursor.execute(
-            """
-            UPDATE bills
-            SET status='paid', last_generated_date=?
-            WHERE id=?
-            """,
-            (today_str, bill_id)
+            (
+                session["user_id"],
+                name,
+                amount,
+                category,
+                next_due.strftime("%Y-%m-%d"),
+                recurrence,
+                today_str
+            )
         )
 
     conn.commit()
@@ -655,14 +659,12 @@ def pay_bill(bill_id):
 @app.route("/bill_receipt/<int:bill_id>")
 def bill_receipt(bill_id):
     """Generate and download a PDF receipt for a paid bill."""
-
     if "user_id" not in session:
         return redirect("/login")
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
 
-    # Fetch the paid bill
     cursor.execute(
         """
         SELECT id, user_id, name, amount, category, due_date,
@@ -674,7 +676,6 @@ def bill_receipt(bill_id):
     )
     bill = cursor.fetchone()
 
-    # Also fetch username
     cursor.execute(
         "SELECT username FROM users WHERE id=?",
         (session["user_id"],)
@@ -685,143 +686,102 @@ def bill_receipt(bill_id):
     if bill is None:
         return redirect("/bills")
 
-    bill_name      = bill[2]
-    bill_amount    = float(bill[3])
-    bill_category  = bill[4]
-    bill_due_date  = bill[5]
+    bill_name = bill[2]
+    bill_amount = float(bill[3])
+    bill_category = bill[4]
+    bill_due_date = bill[5]
     bill_paid_date = bill[8] or date.today().strftime("%Y-%m-%d")
-    username       = user[0] if user else "User"
+    username = user[0] if user else "User"
 
-    # ── Build PDF in memory ──
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=20*mm,
-        leftMargin=20*mm,
-        topMargin=20*mm,
-        bottomMargin=20*mm
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm
     )
 
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
-        "Title",
-        fontSize=11,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#111827"),
-        alignment=TA_CENTER,
-        spaceAfter=2
+        "Title", fontSize=11, fontName="Helvetica-Bold",
+        textColor=colors.HexColor("#111827"), alignment=TA_CENTER, spaceAfter=2
     )
     sub_style = ParagraphStyle(
-        "Sub",
-        fontSize=10,
-        fontName="Helvetica",
-        textColor=colors.HexColor("#6b7280"),
-        alignment=TA_CENTER,
-        spaceAfter=2
-    )
-    label_style = ParagraphStyle(
-        "Label",
-        fontSize=9,
-        fontName="Helvetica",
-        textColor=colors.HexColor("#9ca3af"),
-        spaceAfter=1
-    )
-    value_style = ParagraphStyle(
-        "Value",
-        fontSize=11,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#111827"),
-        spaceAfter=8
+        "Sub", fontSize=10, fontName="Helvetica",
+        textColor=colors.HexColor("#6b7280"), alignment=TA_CENTER, spaceAfter=2
     )
     amount_style = ParagraphStyle(
-        "Amount",
-        fontSize=11,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#16a34a"),
-        alignment=TA_CENTER,
-        spaceAfter=2
+        "Amount", fontSize=11, fontName="Helvetica-Bold",
+        textColor=colors.HexColor("#16a34a"), alignment=TA_CENTER, spaceAfter=2
     )
     paid_style = ParagraphStyle(
-        "Paid",
-        fontSize=11,
-        fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#16a34a"),
-        alignment=TA_CENTER,
-        spaceAfter=2
+        "Paid", fontSize=11, fontName="Helvetica-Bold",
+        textColor=colors.HexColor("#16a34a"), alignment=TA_CENTER, spaceAfter=2
     )
     footer_style = ParagraphStyle(
-        "Footer",
-        fontSize=8,
-        fontName="Helvetica",
-        textColor=colors.HexColor("#9ca3af"),
-        alignment=TA_CENTER
+        "Footer", fontSize=8, fontName="Helvetica",
+        textColor=colors.HexColor("#9ca3af"), alignment=TA_CENTER
     )
 
     story = []
-
-    # Header
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 6 * mm))
     story.append(Paragraph("Expense Manager", title_style))
     story.append(Paragraph("Payment Receipt", sub_style))
-    story.append(Spacer(1, 4*mm))
+    story.append(Spacer(1, 4 * mm))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb")))
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 6 * mm))
 
-    # Amount paid
     story.append(Paragraph(f"Rs. {bill_amount:,.2f}", amount_style))
     story.append(Paragraph("PAID", paid_style))
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 6 * mm))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb")))
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 6 * mm))
 
-    # Receipt details table
     details = [
-        ["Bill Name",    bill_name],
-        ["Category",     bill_category],
-        ["Due Date",     bill_due_date],
-        ["Date Paid",    bill_paid_date],
-        ["Paid By",      username],
-        ["Receipt No.",  f"RCP-{bill_id:05d}"],
+        ["Bill Name", bill_name],
+        ["Category", bill_category],
+        ["Due Date", bill_due_date],
+        ["Date Paid", bill_paid_date],
+        ["Paid By", username],
+        ["Receipt No.", f"RCP-{bill_id:05d}"],
     ]
-
-    table = Table(details, colWidths=[55*mm, 100*mm])
+    table = Table(details, colWidths=[55 * mm, 100 * mm])
     table.setStyle(TableStyle([
-        ("FONTNAME",     (0, 0), (0, -1), "Helvetica"),
-        ("FONTNAME",     (1, 0), (1, -1), "Helvetica-Bold"),
-        ("FONTSIZE",     (0, 0), (-1, -1), 10),
-        ("TEXTCOLOR",    (0, 0), (0, -1), colors.HexColor("#6b7280")),
-        ("TEXTCOLOR",    (1, 0), (1, -1), colors.HexColor("#111827")),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica"),
+        ("FONTNAME", (1, 0), (1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#6b7280")),
+        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#111827")),
         ("ROWBACKGROUNDS", (0, 0), (-1, -1),
-            [colors.HexColor("#f9fafb"), colors.white]),
-        ("TOPPADDING",   (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING",(0, 0), (-1, -1), 8),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 12),
+         [colors.HexColor("#f9fafb"), colors.white]),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
         ("RIGHTPADDING", (0, 0), (-1, -1), 12),
         ("ROUNDEDCORNERS", (0, 0), (-1, -1), [4, 4, 4, 4]),
     ]))
     story.append(table)
-    story.append(Spacer(1, 8*mm))
+    story.append(Spacer(1, 8 * mm))
 
-    # Green status bar
     status_data = [["Payment Status: Completed"]]
-    status_table = Table(status_data, colWidths=[155*mm])
+    status_table = Table(status_data, colWidths=[155 * mm])
     status_table.setStyle(TableStyle([
-        ("BACKGROUND",   (0, 0), (-1, -1), colors.HexColor("#dcfce7")),
-        ("TEXTCOLOR",    (0, 0), (-1, -1), colors.HexColor("#166534")),
-        ("FONTNAME",     (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("FONTSIZE",     (0, 0), (-1, -1), 10),
-        ("ALIGN",        (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING",   (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#dcfce7")),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#166534")),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
     ]))
     story.append(status_table)
-    story.append(Spacer(1, 10*mm))
+    story.append(Spacer(1, 10 * mm))
 
-    # Footer
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb")))
-    story.append(Spacer(1, 4*mm))
+    story.append(Spacer(1, 4 * mm))
     story.append(Paragraph(
         f"Generated on {date.today().strftime('%d %B %Y')} · Expense Manager",
         footer_style
@@ -845,18 +805,15 @@ def bill_receipt(bill_id):
 
 @app.route("/delete_bill/<int:bill_id>")
 def delete_bill(bill_id):
-
     if "user_id" not in session:
         return redirect("/login")
 
-    conn   = sqlite3.connect("expenses.db")
+    conn = sqlite3.connect("expenses.db")
     cursor = conn.cursor()
-
     cursor.execute(
         "DELETE FROM bills WHERE id=? AND user_id=?",
         (bill_id, session["user_id"])
     )
-
     conn.commit()
     conn.close()
     return redirect("/bills")
