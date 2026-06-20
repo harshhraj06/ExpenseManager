@@ -44,18 +44,28 @@ UPI_ID = "yourname@upi"
 
 # ─────────────────────────────────────────────
 # SMTP SETTINGS – needed to send "Forgot Password" reset emails.
-# Fill these in with your real email provider's details, e.g. for
-# Gmail: host="smtp.gmail.com", port=587, and an App Password (not
-# your normal Gmail password) for SMTP_PASSWORD.
-# All values can also be set as environment variables of the same
-# name, which is the recommended way to avoid hardcoding credentials.
-# If SMTP_USERNAME/SMTP_PASSWORD are left blank, reset emails will
-# fail with a clear error logged to the console instead of crashing.
+#
+# >>> EDIT THE TWO LINES BELOW <<<
+# Replace "TODO_YOUR_GMAIL@gmail.com" with your real Gmail address.
+# Replace "TODO_YOUR_16_CHAR_APP_PASSWORD" with the App Password from
+# https://myaccount.google.com/apppasswords (NOT your normal Gmail
+# password -- Gmail rejects normal passwords over SMTP). Remove any
+# spaces Google shows in the code, e.g. "abcd efgh ijkl mnop" becomes
+# "abcdefghijklmnop".
+#
+# You'll need 2-Step Verification turned on for your Google account
+# before App Passwords appear as an option.
+#
+# These can also be set as environment variables of the same name
+# instead of hardcoding them here, which keeps credentials out of
+# your source code -- recommended once you're done testing locally.
+# If left as the TODO placeholders, reset emails will fail with a
+# clear error printed to your console instead of crashing the app.
 # ─────────────────────────────────────────────
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "TODO_YOUR_GMAIL@gmail.com")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "TODO_YOUR_16_CHAR_APP_PASSWORD")
 SMTP_FROM_ADDRESS = os.environ.get("SMTP_FROM_ADDRESS", SMTP_USERNAME)
 
 # Base URL used to build the reset link inside the email, e.g.
@@ -72,11 +82,15 @@ def _send_password_reset_email(to_email, reset_link):
     a clear message if SMTP isn't configured yet, rather than letting
     a raw smtplib exception bubble up to the user.
     """
-    if not SMTP_USERNAME or not SMTP_PASSWORD:
+    placeholder_values = {"", "TODO_YOUR_GMAIL@gmail.com", "TODO_YOUR_16_CHAR_APP_PASSWORD"}
+
+    if SMTP_USERNAME in placeholder_values or SMTP_PASSWORD in placeholder_values:
         raise RuntimeError(
-            "SMTP is not configured. Set SMTP_USERNAME and SMTP_PASSWORD "
-            "(as environment variables, or directly in app.py) to enable "
-            "password reset emails."
+            "SMTP is not configured yet -- SMTP_USERNAME/SMTP_PASSWORD in "
+            "app.py still have their TODO placeholder values. Replace them "
+            "with your real Gmail address and a 16-character App Password "
+            "from https://myaccount.google.com/apppasswords, then restart "
+            "the app."
         )
 
     message = EmailMessage()
@@ -92,7 +106,17 @@ def _send_password_reset_email(to_email, reset_link):
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
         smtp.starttls()
-        smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+        try:
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+        except smtplib.SMTPAuthenticationError as exc:
+            raise RuntimeError(
+                "Gmail rejected the login. This almost always means "
+                "SMTP_PASSWORD is your normal Gmail password instead of "
+                "an App Password, or 2-Step Verification isn't enabled "
+                "on the Google account yet. Generate an App Password at "
+                "https://myaccount.google.com/apppasswords and use that "
+                "16-character code (no spaces) as SMTP_PASSWORD."
+            ) from exc
         smtp.send_message(message)
 
 
