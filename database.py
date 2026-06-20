@@ -15,15 +15,23 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 
 # ================= EXPENSES =================
+# NOTE: column order below matches the REAL physical order confirmed via
+# `sqlite3 expenses.db "PRAGMA table_info(expenses);"` on the live database:
+#   id, amount, category, description, date, user_id
+# user_id is listed last because it was added later via ALTER TABLE on an
+# existing database -- SQLite always appends ALTER TABLE ADD COLUMN at the
+# end, regardless of where it's written in CREATE TABLE. Writing it in this
+# position here keeps this file honest about what's actually on disk, and
+# keeps the safety check below a no-op for databases that already match.
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
     amount REAL NOT NULL,
     category TEXT NOT NULL,
     description TEXT,
     date TEXT NOT NULL,
+    user_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id)
 )
 """)
@@ -33,10 +41,10 @@ CREATE TABLE IF NOT EXISTS expenses (
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS income (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
     amount REAL NOT NULL,
     source TEXT NOT NULL,
     date TEXT NOT NULL,
+    user_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id)
 )
 """)
@@ -46,8 +54,8 @@ CREATE TABLE IF NOT EXISTS income (
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS groups_table (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
     group_name TEXT NOT NULL,
+    user_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id)
 )
 """)
@@ -104,17 +112,24 @@ CREATE TABLE IF NOT EXISTS bills (
 )
 """)
 
+conn.commit()
+
 # =====================================================
-# MIGRATION: add user_id to tables created before this
-# column existed in expenses / income / groups_table.
-# Without this, older databases (created by an earlier
-# version of this script) crash every query that filters
-# by user_id with "no such column: user_id".
+# SAFETY CHECK (does NOT modify data): add user_id to any
+# expenses/income/groups_table that predates this column,
+# for installs that started from an even older schema version
+# where user_id didn't exist anywhere yet. This only ADDS the
+# column if missing -- it never reorders or rewrites existing
+# rows, since reordering is unnecessary as long as every query
+# in app.py reads columns by name (SELECT user_id, amount, ...)
+# or unpacks SELECT * using the indices that match THIS file's
+# column order above.
 # =====================================================
 
 def _column_exists(table, column):
     cursor.execute(f"PRAGMA table_info({table})")
     return any(row[1] == column for row in cursor.fetchall())
+
 
 for table in ("expenses", "income", "groups_table"):
     if not _column_exists(table, "user_id"):
