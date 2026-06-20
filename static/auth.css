@@ -291,3 +291,53 @@ button:hover{
         font-size:16px;
     }
 }
+/* ===== Append these rules to your existing auth.css ===== */
+
+/* Password field with eye icon toggle */
+.password-field {
+    position: relative;
+    display: block;
+}
+
+.password-field input {
+    width: 100%;
+    padding-right: 38px;
+    box-sizing: border-box;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.password-toggle:hover {
+    opacity: 1;
+}
+
+/* Forgot password link, right-aligned under the password field */
+.forgot-link {
+    text-align: right;
+    margin-top: -4px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+/* Status messages */
+.auth-error {
+    color: #dc2626;
+    font-size: 14px;
+    margin: 8px 0;
+}
+
+.auth-success {
+    color: #16a34a;
+    font-size: 14px;
+    margin: 8px 0;
+}

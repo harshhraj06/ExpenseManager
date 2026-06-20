@@ -21,11 +21,136 @@
         </p>
     </div>
 
+    <!-- INVITE / GROUP MESSAGES -->
+
+    {% if request.args.get('invited') %}
+    <div class="card" style="border-left: 4px solid #16a34a;">
+        <p>✅ Person added to this group successfully.</p>
+    </div>
+    {% endif %}
+
+    {% if request.args.get('invite_error') == 'no_account' %}
+    <div class="card" style="border-left: 4px solid #dc2626;">
+        <p>❌ No account exists with that email. They need to register first, then you can invite them.</p>
+    </div>
+    {% endif %}
+
+    {% if request.args.get('settle_error') == 'no_upi' %}
+    <div class="card" style="border-left: 4px solid #dc2626;">
+        <p>❌ {{ request.args.get('receiver') }} hasn't set a UPI ID yet, so a Pay Now link can't be generated for them. They can add one below.</p>
+    </div>
+    {% endif %}
+
+    <!-- YOUR UPI ID (needed so others can Pay Now to you) -->
+
+    <div class="card">
+
+        <h2>Your UPI ID</h2>
+
+        {% if my_upi_id %}
+        <p>Your UPI ID is set to <strong>{{ my_upi_id }}</strong>. Others can use "Pay Now" to pay you directly.</p>
+        {% else %}
+        <p>Set your UPI ID so others in this group can pay you directly with "Pay Now" instead of just marking it settled.</p>
+        {% endif %}
+
+        <form action="/update_upi_id" method="POST">
+
+            <input
+                type="text"
+                name="upi_id"
+                placeholder="yourname@upi"
+                value="{{ my_upi_id or '' }}">
+
+            <input type="hidden" name="redirect_to" value="/group/{{ group[0] }}">
+
+            <button type="submit">
+                Save UPI ID
+            </button>
+
+        </form>
+
+    </div>
+
+    <!-- GROUP ACCESS (who can view/pay in this group) -->
+
+    <div class="card">
+
+        <h2>Group Access</h2>
+
+        {% if is_owner %}
+
+        <p>Invite someone who already has an account. They'll be able to view and pay within this group only — not your personal expenses, income, bills, or other groups.</p>
+
+        <form action="/group/{{ group[0] }}/invite"
+              method="POST">
+
+            <input
+                type="email"
+                name="email"
+                placeholder="Their account email"
+                required>
+
+            <button type="submit">
+                Add to Group
+            </button>
+
+        </form>
+
+        {% endif %}
+
+        <table>
+
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>UPI ID</th>
+                {% if is_owner %}
+                <th>Action</th>
+                {% endif %}
+            </tr>
+
+            {% for user in group_users %}
+
+            <tr>
+
+                <td>{{ user[1] }}</td>
+
+                <td>{{ user[2] }}</td>
+
+                <td>{{ user[3] }}</td>
+
+                <td>{{ user[4] or "Not set" }}</td>
+
+                {% if is_owner %}
+                <td>
+                    {% if user[3] != 'owner' %}
+                    <a
+                    href="/group/{{ group[0] }}/remove_user/{{ user[0] }}"
+                    onclick="return confirm('Remove this person from the group? They will lose access immediately.')">
+
+                        ❌ Remove
+
+                    </a>
+                    {% endif %}
+                </td>
+                {% endif %}
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
     <!-- MEMBERS -->
 
     <div class="card">
 
         <h2>Add Member</h2>
+
+        <p>Use this to add someone to the bill-splitting calculation who doesn't need to log in or pay through the app. To give someone an actual login that can view this group and pay, use "Group Access" above instead.</p>
 
         <form action="/add_member/{{ group[0] }}"
               method="POST">
@@ -219,6 +344,12 @@
             <li>
 
                 {{ balance.text }}
+
+                {% if balance.receiver_upi_id %}
+                <a href="/settle_up_pay/{{ group[0] }}?payer={{ balance.payer }}&receiver={{ balance.receiver }}&amount={{ balance.amount }}">
+                    💸 Pay Now
+                </a>
+                {% endif %}
 
                 <a
                 href="/settle_up/{{ group[0] }}?payer={{ balance.payer }}&receiver={{ balance.receiver }}&amount={{ balance.amount }}"

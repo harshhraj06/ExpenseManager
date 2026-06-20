@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    upi_id TEXT
 )
 """)
 
@@ -50,6 +51,10 @@ CREATE TABLE IF NOT EXISTS income (
 """)
 
 # ================= GROUPS =================
+# user_id here is the OWNER/creator of the group (kept for backwards
+# compatibility with existing code/queries). Actual access control for
+# "who can view/use this group" is handled by group_members below, so
+# that more than one real user account can use a group.
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS groups_table (
@@ -60,13 +65,41 @@ CREATE TABLE IF NOT EXISTS groups_table (
 )
 """)
 
+# ================= GROUP MEMBERS (real user accounts) =================
+# This is the access-control table: it links a real, logged-in user
+# account to a group. A user can only see/use a group if a row exists
+# here for (group_id, user_id). This is separate from the `members`
+# table below, which is just the list of names used to split bills and
+# does not by itself grant any login access.
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS group_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(group_id) REFERENCES groups_table(id),
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    UNIQUE(group_id, user_id)
+)
+""")
+
 # ================= MEMBERS =================
+# Free-text split participants shown in "Add Shared Expense" / breakdown.
+# user_id is OPTIONAL: it links a split participant to a real account
+# once that person has been invited via group_members. If user_id is
+# NULL, the member is just a name with no login access (e.g. a person
+# being tracked for splitting purposes who doesn't use the app).
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS members (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     group_id INTEGER,
-    member_name TEXT NOT NULL
+    member_name TEXT NOT NULL,
+    user_id INTEGER,
+    FOREIGN KEY(group_id) REFERENCES groups_table(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
 )
 """)
 
@@ -112,13 +145,31 @@ CREATE TABLE IF NOT EXISTS bills (
 )
 """)
 
+# ================= PASSWORD RESETS =================
+# Single-use, time-limited tokens for the "Forgot Password" email flow.
+# A row is created when the user requests a reset; it's marked used=1
+# the moment it's successfully redeemed so the same link can't be used
+# twice, and expires_at enforces a time window even if it's never used.
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+)
+""")
+
 conn.commit()
 
 # =====================================================
 # SAFETY CHECK (does NOT modify data): add user_id to any
-# expenses/income/groups_table that predates this column,
+# expenses/income/groups_table/members that predate these columns,
 # for installs that started from an even older schema version
-# where user_id didn't exist anywhere yet. This only ADDS the
+# where these columns didn't exist anywhere yet. This only ADDS the
 # column if missing -- it never reorders or rewrites existing
 # rows, since reordering is unnecessary as long as every query
 # in app.py reads columns by name (SELECT user_id, amount, ...)
@@ -134,6 +185,32 @@ def _column_exists(table, column):
 for table in ("expenses", "income", "groups_table"):
     if not _column_exists(table, "user_id"):
         cursor.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER")
+
+if not _column_exists("members", "user_id"):
+    cursor.execute("ALTER TABLE members ADD COLUMN user_id INTEGER")
+
+if not _column_exists("users", "upi_id"):
+    cursor.execute("ALTER TABLE users ADD COLUMN upi_id TEXT")
+
+conn.commit()
+
+# =====================================================
+# BACKFILL: make sure every existing group has its owner
+# present in group_members with role='owner'. Without this,
+# groups created before this feature existed would have NO
+# row in group_members, which would lock the owner out under
+# the new access-control checks.
+# =====================================================
+
+cursor.execute("SELECT id, user_id FROM groups_table WHERE user_id IS NOT NULL")
+for group_id, owner_id in cursor.fetchall():
+    cursor.execute(
+        """
+        INSERT OR IGNORE INTO group_members (group_id, user_id, role)
+        VALUES (?, ?, 'owner')
+        """,
+        (group_id, owner_id)
+    )
 
 conn.commit()
 conn.close()

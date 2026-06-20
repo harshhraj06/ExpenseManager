@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pay {{ receiver }}</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <h1>💸 Settle Up</h1>
+
+        <p>
+            <a href="/group/{{ group_id }}">← Back to Group</a>
+        </p>
+    </div>
+
+    <div class="card">
+
+        <h2>₹{{ "%.2f"|format(amount) }}</h2>
+
+        <p>{{ payer }} owes {{ receiver }}</p>
+
+        <p>Paying to UPI ID: <strong>{{ receiver_upi_id }}</strong></p>
+
+        <div class="upi-buttons">
+
+            <a href="{{ payment_links.gpay }}">
+                Pay with Google Pay
+            </a>
+
+            <a href="{{ payment_links.phonepe }}">
+                Pay with PhonePe
+            </a>
+
+            <a href="{{ payment_links.paytm }}">
+                Pay with Paytm
+            </a>
+
+            <a href="{{ payment_links.upi }}">
+                Pay with other UPI app
+            </a>
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Already paid?</h2>
+
+        <p>Once you've completed the payment in your UPI app, mark it as settled here.</p>
+
+        <form
+            action="/settle_up/{{ group_id }}?payer={{ payer }}&receiver={{ receiver }}&amount={{ amount }}"
+            method="GET"
+            onsubmit="return confirm('Mark this payment as settled?')">
+
+            <button type="submit">
+                ✅ I've Paid
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

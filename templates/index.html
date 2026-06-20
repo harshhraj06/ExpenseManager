@@ -3,66 +3,68 @@
 <head>
     <title>Expense Manager</title>
 
-<link rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
 <div class="container">
 
-<div class="nav">
-    <div class="brand">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
-    </div>
-
-   <div class="nav-links">
-     <span>Welcome {{ session['username'] }}</span> 
-     <a href="/">Dashboard</a> 
-    <a href="/groups">Groups</a> <a href="/bills">Bills</a> <a href="/logout">Logout</a>
-     <a href="#expense-form" class="add-btn">+ Add Expense</a>
- </div>
-</div>
-
-<div class="hero">
-    <h1>
-        TRACK.<br>
-        ANALYZE.<br>
-        GROW.
-    </h1>
-    <p>Manage every rupee with precision.</p>
-</div>
-
-<div class="dashboard">
-
-    <div class="stat-card">
-        <div>
-            <h3>INCOME</h3>
-            <h2>₹{{ total_income }}</h2>
+    <div class="nav">
+        <div class="brand">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
         </div>
-        <div class="icon income-icon">↗</div>
-    </div>
 
-    <div class="stat-card">
-        <div>
-            <h3>EXPENSES</h3>
-            <h2>₹{{ total_expense }}</h2>
+        <div class="nav-links">
+            <span>Welcome {{ session['username'] }}</span>
+            <a href="/">Dashboard</a>
+            <a href="/groups">Groups</a>
+            <a href="/bills">Bills</a>
+            <a href="/expenses_bill">Download Exp Bill</a>
+            <a href="/logout">Logout</a>
+            <a href="#expense-form" class="add-btn">+ Add Expense</a>
         </div>
-        <div class="icon expense-icon">↘</div>
     </div>
 
-    <div class="stat-card">
-        <div>
-            <h3>BALANCE</h3>
-            <h2>₹{{ balance }}</h2>
+    <div class="hero">
+        <h1>
+            TRACK.<br>
+            ANALYZE.<br>
+            GROW.
+        </h1>
+        <p>Manage every rupee with precision.</p>
+    </div>
+
+    <div class="dashboard">
+
+        <div class="stat-card">
+            <div>
+                <h3>INCOME</h3>
+                <h2>₹{{ total_income }}</h2>
+            </div>
+            <div class="icon income-icon">↗</div>
         </div>
-        <div class="icon balance-icon">💳</div>
+
+        <div class="stat-card">
+            <div>
+                <h3>EXPENSES</h3>
+                <h2>₹{{ total_expense }}</h2>
+            </div>
+            <div class="icon expense-icon">↘</div>
+        </div>
+
+        <div class="stat-card">
+            <div>
+                <h3>BALANCE</h3>
+                <h2>₹{{ balance }}</h2>
+            </div>
+            <div class="icon balance-icon">💳</div>
+        </div>
+
     </div>
 
-</div>
 </div>
 
 <div class="card">
@@ -124,9 +126,8 @@
         {% for income in income_history %}
 
         <tr>
-
-            <td>₹{{ income[1] }}</td> 
-            <td>{{ income[2] }}</td> 
+            <td>₹{{ income[1] }}</td>
+            <td>{{ income[2] }}</td>
             <td>{{ income[3] }}</td>
 
             <td>
@@ -136,23 +137,42 @@
             </td>
 
             <td>
-
                 <a
-                class="delete-btn"
-                href="/delete_income/{{ income[0] }}"
-                onclick="return confirm('Delete this income?')">
-
+                    class="delete-btn"
+                    href="/delete_income/{{ income[0] }}"
+                    onclick="return confirm('Delete this income?')">
                     Delete
-
                 </a>
-
             </td>
-
         </tr>
 
         {% endfor %}
 
     </table>
+
+</div>
+
+<div class="card" id="receipt-scanner">
+
+    <h2>Add Expense From Bill Receipt</h2>
+
+    <form action="/scan_receipt" method="POST" enctype="multipart/form-data">
+
+        <input
+            type="file"
+            name="receipt"
+            accept="image/png,image/jpeg,image/webp,application/pdf"
+            required>
+
+        <button type="submit">
+            Scan Receipt & Add Expense
+        </button>
+
+    </form>
+
+    <p class="receipt-hint">
+        Upload a clear bill photo or PDF. The app will try to detect the total amount, date, category, and description.
+    </p>
 
 </div>
 
@@ -170,7 +190,6 @@
             required>
 
         <select name="category" required>
-
             <option value="">Select Category</option>
             <option>Food</option>
             <option>Travel</option>
@@ -178,7 +197,6 @@
             <option>Bills</option>
             <option>Entertainment</option>
             <option>Education</option>
-
         </select>
 
         <input
@@ -201,7 +219,10 @@
 
 <div class="card">
 
-    <h2>Expense History</h2>
+    <div class="section-header">
+        <h2>Expense History</h2>
+        <a href="/expenses_bill" class="download-btn">Download Expense Bill</a>
+    </div>
 
     <table>
 
@@ -216,24 +237,19 @@
         {% for expense in expenses %}
 
         <tr>
-
-           <td>₹{{ expense[1] }}</td>
-            <td>{{ expense[2] }}</td> 
-            <td>{{ expense[3] }}</td> 
+            <td>₹{{ expense[1] }}</td>
+            <td>{{ expense[2] }}</td>
+            <td>{{ expense[3] }}</td>
             <td>{{ expense[4] }}</td>
-            <td>
 
+            <td>
                 <a
                     class="delete-btn"
                     href="/delete/{{ expense[0] }}"
                     onclick="return confirm('Delete this expense?')">
-
                     Delete
-
                 </a>
-
             </td>
-
         </tr>
 
         {% endfor %}
@@ -259,15 +275,12 @@ var amounts = [
 var ctx = document.getElementById('expenseChart');
 
 new Chart(ctx, {
-
     type: 'pie',
 
     data: {
-
         labels: categories,
 
         datasets: [{
-
             data: amounts,
 
             backgroundColor: [
@@ -278,18 +291,13 @@ new Chart(ctx, {
                 '#9966ff',
                 '#ff9f40'
             ]
-
         }]
-
     },
 
     options: {
-
         responsive: true,
         maintainAspectRatio: false
-
     }
-
 });
 
 </script>

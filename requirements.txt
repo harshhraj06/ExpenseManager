@@ -2,3 +2,12 @@ Flask
 gunicorn
 Werkzeug
 reportlab
+Pillow
+pytesseract
+pypdf
+PyMuPDF
+
+# Also install the Tesseract OCR app on your computer:
+# macOS: brew install tesseract
+# Ubuntu/Debian: sudo apt install tesseract-ocr
+# Windows: install Tesseract OCR, then add it to PATH

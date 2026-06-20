@@ -20,6 +20,10 @@
 Track smarter. Spend wiser. Build wealth every day.
 </p>
 
+    {% if error %}
+    <p class="auth-error">{{ error }}</p>
+    {% endif %}
+
     <form method="POST">
 
         <input type="text"
@@ -32,10 +36,21 @@ Track smarter. Spend wiser. Build wealth every day.
                placeholder="Email Address"
                required>
 
-        <input type="password"
-               name="password"
-               placeholder="Password"
-               required>
+        <div class="password-field">
+
+            <input type="password"
+                   name="password"
+                   id="register-password"
+                   placeholder="Password"
+                   required>
+
+            <span
+                class="password-toggle"
+                onclick="togglePassword('register-password', this)">
+                👁️
+            </span>
+
+        </div>
 
         <button type="submit">
             Register
@@ -51,6 +66,19 @@ Track smarter. Spend wiser. Build wealth every day.
 </div>
 
 </div>
+
+<script>
+function togglePassword(inputId, iconEl) {
+    const input = document.getElementById(inputId);
+    if (input.type === "password") {
+        input.type = "text";
+        iconEl.textContent = "🙈";
+    } else {
+        input.type = "password";
+        iconEl.textContent = "👁️";
+    }
+}
+</script>
 
 </body>
 </html>

@@ -29,3 +29,86 @@
     color: #8B95A5;
     padding: 16px;
 }
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.download-btn {
+    display: inline-block;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: #111827;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.download-btn:hover {
+    background: #16a34a;
+}
+
+.receipt-hint {
+    margin-top: 10px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.payment-card {
+    max-width: 620px;
+    margin: 30px auto;
+}
+
+.payment-summary {
+    margin: 18px 0;
+}
+
+.payment-summary h1 {
+    margin-top: 16px;
+    color: #16a34a;
+}
+
+.payment-options {
+    display: grid;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.payment-btn {
+    display: block;
+    padding: 13px 16px;
+    border-radius: 8px;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    text-align: center;
+}
+
+.phonepe-btn {
+    background: #5f259f;
+}
+
+.gpay-btn {
+    background: #1a73e8;
+}
+
+.paytm-btn {
+    background: #00baf2;
+}
+
+.upi-btn {
+    background: #111827;
+}
+
+.payment-note {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 16px;
+}
