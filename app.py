@@ -13,12 +13,16 @@ from flask import Flask, render_template, request, redirect, session, send_file,
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-# Always use the database beside this app file, even if Flask is started
-# from another folder. Otherwise a new empty expenses.db can be created,
-# which makes users look unregistered and hides saved expenses after logout.
+# Always use the database beside this app file when running locally.
+# In production on Render, DATA_DIR is set to the persistent Disk's mount
+# path (e.g. /var/data) so expenses.db and uploaded receipts survive
+# redeploys -- Render's container filesystem itself is wiped on every
+# deploy/restart, so anything written next to app.py would be lost.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "expenses.db")
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads", "receipts")
+DATA_DIR = os.environ.get("DATA_DIR", BASE_DIR)
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(DATA_DIR, "expenses.db")
+UPLOAD_FOLDER = os.path.join(DATA_DIR, "uploads", "receipts")
 ALLOWED_RECEIPT_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "pdf"}
 os.chdir(BASE_DIR)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
