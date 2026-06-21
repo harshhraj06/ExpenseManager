@@ -6,6 +6,7 @@ Pillow
 pytesseract
 pypdf
 PyMuPDF
+requests
 
 # Also install the Tesseract OCR app on your computer:
 # macOS: brew install tesseract

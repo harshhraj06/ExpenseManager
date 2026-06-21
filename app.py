@@ -2,9 +2,8 @@ import os
 import re
 import json
 import secrets
-import smtplib
 import sqlite3
-from email.message import EmailMessage
+import requests
 from html import escape
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -45,36 +44,34 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 UPI_ID = "yourname@upi"
 
 # ─────────────────────────────────────────────
-# SMTP SETTINGS – needed to send "Forgot Password" reset emails.
+# RESEND SETTINGS -- needed to send "Forgot Password" reset emails.
 #
-# >>> EDIT THE TWO LINES BELOW <<<
-# Replace "TODO_YOUR_GMAIL@gmail.com" with your real Gmail address.
-# Replace "TODO_YOUR_16_CHAR_APP_PASSWORD" with the App Password from
-# https://myaccount.google.com/apppasswords (NOT your normal Gmail
-# password -- Gmail rejects normal passwords over SMTP). Remove any
-# spaces Google shows in the code, e.g. "abcd efgh ijkl mnop" becomes
-# "abcdefghijklmnop".
+# Render blocks outbound SMTP (port 587/465), so raw Gmail SMTP cannot
+# work from a deployed Render web service -- only from localhost. We
+# send mail over Resend's HTTPS API instead, which is not blocked.
 #
-# You'll need 2-Step Verification turned on for your Google account
-# before App Passwords appear as an option.
+# >>> SET THESE AS ENVIRONMENT VARIABLES (Render dashboard -> Environment) <<<
+#   RESEND_API_KEY     - from https://resend.com/api-keys (starts with "re_")
+#   RESEND_FROM_ADDRESS - e.g. "onboarding@resend.dev" to start (Resend's
+#                          shared test sender, no domain setup needed), or
+#                          "noreply@yourdomain.com" once you verify a domain
+#                          at https://resend.com/domains
 #
-# These can also be set as environment variables of the same name
-# instead of hardcoding them here, which keeps credentials out of
-# your source code -- recommended once you're done testing locally.
-# If left as the TODO placeholders, reset emails will fail with a
-# clear error printed to your console instead of crashing the app.
+# No secrets are hardcoded here -- if RESEND_API_KEY is missing, reset
+# emails fail with a clear error printed to the console instead of
+# crashing the app.
 # ─────────────────────────────────────────────
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "harshlucky201@gmail.com")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "hmptwrwilbdagthu")
-SMTP_FROM_ADDRESS = os.environ.get("SMTP_FROM_ADDRESS", SMTP_USERNAME)
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM_ADDRESS = os.environ.get("RESEND_FROM_ADDRESS", "onboarding@resend.dev")
+RESEND_API_URL = "https://api.resend.com/emails"
 
 # Base URL used to build the reset link inside the email, e.g.
 # "https://yourapp.com" in production. Defaults to localhost for
 # local development/testing.
-APP_BASE_URL = os.environ.get("https://expensemanager-th5g.onrender.com")
-
+APP_BASE_URL = os.environ.get(
+    "APP_BASE_URL",
+    "https://expensemanager-th5g.onrender.com"
+)
 PASSWORD_RESET_TOKEN_VALID_MINUTES = 30
 
 
@@ -110,52 +107,59 @@ def _split_members_from_expense(expense, fallback_member_names):
 
 def _send_password_reset_email(to_email, reset_link):
     """
-    Sends the password reset email over SMTP. Raises RuntimeError with
-    a clear message if SMTP isn't configured yet, rather than letting
-    a raw smtplib exception bubble up to the user.
-    """
-    placeholder_values = {"", "TODO_YOUR_GMAIL@gmail.com", "TODO_YOUR_16_CHAR_APP_PASSWORD"}
+    Sends the password reset email via Resend's HTTPS API. Raises
+    RuntimeError with a clear message if Resend isn't configured yet,
+    or if Resend itself rejects the request, rather than letting a raw
+    requests exception bubble up to the user.
 
-    if SMTP_USERNAME in placeholder_values or SMTP_PASSWORD in placeholder_values:
+    Why not SMTP: Render (and most PaaS hosts) block outbound SMTP
+    ports (587/465) on web services, so smtplib connections to Gmail
+    fail there with "Network is unreachable" even though they work
+    fine from a local machine. Resend's API runs over normal HTTPS
+    (port 443), which is never blocked.
+    """
+    if not RESEND_API_KEY:
         raise RuntimeError(
-            "SMTP is not configured yet -- SMTP_USERNAME/SMTP_PASSWORD in "
-            "app.py still have their TODO placeholder values. Replace them "
-            "with your real Gmail address and a 16-character App Password "
-            "from https://myaccount.google.com/apppasswords, then restart "
-            "the app."
+            "Email is not configured yet -- RESEND_API_KEY is missing. "
+            "Sign up free at https://resend.com, create an API key at "
+            "https://resend.com/api-keys, and set RESEND_API_KEY as an "
+            "environment variable (Render dashboard -> Environment), "
+            "then redeploy."
         )
 
-    message = EmailMessage()
-    message["Subject"] = "Reset your Expense Manager password"
-    message["From"] = SMTP_FROM_ADDRESS
-    message["To"] = to_email
-    message.set_content(
+    text_body = (
         "We received a request to reset your Expense Manager password.\n\n"
         f"Click this link to set a new password:\n{reset_link}\n\n"
         f"This link expires in {PASSWORD_RESET_TOKEN_VALID_MINUTES} minutes. "
         "If you didn't request this, you can safely ignore this email."
     )
 
-    if SMTP_PORT == 465:
-        smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20)
-    else:
-        smtp = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20)
+    response = requests.post(
+        RESEND_API_URL,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "from": RESEND_FROM_ADDRESS,
+            "to": [to_email],
+            "subject": "Reset your Expense Manager password",
+            "text": text_body,
+        },
+        timeout=20,
+    )
 
-    with smtp:
-        if SMTP_PORT != 465:
-            smtp.starttls()
+    if response.status_code >= 400:
         try:
-            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
-        except smtplib.SMTPAuthenticationError as exc:
-            raise RuntimeError(
-                "Gmail rejected the login. This almost always means "
-                "SMTP_PASSWORD is your normal Gmail password instead of "
-                "an App Password, or 2-Step Verification isn't enabled "
-                "on the Google account yet. Generate an App Password at "
-                "https://myaccount.google.com/apppasswords and use that "
-                "16-character code (no spaces) as SMTP_PASSWORD."
-            ) from exc
-        smtp.send_message(message)
+            detail = response.json().get("message", response.text)
+        except ValueError:
+            detail = response.text
+        raise RuntimeError(
+            f"Resend rejected the request ({response.status_code}): {detail}. "
+            "If this mentions the 'from' address or domain, verify a domain "
+            "at https://resend.com/domains, or use the default "
+            "'onboarding@resend.dev' sender while testing."
+        )
 
 
 # =========================
@@ -552,8 +556,8 @@ def forgot_password():
             except Exception as exc:
                 print(f"[forgot_password] Failed to send reset email: {exc}")
                 error = (
-                    "Could not send the reset email. Check your SMTP email, "
-                    "App Password, internet connection, and restart Flask."
+                    "Could not send the reset email. Check your internet "
+                    "connection and Resend configuration, then try again."
                 )
         else:
             message = "If an account exists with that email, a password reset link has been sent."
