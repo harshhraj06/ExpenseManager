@@ -1,6 +1,10 @@
+import os
 import sqlite3
 
-conn = sqlite3.connect("expenses.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "expenses.db")
+
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
 # ================= USERS =================
@@ -111,7 +115,8 @@ CREATE TABLE IF NOT EXISTS shared_expenses (
     group_id INTEGER,
     description TEXT,
     amount REAL,
-    paid_by TEXT
+    paid_by TEXT,
+    split_members TEXT
 )
 """)
 
@@ -191,6 +196,9 @@ if not _column_exists("members", "user_id"):
 
 if not _column_exists("users", "upi_id"):
     cursor.execute("ALTER TABLE users ADD COLUMN upi_id TEXT")
+
+if not _column_exists("shared_expenses", "split_members"):
+    cursor.execute("ALTER TABLE shared_expenses ADD COLUMN split_members TEXT")
 
 conn.commit()
 

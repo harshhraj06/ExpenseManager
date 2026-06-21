@@ -41,7 +41,13 @@
     </div>
     {% endif %}
 
-    <!-- YOUR UPI ID (needed so others can Pay Now to you) -->
+    {% if request.args.get('split_error') == 'no_members' %}
+    <div class="card" style="border-left: 4px solid #dc2626;">
+        <p>Please choose at least one person before splitting the expense.</p>
+    </div>
+    {% endif %}
+
+    <!-- YOUR UPI ID -->
 
     <div class="card">
 
@@ -71,7 +77,7 @@
 
     </div>
 
-    <!-- GROUP ACCESS (who can view/pay in this group) -->
+    <!-- GROUP ACCESS -->
 
     <div class="card">
 
@@ -113,13 +119,9 @@
             {% for user in group_users %}
 
             <tr>
-
                 <td>{{ user[1] }}</td>
-
                 <td>{{ user[2] }}</td>
-
                 <td>{{ user[3] }}</td>
-
                 <td>{{ user[4] or "Not set" }}</td>
 
                 {% if is_owner %}
@@ -128,14 +130,11 @@
                     <a
                     href="/group/{{ group[0] }}/remove_user/{{ user[0] }}"
                     onclick="return confirm('Remove this person from the group? They will lose access immediately.')">
-
                         ❌ Remove
-
                     </a>
                     {% endif %}
                 </td>
                 {% endif %}
-
             </tr>
 
             {% endfor %}
@@ -174,7 +173,6 @@
         <h2>Members</h2>
 
         <table>
-
             <tr>
                 <th>ID</th>
                 <th>Name</th>
@@ -184,27 +182,18 @@
             {% for member in members %}
 
             <tr>
-
                 <td>{{ member[0] }}</td>
-
                 <td>{{ member[2] }}</td>
-
                 <td>
-
                     <a
                     href="/delete_member/{{ member[0] }}/{{ group[0] }}"
                     onclick="return confirm('Delete this member?')">
-
                         ❌ Delete
-
                     </a>
-
                 </td>
-
             </tr>
 
             {% endfor %}
-
         </table>
 
     </div>
@@ -232,17 +221,28 @@
                 required>
 
             <select name="paid_by" required>
-
                 {% for member in members %}
-
                 <option>{{ member[2] }}</option>
-
                 {% endfor %}
-
             </select>
 
+            <div class="split-member-list">
+                <h3>Split Between</h3>
+
+                {% for member in members %}
+                <label class="split-member-option">
+                    <input
+                        type="checkbox"
+                        name="split_members"
+                        value="{{ member[2] }}"
+                        checked>
+                    <span>{{ member[2] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
             <button type="submit">
-                Add Shared Expense
+                Split Equally
             </button>
 
         </form>
@@ -256,11 +256,11 @@
         <h2>Shared Expenses</h2>
 
         <table>
-
             <tr>
                 <th>Description</th>
                 <th>Amount</th>
                 <th>Paid By</th>
+                <th>Split Between</th>
                 <th>Edit</th>
                 <th>Delete</th>
             </tr>
@@ -268,37 +268,27 @@
             {% for expense in expenses %}
 
             <tr>
-
                 <td>{{ expense[2] }}</td>
-
-                <td>₹{{ expense[3] }}</td>
-
+                <td class="money-cell">₹{{ "%.2f"|format(expense[3]) }}</td>
                 <td>{{ expense[4] }}</td>
-
+                <td class="muted-cell">
+                    {{ split_labels.get(expense[0], "All members") }}
+                </td>
                 <td>
-
                     <a href="/edit_shared_expense/{{ expense[0] }}">
                         ✏️ Edit
                     </a>
-
                 </td>
-
                 <td>
-
                     <a
                     href="/delete_shared_expense/{{ expense[0] }}/{{ group[0] }}"
                     onclick="return confirm('Delete this expense?')">
-
                         ❌ Delete
-
                     </a>
-
                 </td>
-
             </tr>
 
             {% endfor %}
-
         </table>
 
     </div>
@@ -311,21 +301,47 @@
 
         {% for item in expense_breakdown %}
 
-        <h3>
-            {{ item.description }}
-            (₹{{ item.amount }})
-            - Paid by {{ item.paid_by }}
-        </h3>
+        <div class="breakdown-card">
+            <div class="breakdown-header">
+                <div>
+                    <h3>{{ item.description }}</h3>
+                    <p>Paid by <strong>{{ item.paid_by }}</strong></p>
+                </div>
 
-        <ul>
+                <span class="amount-pill">₹{{ "%.2f"|format(item.amount) }}</span>
+            </div>
+
+            <div class="member-chips">
+                {% for member in item.split_members %}
+                <span>{{ member }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="breakdown-list">
 
             {% for detail in item.details %}
 
-            <li>{{ detail }}</li>
+            <div class="breakdown-row">
+                <div>
+                    <strong>{{ detail.payer }}</strong>
+                    <span>owes {{ detail.receiver }}</span>
+                </div>
+
+                <div class="breakdown-action">
+                    <span class="money-cell">₹{{ "%.2f"|format(detail.amount) }}</span>
+
+                {% if detail.receiver_upi_id %}
+                    <a class="pay-link" href="/settle_up_pay/{{ group[0] }}?payer={{ detail.payer | urlencode }}&receiver={{ detail.receiver | urlencode }}&amount={{ detail.amount }}">
+                    💸 Pay Now
+                    </a>
+                {% endif %}
+                </div>
+            </div>
 
             {% endfor %}
 
-        </ul>
+            </div>
+        </div>
 
         {% endfor %}
 
@@ -337,33 +353,36 @@
 
         <h2>Final Settlement</h2>
 
-        <ul>
+        {% for balance in balances %}
 
-            {% for balance in balances %}
+        <div class="settlement-row">
+            <div class="settlement-names">
+                <strong>{{ balance.payer }}</strong>
+                <span>owes</span>
+                <strong>{{ balance.receiver }}</strong>
+            </div>
 
-            <li>
-
-                {{ balance.text }}
+            <div class="settlement-actions">
+                <span class="amount-pill">₹{{ "%.2f"|format(balance.amount) }}</span>
 
                 {% if balance.receiver_upi_id %}
-                <a href="/settle_up_pay/{{ group[0] }}?payer={{ balance.payer }}&receiver={{ balance.receiver }}&amount={{ balance.amount }}">
+                <a class="pay-link" href="/settle_up_pay/{{ group[0] }}?payer={{ balance.payer | urlencode }}&receiver={{ balance.receiver | urlencode }}&amount={{ balance.amount }}">
                     💸 Pay Now
                 </a>
                 {% endif %}
 
                 <a
-                href="/settle_up/{{ group[0] }}?payer={{ balance.payer }}&receiver={{ balance.receiver }}&amount={{ balance.amount }}"
+                class="settle-link"
+                href="/settle_up/{{ group[0] }}?payer={{ balance.payer | urlencode }}&receiver={{ balance.receiver | urlencode }}&amount={{ balance.amount }}"
                 onclick="return confirm('Mark this payment as settled?')">
-
                     ✅ Settle
-
                 </a>
+            </div>
+        </div>
 
-            </li>
-
-            {% endfor %}
-
-        </ul>
+        {% else %}
+        <p class="empty-state">Everything is settled. No pending payments.</p>
+        {% endfor %}
 
     </div>
 
@@ -374,7 +393,6 @@
         <h2>Payment History</h2>
 
         <table>
-
             <tr>
                 <th>Payer</th>
                 <th>Receiver</th>
@@ -385,19 +403,13 @@
             {% for payment in settlement_history %}
 
             <tr>
-
                 <td>{{ payment[2] }}</td>
-
                 <td>{{ payment[3] }}</td>
-
                 <td>₹{{ payment[4] }}</td>
-
                 <td>{{ payment[5] }}</td>
-
             </tr>
 
             {% endfor %}
-
         </table>
 
     </div>

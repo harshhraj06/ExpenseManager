@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import secrets
 import smtplib
 import sqlite3
@@ -35,6 +36,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "harsh_secret_key_123")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
 # ─────────────────────────────────────────────
 # YOUR UPI ID – change this to your real UPI ID
@@ -64,8 +66,8 @@ UPI_ID = "yourname@upi"
 # ─────────────────────────────────────────────
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "TODO_YOUR_GMAIL@gmail.com")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "TODO_YOUR_16_CHAR_APP_PASSWORD")
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "harshlucky201@gmail.com")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "hmptwrwilbdagthu")
 SMTP_FROM_ADDRESS = os.environ.get("SMTP_FROM_ADDRESS", SMTP_USERNAME)
 
 # Base URL used to build the reset link inside the email, e.g.
@@ -74,6 +76,36 @@ SMTP_FROM_ADDRESS = os.environ.get("SMTP_FROM_ADDRESS", SMTP_USERNAME)
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000")
 
 PASSWORD_RESET_TOKEN_VALID_MINUTES = 30
+
+
+def _normalise_email(email):
+    return email.strip().lower()
+
+
+def _get_selected_split_members(form):
+    members = []
+    seen = set()
+    for member_name in form.getlist("split_members"):
+        cleaned_name = member_name.strip()
+        if cleaned_name and cleaned_name not in seen:
+            members.append(cleaned_name)
+            seen.add(cleaned_name)
+    return members
+
+
+def _split_members_from_expense(expense, fallback_member_names):
+    if len(expense) > 5 and expense[5]:
+        try:
+            split_members = json.loads(expense[5])
+        except (TypeError, ValueError):
+            split_members = []
+        split_members = [
+            member for member in split_members
+            if isinstance(member, str) and member
+        ]
+        if split_members:
+            return split_members
+    return fallback_member_names
 
 
 def _send_password_reset_email(to_email, reset_link):
@@ -104,8 +136,14 @@ def _send_password_reset_email(to_email, reset_link):
         "If you didn't request this, you can safely ignore this email."
     )
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-        smtp.starttls()
+    if SMTP_PORT == 465:
+        smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20)
+    else:
+        smtp = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20)
+
+    with smtp:
+        if SMTP_PORT != 465:
+            smtp.starttls()
         try:
             smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
         except smtplib.SMTPAuthenticationError as exc:
@@ -422,7 +460,7 @@ def register():
     if request.method == "POST":
 
         username = request.form["username"]
-        email    = request.form["email"]
+        email    = _normalise_email(request.form["email"])
         password = generate_password_hash(request.form["password"])
 
         conn   = sqlite3.connect(DB_PATH)
@@ -451,7 +489,7 @@ def login():
 
     if request.method == "POST":
 
-        email    = request.form["email"]
+        email    = _normalise_email(request.form["email"])
         password = request.form["password"]
 
         conn   = sqlite3.connect(DB_PATH)
@@ -462,6 +500,7 @@ def login():
         conn.close()
 
         if user and check_password_hash(user[3], password):
+            session.permanent = True
             session["user_id"]  = user[0]
             session["username"] = user[1]
             return redirect("/")
@@ -483,7 +522,7 @@ def forgot_password():
     error = None
 
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
+        email = _normalise_email(request.form["email"])
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -501,22 +540,25 @@ def forgot_password():
             )
             conn.commit()
 
-            reset_link = f"{APP_BASE_URL}/reset_password/{token}"
+            base_url = os.environ.get("APP_BASE_URL") or request.host_url.rstrip("/")
+            reset_link = f"{base_url}/reset_password/{token}"
 
             try:
                 _send_password_reset_email(email, reset_link)
+                message = "If an account exists with that email, a password reset link has been sent."
             except RuntimeError as exc:
-                # SMTP isn't configured -- don't leak this to the
-                # requester (would confirm the email is registered);
-                # log it server-side so the developer notices.
                 print(f"[forgot_password] Could not send reset email: {exc}")
+                error = str(exc)
             except Exception as exc:
                 print(f"[forgot_password] Failed to send reset email: {exc}")
+                error = (
+                    "Could not send the reset email. Check your SMTP email, "
+                    "App Password, internet connection, and restart Flask."
+                )
+        else:
+            message = "If an account exists with that email, a password reset link has been sent."
 
         conn.close()
-
-        # Same message regardless of whether the account exists.
-        message = "If an account exists with that email, a password reset link has been sent."
 
     return render_template("forgot_password.html", message=message, error=error)
 
@@ -1810,16 +1852,22 @@ def add_shared_expense(group_id):
     conn   = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
+    split_members = _get_selected_split_members(request.form)
+    if not split_members:
+        conn.close()
+        return redirect(f"/group/{group_id}?split_error=no_members")
+
     cursor.execute(
         """
-        INSERT INTO shared_expenses (group_id, description, amount, paid_by)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO shared_expenses (group_id, description, amount, paid_by, split_members)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
             group_id,
             request.form["description"],
             float(request.form["amount"]),
-            request.form["paid_by"]
+            request.form["paid_by"],
+            json.dumps(split_members)
         )
     )
 
@@ -1877,12 +1925,14 @@ def edit_shared_expense(expense_id):
 
     cursor.execute("SELECT * FROM members WHERE group_id=?", (group_id,))
     members = cursor.fetchall()
+    selected_split_members = _split_members_from_expense(expense, [member[2] for member in members])
     conn.close()
 
     return render_template(
         "edit_shared_expense.html",
         expense=expense,
-        members=members
+        members=members,
+        selected_split_members=selected_split_members
     )
 
 
@@ -1895,8 +1945,12 @@ def update_shared_expense(expense_id):
     description = request.form["description"]
     paid_by     = request.form["paid_by"]
     group_id    = int(request.form["group_id"])
+    split_members = _get_selected_split_members(request.form)
 
     require_group_access(group_id)
+
+    if not split_members:
+        return redirect(f"/edit_shared_expense/{expense_id}?split_error=no_members")
 
     try:
         amount = float(request.form["amount"])
@@ -1912,10 +1966,10 @@ def update_shared_expense(expense_id):
     cursor.execute(
         """
         UPDATE shared_expenses
-        SET description=?, amount=?, paid_by=?
+        SET description=?, amount=?, paid_by=?, split_members=?
         WHERE id=? AND group_id=?
         """,
-        (description, amount, paid_by, expense_id, group_id)
+        (description, amount, paid_by, json.dumps(split_members), expense_id, group_id)
     )
 
     conn.commit()
@@ -1975,6 +2029,26 @@ def group_details(group_id):
     my_upi_id = my_upi_row[0] if my_upi_row else None
 
     member_names = [m[2] for m in members]
+    split_labels = {}
+    for expense in expenses:
+        if len(expense) > 5 and expense[5]:
+            split_labels[expense[0]] = ", ".join(_split_members_from_expense(expense, member_names))
+        else:
+            split_labels[expense[0]] = "All members"
+
+    # Map each split-participant name to their UPI ID (if they're a real
+    # linked account that has set one), so the template can show "Pay Now"
+    # where an actual UPI ID exists.
+    cursor.execute(
+        """
+        SELECT m.member_name, u.upi_id
+        FROM members m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.group_id=? AND m.user_id IS NOT NULL
+        """,
+        (group_id,)
+    )
+    name_to_upi = dict(cursor.fetchall())
 
     # Expense Breakdown
     expense_breakdown = []
@@ -1982,14 +2056,21 @@ def group_details(group_id):
         amount      = expense[3]
         paid_by     = expense[4]
         description = expense[2]
+        split_members = _split_members_from_expense(expense, member_names)
 
-        if not member_names:
+        if not split_members:
             continue
 
-        share   = amount / len(member_names)
+        share   = amount / len(split_members)
         details = [
-            f"{member} owes {paid_by} ₹{share:.2f}"
-            for member in member_names
+            {
+                "text": f"{member} owes {paid_by} ₹{share:.2f}",
+                "payer": member,
+                "receiver": paid_by,
+                "amount": round(share, 2),
+                "receiver_upi_id": name_to_upi.get(paid_by)
+            }
+            for member in split_members
             if member != paid_by
         ]
 
@@ -1997,6 +2078,7 @@ def group_details(group_id):
             "description": description,
             "amount":      amount,
             "paid_by":     paid_by,
+            "split_members": split_members,
             "details":     details
         })
 
@@ -2005,13 +2087,14 @@ def group_details(group_id):
     for expense in expenses:
         amount  = expense[3]
         paid_by = expense[4]
+        split_members = _split_members_from_expense(expense, member_names)
 
-        if not member_names:
+        if not split_members:
             continue
 
-        share = amount / len(member_names)
+        share = amount / len(split_members)
         balances[paid_by] += amount
-        for member in member_names:
+        for member in split_members:
             balances[member] -= share
 
     # Apply Settlements
@@ -2022,8 +2105,8 @@ def group_details(group_id):
         balances[payer]    += amount
         balances[receiver] -= amount
 
-    debtors   = [[p, -a] for p, a in balances.items() if a < 0]
-    creditors = [[p,  a] for p, a in balances.items() if a > 0]
+    debtors   = [[p, -a] for p, a in balances.items() if a < -0.01]
+    creditors = [[p,  a] for p, a in balances.items() if a > 0.01]
 
     settlements = []
     i = j = 0
@@ -2031,6 +2114,11 @@ def group_details(group_id):
         debtor   = debtors[i]
         creditor = creditors[j]
         payment  = min(debtor[1], creditor[1])
+
+        if payment < 0.01:
+            if debtor[1] < 0.01: i += 1
+            if creditor[1] < 0.01: j += 1
+            continue
 
         settlements.append({
             "text":     f"{debtor[0]} owes {creditor[0]} ₹{payment:.2f}",
@@ -2045,20 +2133,6 @@ def group_details(group_id):
         if debtor[1]   < 0.01: i += 1
         if creditor[1] < 0.01: j += 1
 
-    # Map each split-participant name to their UPI ID (if they're a real
-    # linked account that has set one), so the template can show "Pay Now"
-    # only when there's an actual UPI ID to pay to.
-    cursor.execute(
-        """
-        SELECT m.member_name, u.upi_id
-        FROM members m
-        JOIN users u ON u.id = m.user_id
-        WHERE m.group_id=? AND m.user_id IS NOT NULL
-        """,
-        (group_id,)
-    )
-    name_to_upi = dict(cursor.fetchall())
-
     for settlement in settlements:
         settlement["receiver_upi_id"] = name_to_upi.get(settlement["receiver"])
 
@@ -2072,6 +2146,7 @@ def group_details(group_id):
         expense_breakdown=expense_breakdown,
         balances=settlements,
         settlement_history=settlement_history,
+        split_labels=split_labels,
         group_users=group_users,
         is_owner=is_owner,
         my_upi_id=my_upi_id

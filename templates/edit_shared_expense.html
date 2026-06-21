@@ -18,6 +18,10 @@
 
         <h1>✏️ Edit Shared Expense</h1>
 
+        {% if request.args.get('split_error') == 'no_members' %}
+        <p>Please choose at least one person before saving the split.</p>
+        {% endif %}
+
         <form
         action="/update_shared_expense/{{ expense[0] }}"
         method="POST">
@@ -55,6 +59,21 @@
                 {% endfor %}
 
             </select>
+
+            <div class="split-member-list">
+                <h3>Split Between</h3>
+
+                {% for member in members %}
+                <label class="split-member-option">
+                    <input
+                        type="checkbox"
+                        name="split_members"
+                        value="{{ member[2] }}"
+                        {% if member[2] in selected_split_members %}checked{% endif %}>
+                    <span>{{ member[2] }}</span>
+                </label>
+                {% endfor %}
+            </div>
 
             <button type="submit">
                 Update Expense
