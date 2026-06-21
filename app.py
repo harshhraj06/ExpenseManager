@@ -22,6 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get("DATA_DIR", BASE_DIR)
 os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, "expenses.db")
+print("DATABASE PATH =", DB_PATH)
 UPLOAD_FOLDER = os.path.join(DATA_DIR, "uploads", "receipts")
 ALLOWED_RECEIPT_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "pdf"}
 os.chdir(BASE_DIR)
