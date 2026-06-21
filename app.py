@@ -73,7 +73,7 @@ SMTP_FROM_ADDRESS = os.environ.get("SMTP_FROM_ADDRESS", SMTP_USERNAME)
 # Base URL used to build the reset link inside the email, e.g.
 # "https://yourapp.com" in production. Defaults to localhost for
 # local development/testing.
-APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000")
+APP_BASE_URL = os.environ.get("https://expensemanager-th5g.onrender.com")
 
 PASSWORD_RESET_TOKEN_VALID_MINUTES = 30
 
