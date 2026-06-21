@@ -6,6 +6,41 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+    /* ── Receipt Scanner ── */
+    .receipt-alert {
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    .receipt-alert-error   { background: #fdecea; color: #c62828; border: 1px solid #f5c6c6; }
+    .receipt-alert-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+
+    .receipt-upload-area {
+        border: 2px dashed #bbb;
+        border-radius: 10px;
+        padding: 24px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        margin-bottom: 12px;
+    }
+    .receipt-upload-area:hover { border-color: var(--accent, #5c6bc0); }
+
+    .receipt-upload-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+    }
+    .receipt-upload-icon { font-size: 2rem; }
+    #receiptFileName    { font-size: 0.9rem; color: #555; word-break: break-all; }
+    .receipt-upload-hint { font-size: 0.78rem; color: #999; }
+    </style>
 </head>
 
 <body>
@@ -18,15 +53,211 @@
         </div>
 
         <div class="nav-links">
-            <span>Welcome {{ session['username'] }}</span>
+            <div class="profile-wrap">
+                <button type="button" class="profile-btn" id="profileBtn">
+                    Welcome {{ session['username'] }}
+                </button>
+
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="profile-row">
+                        <span class="profile-label">Username</span>
+                        <span class="profile-value">{{ session['username'] }}</span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">Email</span>
+                        <span class="profile-value">{{ session['email'] }}</span>
+                    </div>
+                </div>
+            </div>
             <a href="/">Dashboard</a>
             <a href="/groups">Groups</a>
             <a href="/bills">Bills</a>
             <a href="/expenses_bill">Download Exp Bill</a>
+
+            <div class="notif-bell-wrap">
+                <button type="button" class="notif-bell-btn" id="notifBellBtn" aria-label="Notifications">
+                    🔔
+                    {% if unread_count and unread_count > 0 %}
+                    <span class="notif-badge">{{ unread_count if unread_count <= 9 else '9+' }}</span>
+                    {% endif %}
+                </button>
+
+                <div class="notif-dropdown" id="notifDropdown">
+                    <div class="notif-dropdown-header">
+                        <span>Notifications</span>
+                        {% if unread_count and unread_count > 0 %}
+                        <button type="button" id="notifMarkAllRead" class="notif-mark-all">Mark all read</button>
+                        {% endif %}
+                    </div>
+
+                    {% if recent_notifications %}
+                        {% for n in recent_notifications %}
+                        <div class="notif-item{% if not n[4] %} notif-unread{% endif %}" data-notif-id="{{ n[0] }}">
+                            <div class="notif-item-title">🔔 {{ n[1] }}</div>
+                            <div class="notif-item-msg">{{ n[2] }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="notif-empty">No notifications yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
             <a href="/logout">Logout</a>
             <a href="#expense-form" class="add-btn">+ Add Expense</a>
         </div>
     </div>
+
+    <div class="ai-banner-wrap">
+        <a href="/ask_ai" class="ai-banner">
+            <span class="ai-banner-icon">🤖</span>
+            <span class="ai-banner-title">Ask Expense Manager</span>
+            <span class="ai-banner-arrow">→</span>
+        </a>
+    </div>
+
+    <style>
+        .ai-banner-wrap { display: flex; justify-content: flex-end; margin-top: 10px; }
+        .ai-banner {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px; text-decoration: none;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .ai-banner:hover {
+            border-color: rgba(96,165,250,0.4);
+            background: rgba(96,165,250,0.08);
+        }
+        .ai-banner-icon { font-size: 0.8rem; }
+        .ai-banner-title { font-size: 0.72rem; font-weight: 600; color: #9ca3af; letter-spacing: 0.01em; }
+        .ai-banner-arrow {
+            font-size: 0.75rem; color: #6b7280; transition: transform 0.2s ease, color 0.2s ease;
+        }
+        .ai-banner:hover .ai-banner-arrow { color: #60a5fa; transform: translateX(2px); }
+        .ai-banner:hover .ai-banner-title { color: #d1d5db; }
+    </style>
+
+    <style>
+        .profile-wrap { position: relative; display: inline-block; }
+        .profile-btn {
+            background: none; border: none; cursor: pointer;
+            color: inherit; font: inherit; padding: 4px 2px;
+        }
+        .profile-btn:hover { color: #60a5fa; }
+        .profile-dropdown {
+            display: none; position: absolute; left: 0; top: calc(100% + 8px);
+            width: 240px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+            z-index: 50; padding: 6px 0;
+        }
+        .profile-dropdown.open { display: block; }
+        .profile-row {
+            display: flex; flex-direction: column; gap: 2px;
+            padding: 8px 14px;
+        }
+        .profile-row + .profile-row { border-top: 1px solid rgba(255,255,255,0.06); }
+        .profile-label {
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+            text-transform: uppercase; color: #6b7280;
+        }
+        .profile-value { font-size: 0.85rem; color: #e5e7eb; word-break: break-word; }
+    </style>
+
+    <style>
+        .notif-bell-wrap { position: relative; display: inline-block; }
+        .notif-bell-btn {
+            background: none; border: none; cursor: pointer;
+            font-size: 1.15rem; position: relative; padding: 4px 8px;
+            color: inherit;
+        }
+        .notif-badge {
+            position: absolute; top: -2px; right: -2px;
+            background: #ef4444; color: white; font-size: 0.65rem;
+            font-weight: 700; border-radius: 999px; padding: 1px 5px;
+            line-height: 1.3; min-width: 16px; text-align: center;
+        }
+        .notif-dropdown {
+            display: none; position: absolute; right: 0; top: calc(100% + 8px);
+            width: 320px; max-height: 380px; overflow-y: auto;
+            background: #1a1a1a; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+            z-index: 50;
+        }
+        .notif-dropdown.open { display: block; }
+        .notif-dropdown-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.85rem; font-weight: 600; color: #e5e7eb;
+        }
+        .notif-mark-all {
+            background: none; border: none; color: #60a5fa;
+            font-size: 0.75rem; cursor: pointer; padding: 0;
+        }
+        .notif-item {
+            padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+        }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-item:hover { background: rgba(255,255,255,0.04); }
+        .notif-item-title { font-size: 0.85rem; font-weight: 600; color: #f3f4f6; }
+        .notif-item-msg { font-size: 0.78rem; color: #9ca3af; margin-top: 2px; }
+        .notif-unread { background: rgba(96,165,250,0.07); }
+        .notif-empty { padding: 16px 14px; font-size: 0.85rem; color: #9ca3af; text-align: center; }
+    </style>
+
+    <script>
+        (function () {
+            var profileBtn = document.getElementById('profileBtn');
+            var profileDropdown = document.getElementById('profileDropdown');
+            if (profileBtn && profileDropdown) {
+                profileBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    profileDropdown.classList.toggle('open');
+                });
+                document.addEventListener('click', function (e) {
+                    if (!profileDropdown.contains(e.target) && e.target !== profileBtn) {
+                        profileDropdown.classList.remove('open');
+                    }
+                });
+            }
+
+            var btn = document.getElementById('notifBellBtn');
+            var dropdown = document.getElementById('notifDropdown');
+            if (!btn || !dropdown) return;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!dropdown.contains(e.target) && e.target !== btn) {
+                    dropdown.classList.remove('open');
+                }
+            });
+
+            dropdown.querySelectorAll('.notif-item').forEach(function (item) {
+                item.addEventListener('click', function () {
+                    var id = item.getAttribute('data-notif-id');
+                    fetch('/notifications/mark_read/' + id, { method: 'POST' }).then(function () {
+                        item.classList.remove('notif-unread');
+                    });
+                });
+            });
+
+            var markAllBtn = document.getElementById('notifMarkAllRead');
+            if (markAllBtn) {
+                markAllBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    fetch('/notifications/mark_all_read', { method: 'POST' }).then(function () {
+                        window.location.reload();
+                    });
+                });
+            }
+        })();
+    </script>
 
     <div class="hero">
         <h1>
@@ -67,13 +298,145 @@
 
 </div>
 
-<div class="card">
+<div class="charts-row">
 
-    <h2>Expense Analytics</h2>
+    <div class="card chart-card">
 
-    <div class="chart-container">
-        <canvas id="expenseChart"></canvas>
+        <h2>Expense Analytics</h2>
+
+        <div class="chart-container">
+            <canvas id="expenseChart"></canvas>
+        </div>
+
     </div>
+
+    <div class="card chart-card">
+
+        <div class="section-header">
+            <div>
+                <h2>Income vs Expense Trend</h2>
+                <p class="trend-sub">Last 12 months, month over month</p>
+            </div>
+            <button type="button" id="toggleTrendChartBtn" class="chart-toggle-btn">📈 Show Trend Chart</button>
+        </div>
+
+        <div class="trend-chart-panel" id="trendChartPanel">
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+    .charts-row {
+        display: flex; gap: 20px;
+        max-width: 1100px; margin: 24px auto;
+    }
+    .charts-row .chart-card {
+        flex: 1; min-width: 0; margin: 0;
+    }
+    .charts-row .chart-container { height: 240px; }
+    .trend-sub { margin: -4px 0 0; font-size: 0.82rem; color: #8b929e; }
+
+    .chart-card .section-header {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        margin-bottom: 16px;
+    }
+    .chart-card .section-header h2 { margin: 0 0 2px 0; }
+
+    .chart-toggle-btn {
+        background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25);
+        color: #93c5fd; border-radius: 999px; padding: 6px 14px;
+        font-size: 0.8rem; font-weight: 600; cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
+        flex-shrink: 0; white-space: nowrap;
+    }
+    .chart-toggle-btn:hover { background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.4); }
+    .chart-toggle-btn.active { background: rgba(96,165,250,0.22); border-color: rgba(96,165,250,0.5); }
+
+    .trend-chart-panel {
+        display: none; height: 240px;
+    }
+    .trend-chart-panel.open { display: block; }
+    .trend-chart-panel .chart-container { height: 100%; position: relative; }
+
+    @media (max-width: 800px) {
+        .charts-row { flex-direction: column; }
+    }
+</style>
+
+<div class="card ai-insights-card">
+
+    <div class="ai-insights-header">
+        <div class="ai-insights-header-icon">📊</div>
+        <div>
+            <h2>AI Insights</h2>
+            <p class="ai-insights-sub">A quick read on how this month is shaping up</p>
+        </div>
+    </div>
+
+    <div class="ai-insights-list">
+        {% for insight in ai_insights %}
+        {% if 'increased' in insight %}
+            {% set row_icon, row_class = '↑', 'insight-up' %}
+        {% elif 'decreased' in insight %}
+            {% set row_icon, row_class = '↓', 'insight-down' %}
+        {% elif 'Potential savings' in insight %}
+            {% set row_icon, row_class = '₹', 'insight-save' %}
+        {% elif 'exceeded' in insight %}
+            {% set row_icon, row_class = '!', 'insight-warn' %}
+        {% else %}
+            {% set row_icon, row_class = '•', 'insight-neutral' %}
+        {% endif %}
+        <div class="insight-row">
+            <span class="insight-marker {{ row_class }}">{{ row_icon }}</span>
+            <span class="insight-text">{{ insight }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <a href="/ask_ai" class="ai-insights-cta">Ask Expense Manager a question →</a>
+
+    <style>
+        .ai-insights-card { padding: 28px 30px; }
+        .ai-insights-header {
+            display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px;
+        }
+        .ai-insights-header-icon {
+            font-size: 1.3rem; width: 42px; height: 42px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(96,165,250,0.1); border-radius: 11px;
+        }
+        .ai-insights-header h2 { margin: 0 0 2px 0; font-size: 1.15rem; }
+        .ai-insights-sub { margin: 0; font-size: 0.82rem; color: #8b929e; }
+
+        .ai-insights-list { display: flex; flex-direction: column; }
+        .insight-row {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .insight-row:last-child { border-bottom: none; }
+        .insight-marker {
+            flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 700; margin-top: 1px;
+        }
+        .insight-up     { background: rgba(248,113,113,0.12); color: #f87171; }
+        .insight-down   { background: rgba(74,222,128,0.12);  color: #4ade80; }
+        .insight-save   { background: rgba(96,165,250,0.12);  color: #60a5fa; }
+        .insight-warn   { background: rgba(251,191,36,0.14);  color: #fbbf24; }
+        .insight-neutral{ background: rgba(255,255,255,0.06); color: #9ca3af; }
+        .insight-text { font-size: 0.93rem; color: #d1d5db; line-height: 1.5; padding-top: 2px; }
+
+        .ai-insights-cta {
+            display: inline-block; margin-top: 18px; font-size: 0.85rem;
+            color: #60a5fa; text-decoration: none; font-weight: 600;
+        }
+        .ai-insights-cta:hover { text-decoration: underline; }
+    </style>
 
 </div>
 
@@ -154,25 +517,100 @@
 
 <div class="card" id="receipt-scanner">
 
-    <h2>Add Expense From Bill Receipt</h2>
+    <h2>📷 Add Expense From Bill Receipt</h2>
+
+    {% if receipt_error_msg %}
+    <div class="receipt-alert receipt-alert-error">
+        {{ receipt_error_msg }}
+    </div>
+    {% endif %}
+
+    {% if receipt_added %}
+    <div class="receipt-alert receipt-alert-success">
+        ✅ Receipt scanned successfully!
+        {% if receipt_orig %}
+            Converted <strong>{{ receipt_orig }}</strong> → <strong>₹{{ receipt_amount }}</strong>
+            {% if receipt_rate %}(rate: ₹{{ receipt_rate }}){% endif %}
+            {% if receipt_cat %} · Category: <strong>{{ receipt_cat }}</strong>{% endif %}.
+        {% elif receipt_amount %}
+            Detected amount: <strong>₹{{ receipt_amount }}</strong>{% if receipt_cat %} ({{ receipt_cat }}){% endif %}.
+        {% endif %}
+        The expense has been added below.
+    </div>
+    {% endif %}
 
     <form action="/scan_receipt" method="POST" enctype="multipart/form-data">
 
-        <input
-            type="file"
-            name="receipt"
-            accept="image/png,image/jpeg,image/webp,application/pdf"
-            required>
+        <div class="receipt-upload-area" id="receiptDropzone">
+            <input
+                type="file"
+                name="receipt"
+                id="receiptFileInput"
+                accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                required
+                style="display:none">
 
-        <button type="submit">
-            Scan Receipt & Add Expense
+            <label for="receiptFileInput" class="receipt-upload-label" id="receiptLabel">
+                <span class="receipt-upload-icon">📁</span>
+                <span id="receiptFileName">Click to choose a file or drag &amp; drop here</span>
+                <span class="receipt-upload-hint">JPG, PNG, WEBP or PDF · Max 10 MB</span>
+            </label>
+        </div>
+
+        <button type="submit" id="receiptSubmitBtn" disabled>
+            🔍 Scan Receipt &amp; Add Expense
         </button>
 
     </form>
 
     <p class="receipt-hint">
-        Upload a clear bill photo or PDF. The app will try to detect the total amount, date, category, and description.
+        Upload a clear bill photo (JPG/PNG) or PDF. The AI will read the total amount, date, category, and description automatically.
     </p>
+
+    <script>
+    (function () {
+        var input   = document.getElementById("receiptFileInput");
+        var label   = document.getElementById("receiptFileName");
+        var btn     = document.getElementById("receiptSubmitBtn");
+        var dropzone = document.getElementById("receiptDropzone");
+
+        function onFileChosen(file) {
+            if (!file) return;
+            label.textContent = "📎 " + file.name + " (" + (file.size / 1024).toFixed(0) + " KB)";
+            btn.disabled = false;
+        }
+
+        input.addEventListener("change", function () {
+            onFileChosen(this.files[0]);
+        });
+
+        dropzone.addEventListener("dragover", function (e) {
+            e.preventDefault();
+            dropzone.style.borderColor = "var(--accent, #5c6bc0)";
+        });
+        dropzone.addEventListener("dragleave", function () {
+            dropzone.style.borderColor = "";
+        });
+        dropzone.addEventListener("drop", function (e) {
+            e.preventDefault();
+            dropzone.style.borderColor = "";
+            var dt = e.dataTransfer;
+            if (dt && dt.files && dt.files[0]) {
+                // Assign to the file input so the form submits it
+                var transfer = new DataTransfer();
+                transfer.items.add(dt.files[0]);
+                input.files = transfer.files;
+                onFileChosen(dt.files[0]);
+            }
+        });
+
+        // Show spinner on submit
+        document.querySelector("form[action='/scan_receipt']").addEventListener("submit", function () {
+            btn.disabled = true;
+            btn.textContent = "⏳ Scanning… please wait";
+        });
+    })();
+    </script>
 
 </div>
 
@@ -299,6 +737,99 @@ new Chart(ctx, {
         maintainAspectRatio: false
     }
 });
+
+var trendLabels = [
+{% for row in monthly_trend %}
+"{{ row.label }}",
+{% endfor %}
+];
+
+var trendIncome = [
+{% for row in monthly_trend %}
+{{ row.income }},
+{% endfor %}
+];
+
+var trendExpense = [
+{% for row in monthly_trend %}
+{{ row.expense }},
+{% endfor %}
+];
+
+(function () {
+    var toggleBtn = document.getElementById('toggleTrendChartBtn');
+    var chartPanel = document.getElementById('trendChartPanel');
+    var trendChartInstance = null;
+
+    if (!toggleBtn || !chartPanel) { return; }
+
+    toggleBtn.addEventListener('click', function () {
+        var isOpen = chartPanel.classList.contains('open');
+
+        if (isOpen) {
+            chartPanel.classList.remove('open');
+            toggleBtn.classList.remove('active');
+            toggleBtn.textContent = '📈 Show Trend Chart';
+            return;
+        }
+
+        chartPanel.classList.add('open');
+        toggleBtn.classList.add('active');
+        toggleBtn.textContent = '📉 Hide Trend Chart';
+
+        if (trendChartInstance) { return; } // already rendered, just toggling visibility
+
+        var trendCtx = document.getElementById('trendChart');
+        trendChartInstance = new Chart(trendCtx, {
+            type: 'line',
+
+            data: {
+                labels: trendLabels,
+
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: trendIncome,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74,222,128,0.12)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Expenses',
+                        data: trendExpense,
+                        borderColor: '#f87171',
+                        backgroundColor: 'rgba(248,113,113,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: 'rgba(255,255,255,0.06)' }
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#d1d5db' } }
+                }
+            }
+        });
+    });
+})();
 
 </script>
 

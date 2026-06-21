@@ -79,6 +79,25 @@ APP_BASE_URL = os.environ.get(
 )
 PASSWORD_RESET_TOKEN_VALID_MINUTES = 30
 
+# ─────────────────────────────────────────────
+# GROQ SETTINGS -- needed for the "Ask Expense Manager" AI chat.
+#
+# Groq gives reliable free API access to open models (Llama, etc.) with
+# no billing setup required. Switched to this after Google's Gemini
+# free tier kept returning 0 quota for this account/project, which
+# Google allocates per-account and isn't something fixable from a
+# config setting on our end.
+#
+# >>> SET THIS AS AN ENVIRONMENT VARIABLE (Render dashboard -> Environment) <<<
+#   GROQ_API_KEY - from https://console.groq.com/keys (free, no card)
+#
+# No secret is hardcoded here -- if GROQ_API_KEY is missing, the chat
+# route returns a clear error message instead of crashing the app.
+# ─────────────────────────────────────────────
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
 
 def _normalise_email(email):
     return email.strip().lower()
@@ -257,15 +276,74 @@ def _allowed_receipt_file(filename):
 
 
 def _extract_image_receipt_text(image_path):
-    try:
-        from PIL import Image
-        import pytesseract
-    except ImportError as exc:
-        raise RuntimeError(
-            "Receipt scanning needs Pillow and pytesseract installed."
-        ) from exc
+    """
+    Sends the image to Groq's vision model (llama-3.2-11b-vision-preview)
+    as a base64-encoded data URL. This replaces the old pytesseract path,
+    which required a native Tesseract binary that is not available on most
+    PaaS hosts (Render, Railway, etc.) and caused every JPEG/PNG scan to
+    silently fail with 'ocr_missing'. The Groq key is already required for
+    the AI chat feature, so no new credential is needed.
+    """
+    import base64, mimetypes
 
-    return pytesseract.image_to_string(Image.open(image_path))
+    if not GROQ_API_KEY:
+        raise RuntimeError(
+            "Receipt scanning via AI needs GROQ_API_KEY. "
+            "Get a free key at https://console.groq.com/keys and set it "
+            "as an environment variable, then redeploy."
+        )
+
+    ext = image_path.rsplit(".", 1)[-1].lower()
+    mime = mimetypes.types_map.get(f".{ext}", "image/jpeg")
+
+    with open(image_path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode()
+
+    data_url = f"data:{mime};base64,{b64}"
+
+    response = requests.post(
+        GROQ_API_URL,
+        headers={
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": data_url},
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "This is a receipt or bill image. "
+                                "Extract ALL visible text from it exactly as it appears, "
+                                "including amounts, dates, item names, store name, and totals. "
+                                "Return only the raw extracted text, no commentary."
+                            ),
+                        },
+                    ],
+                }
+            ],
+            "temperature": 0,
+            "max_tokens": 800,
+        },
+        timeout=40,
+    )
+
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("error", {}).get("message", response.text)
+        except ValueError:
+            detail = response.text
+        raise RuntimeError(f"Groq vision API error ({response.status_code}): {detail}")
+
+    data = response.json()
+    return data["choices"][0]["message"]["content"].strip()
 
 
 def _extract_pdf_receipt_text(pdf_path):
@@ -377,6 +455,113 @@ def _guess_receipt_description(text, filename):
     return f"Receipt: {filename}"
 
 
+# ─────────────────────────────────────────────
+# CURRENCY DETECTION & LIVE CONVERSION TO INR
+# ─────────────────────────────────────────────
+
+# Symbols / keywords that are clearly INR -- skip conversion for these.
+_INR_MARKERS = {"inr", "₹", "rs.", "rs ", "rupee", "rupees"}
+
+def _detect_receipt_currency_and_amount(text):
+    """
+    Asks Groq (text model) to identify the currency code and total amount
+    on the receipt. Returns (currency_code: str, amount: float) where
+    currency_code is an ISO-4217 code like 'USD', 'EUR', 'AED', or 'INR'.
+    Falls back to ('INR', None) if detection fails so the caller can use
+    the regex-based amount guesser as a safe fallback.
+    """
+    if not GROQ_API_KEY:
+        return "INR", None
+
+    prompt = (
+        "Look at this receipt text and answer ONLY with a JSON object "
+        "containing two fields:\n"
+        '  "currency": the ISO-4217 currency code (e.g. "USD", "EUR", "AED", "INR", "GBP")\n'
+        '  "amount": the final total amount as a plain number (e.g. 42.50)\n'
+        "If you cannot determine the currency, use \"INR\". "
+        "If you cannot find a total, use null for amount. "
+        "Return ONLY the JSON, no explanation.\n\n"
+        f"Receipt text:\n{text[:1500]}"
+    )
+
+    try:
+        response = requests.post(
+            GROQ_API_URL,
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": GROQ_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
+                "max_tokens": 60,
+            },
+            timeout=15,
+        )
+        raw = response.json()["choices"][0]["message"]["content"].strip()
+        # Strip possible ```json fences
+        raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("`").strip()
+        parsed = json.loads(raw)
+        currency = str(parsed.get("currency") or "INR").upper().strip()
+        amount_raw = parsed.get("amount")
+        amount = float(amount_raw) if amount_raw is not None else None
+        return currency, amount
+    except Exception as exc:
+        print(f"[currency detect] failed: {exc}")
+        return "INR", None
+
+
+def _fetch_inr_rate(from_currency):
+    """
+    Fetches the live exchange rate from `from_currency` to INR using the
+    free Frankfurter API (https://api.frankfurter.app). No API key needed.
+    Returns the rate as a float, or None on failure.
+    Frankfurter doesn't cover INR directly for all currencies, so we go
+    through USD as a bridge when a direct quote isn't available.
+    """
+    if from_currency == "INR":
+        return 1.0
+
+    try:
+        url = f"https://api.frankfurter.app/latest?from={from_currency}&to=INR"
+        resp = requests.get(url, timeout=8)
+        if resp.status_code == 200:
+            data = resp.json()
+            rate = data.get("rates", {}).get("INR")
+            if rate:
+                return float(rate)
+    except Exception as exc:
+        print(f"[exchange rate] direct fetch failed: {exc}")
+
+    # Bridge through USD if direct quote failed
+    try:
+        r1 = requests.get(
+            f"https://api.frankfurter.app/latest?from={from_currency}&to=USD",
+            timeout=8,
+        ).json()
+        r2 = requests.get(
+            "https://api.frankfurter.app/latest?from=USD&to=INR",
+            timeout=8,
+        ).json()
+        usd_rate  = r1.get("rates", {}).get("USD")
+        inr_rate  = r2.get("rates", {}).get("INR")
+        if usd_rate and inr_rate:
+            return float(usd_rate) * float(inr_rate)
+    except Exception as exc:
+        print(f"[exchange rate] bridge fetch failed: {exc}")
+
+    return None
+
+
+def _is_inr(currency_code, text):
+    """Returns True if the currency is Indian Rupee (by code or symbol)."""
+    if currency_code.upper() == "INR":
+        return True
+    lowered = text.lower()
+    return any(marker in lowered for marker in _INR_MARKERS)
+
+
 def _next_due_date(due_date_str, recurrence):
     """Given a due date and a recurrence rule, return the next due date."""
 
@@ -457,6 +642,246 @@ def process_due_bills(user_id):
     conn.close()
 
 
+def generate_due_bill_notifications(user_id):
+    """
+    Checks this user's PENDING bills for ones due today or tomorrow and
+    creates a notification row for each, so the bell in the navbar can
+    show them. Called on login/dashboard load (see home()).
+
+    Idempotent on purpose: it only inserts a notification for a given
+    (bill, due_date) pair if one doesn't already exist, so refreshing
+    the dashboard 10 times in a row doesn't create 10 duplicate
+    notifications for the same bill.
+    """
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    today_str = today.strftime("%Y-%m-%d")
+    tomorrow_str = tomorrow.strftime("%Y-%m-%d")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, name, amount, due_date
+        FROM bills
+        WHERE user_id=? AND status='pending'
+        AND due_date IN (?, ?)
+        """,
+        (user_id, today_str, tomorrow_str)
+    )
+    due_bills = cursor.fetchall()
+
+    for bill_id, name, amount, due_date_str in due_bills:
+        when = "today" if due_date_str == today_str else "tomorrow"
+        title = f"{name} due {when}"
+        message = f"{name} ₹{amount:.2f} is due {when}."
+
+        # De-dupe: skip if a notification for this exact bill+due_date
+        # already exists, regardless of read state.
+        cursor.execute(
+            """
+            SELECT 1 FROM notifications
+            WHERE user_id=? AND title=? AND due_date=?
+            """,
+            (user_id, title, due_date_str)
+        )
+        if cursor.fetchone():
+            continue
+
+        cursor.execute(
+            """
+            INSERT INTO notifications (user_id, title, message, due_date, is_read)
+            VALUES (?, ?, ?, ?, 0)
+            """,
+            (user_id, title, message, due_date_str)
+        )
+
+    conn.commit()
+    conn.close()
+
+
+def get_navbar_notifications(user_id):
+    """
+    Fetches recent notifications for the navbar bell: unread count plus
+    the most recent rows (read or unread) to show in the dropdown.
+    Shared by every route that renders a page with the navbar.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0",
+        (user_id,)
+    )
+    unread_count = cursor.fetchone()[0] or 0
+
+    cursor.execute(
+        """
+        SELECT id, title, message, due_date, is_read, created_at
+        FROM notifications
+        WHERE user_id=?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 10
+        """,
+        (user_id,)
+    )
+    recent_notifications = cursor.fetchall()
+
+    conn.close()
+    return unread_count, recent_notifications
+
+
+def _build_financial_context(user_id):
+    """
+    Pulls a compact summary of this user's data to ground the AI's
+    answer in real numbers instead of letting it guess. Keeping this
+    summarized (not raw row dumps) keeps the prompt small and cheap.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    this_start, this_end = _month_bounds(0)
+
+    cursor.execute(
+        "SELECT SUM(amount) FROM expenses WHERE user_id=? AND date>=? AND date<?",
+        (user_id, this_start, this_end)
+    )
+    expense_this_month = cursor.fetchone()[0] or 0
+
+    cursor.execute(
+        "SELECT SUM(amount) FROM income WHERE user_id=? AND date>=? AND date<?",
+        (user_id, this_start, this_end)
+    )
+    income_this_month = cursor.fetchone()[0] or 0
+
+    cursor.execute(
+        """
+        SELECT category, SUM(amount) FROM expenses
+        WHERE user_id=? AND date>=? AND date<?
+        GROUP BY category ORDER BY SUM(amount) DESC
+        """,
+        (user_id, this_start, this_end)
+    )
+    category_breakdown = cursor.fetchall()
+
+    cursor.execute(
+        """
+        SELECT amount, category, description, date FROM expenses
+        WHERE user_id=? ORDER BY id DESC LIMIT 5
+        """,
+        (user_id,)
+    )
+    last_5_expenses = cursor.fetchall()
+
+    cursor.execute(
+        "SELECT SUM(amount) FROM expenses WHERE user_id=?",
+        (user_id,)
+    )
+    total_expense_all_time = cursor.fetchone()[0] or 0
+
+    cursor.execute(
+        "SELECT SUM(amount) FROM income WHERE user_id=?",
+        (user_id,)
+    )
+    total_income_all_time = cursor.fetchone()[0] or 0
+
+    conn.close()
+
+    top_category = category_breakdown[0] if category_breakdown else None
+    balance_all_time = total_income_all_time - total_expense_all_time
+    balance_this_month = income_this_month - expense_this_month
+
+    lines = [
+        f"Current overall balance (all-time income minus all-time expenses): ₹{balance_all_time:,.2f}",
+        f"All-time income: ₹{total_income_all_time:,.2f}",
+        f"All-time expenses: ₹{total_expense_all_time:,.2f}",
+        f"This month's income: ₹{income_this_month:,.2f}",
+        f"This month's expenses: ₹{expense_this_month:,.2f}",
+        f"This month's net (income minus expenses, for this calendar month only): ₹{balance_this_month:,.2f}",
+    ]
+
+    if top_category:
+        lines.append(f"Highest spending category this month: {top_category[0]} (₹{top_category[1]:,.2f})")
+
+    if category_breakdown:
+        lines.append("This month's spending by category:")
+        for category, amount in category_breakdown:
+            lines.append(f"  - {category}: ₹{amount:,.2f}")
+
+    if last_5_expenses:
+        lines.append("Last 5 expenses:")
+        for amount, category, description, expense_date in last_5_expenses:
+            desc = description or "(no description)"
+            lines.append(f"  - {expense_date}: ₹{amount:,.2f} on {category} ({desc})")
+
+    return "\n".join(lines)
+
+
+def ask_expense_manager_ai(user_id, question):
+    """
+    Sends the user's question plus a summary of their own financial
+    data to Groq's chat completions API (OpenAI-compatible format,
+    running open models like Llama for free) and returns the answer
+    text. Raises RuntimeError with a clear message if GROQ_API_KEY
+    isn't set or if Groq rejects the request, mirroring the pattern
+    used for Resend above.
+    """
+    if not GROQ_API_KEY:
+        raise RuntimeError(
+            "AI chat isn't configured yet -- GROQ_API_KEY is missing. "
+            "Get a free key at https://console.groq.com/keys (no card "
+            "needed) and set GROQ_API_KEY as an environment variable "
+            "(Render dashboard -> Environment), then redeploy."
+        )
+
+    context = _build_financial_context(user_id)
+
+    system_prompt = (
+        "You are 'Ask Expense Manager', a helpful assistant inside a personal "
+        "finance app. Answer the user's question ONLY using the financial data "
+        "provided below -- never invent numbers that aren't in it. If the data "
+        "doesn't contain what's needed to answer, say so plainly. Keep answers "
+        "short (2-4 sentences or a short list), friendly, and in INR (₹).\n\n"
+        "IMPORTANT: if the user asks a general question like 'how much do I have', "
+        "'what's my balance', or 'how much money do I have', use the 'Current "
+        "overall balance' figure -- this matches what they see on their dashboard. "
+        "Only use 'this month's net' if they specifically ask about this month, "
+        "this period, or savings for the current month. Always be clear in your "
+        "answer about whether a number is all-time or for the current month, so "
+        "the user is never confused about which balance you mean.\n\n"
+        f"User's financial data:\n{context}"
+    )
+
+    response = requests.post(
+        GROQ_API_URL,
+        headers={
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": GROQ_MODEL,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+            "temperature": 0.3,
+            "max_tokens": 300,
+        },
+        timeout=30,
+    )
+
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("error", {}).get("message", response.text)
+        except ValueError:
+            detail = response.text
+        raise RuntimeError(f"Groq rejected the request ({response.status_code}): {detail}")
+
+    data = response.json()
+    return data["choices"][0]["message"]["content"].strip()
+
+
 # =========================
 # AUTH
 # =========================
@@ -512,6 +937,8 @@ def login():
             session.permanent = True
             session["user_id"]  = user[0]
             session["username"] = user[1]
+            session["email"] = user[2]
+            generate_due_bill_notifications(user[0])
             return redirect("/")
 
         error = "Invalid email or password."
@@ -634,6 +1061,166 @@ def logout():
 
 
 # =========================
+# AI INSIGHTS (rule-based, no LLM call needed)
+# =========================
+
+def _month_bounds(months_ago=0):
+    """Returns (first_day_str, first_day_of_next_month_str) for the
+    month that is `months_ago` months before the current one, so a
+    BETWEEN-style range query can use [start, end)."""
+    today = date.today()
+    month = today.month - months_ago
+    year = today.year
+    while month <= 0:
+        month += 12
+        year -= 1
+
+    start = date(year, month, 1)
+
+    next_month = month + 1
+    next_year = year
+    if next_month > 12:
+        next_month = 1
+        next_year += 1
+    end = date(next_year, next_month, 1)
+
+    return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+
+
+def build_monthly_trend(user_id, months=12):
+    """
+    Returns the last `months` calendar months of income/expense totals
+    for this user, oldest first, ready to feed straight into a Chart.js
+    line chart. Months with no activity show as 0, not missing, so the
+    x-axis stays a continuous, evenly-spaced timeline rather than
+    skipping gaps -- a real trend line needs that continuity to read
+    correctly.
+
+    Returns a list of dicts: [{"label": "Jan 2026", "income": 0, "expense": 0}, ...]
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    trend = []
+    for months_ago in range(months - 1, -1, -1):
+        start, end = _month_bounds(months_ago)
+
+        cursor.execute(
+            "SELECT SUM(amount) FROM income WHERE user_id=? AND date>=? AND date<?",
+            (user_id, start, end)
+        )
+        income = cursor.fetchone()[0] or 0
+
+        cursor.execute(
+            "SELECT SUM(amount) FROM expenses WHERE user_id=? AND date>=? AND date<?",
+            (user_id, start, end)
+        )
+        expense = cursor.fetchone()[0] or 0
+
+        month_date = datetime.strptime(start, "%Y-%m-%d").date()
+        trend.append({
+            "label": month_date.strftime("%b %Y"),
+            "income": round(income, 2),
+            "expense": round(expense, 2),
+        })
+
+    conn.close()
+    return trend
+
+
+def build_ai_insights(user_id):
+    """
+    Compares this month's spending to last month's, category by
+    category, and estimates potential savings. Pure arithmetic on the
+    user's own data -- no LLM call, so it's instant and free, and the
+    numbers are always exactly traceable to real rows.
+
+    Returns a list of short strings ready to render as bullet points
+    on the dashboard, e.g.:
+      "Food spending increased by 15% (₹2,300 -> ₹2,645)"
+    """
+    this_start, this_end = _month_bounds(0)
+    last_start, last_end = _month_bounds(1)
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT category, SUM(amount) FROM expenses
+        WHERE user_id=? AND date>=? AND date<?
+        GROUP BY category
+        """,
+        (user_id, this_start, this_end)
+    )
+    this_month = dict(cursor.fetchall())
+
+    cursor.execute(
+        """
+        SELECT category, SUM(amount) FROM expenses
+        WHERE user_id=? AND date>=? AND date<?
+        GROUP BY category
+        """,
+        (user_id, last_start, last_end)
+    )
+    last_month = dict(cursor.fetchall())
+
+    cursor.execute(
+        "SELECT SUM(amount) FROM income WHERE user_id=? AND date>=? AND date<?",
+        (user_id, this_start, this_end)
+    )
+    income_this_month = cursor.fetchone()[0] or 0
+
+    cursor.execute(
+        "SELECT SUM(amount) FROM expenses WHERE user_id=? AND date>=? AND date<?",
+        (user_id, this_start, this_end)
+    )
+    expense_this_month = cursor.fetchone()[0] or 0
+
+    conn.close()
+
+    insights = []
+
+    # Category trend: only compare categories that had spending last
+    # month, since "infinite % increase" on a brand-new category isn't
+    # a useful insight.
+    all_categories = set(this_month) | set(last_month)
+    for category in sorted(all_categories):
+        this_amt = this_month.get(category, 0)
+        last_amt = last_month.get(category, 0)
+
+        if last_amt <= 0:
+            continue
+
+        change_pct = ((this_amt - last_amt) / last_amt) * 100
+        if abs(change_pct) < 5:
+            continue  # ignore noise, only surface meaningful shifts
+
+        direction = "increased" if change_pct > 0 else "decreased"
+        insights.append(
+            f"{category} spending {direction} by {abs(change_pct):.0f}% "
+            f"(₹{last_amt:,.0f} → ₹{this_amt:,.0f})"
+        )
+
+    # Potential savings: simple heuristic -- if expenses exceed a
+    # sensible share of income, flag the gap; otherwise show how much
+    # of this month's income is unspent so far.
+    if income_this_month > 0:
+        potential_savings = income_this_month - expense_this_month
+        if potential_savings > 0:
+            insights.append(f"Potential savings this month: ₹{potential_savings:,.0f}")
+        else:
+            insights.append(
+                f"Spending has exceeded income this month by ₹{abs(potential_savings):,.0f}"
+            )
+
+    if not insights:
+        insights.append("Not enough data yet -- add a few more expenses to see trends.")
+
+    return insights[:5]  # keep the card short
+
+
+# =========================
 # DASHBOARD
 # =========================
 
@@ -643,7 +1230,19 @@ def home():
     if "user_id" not in session:
         return redirect("/login")
 
+    # Sessions created before this feature existed won't have 'email' yet --
+    # backfill it once from the DB rather than forcing everyone to log out.
+    if "email" not in session:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM users WHERE id=?", (session["user_id"],))
+        row = cursor.fetchone()
+        conn.close()
+        session["email"] = row[0] if row else ""
+
     process_due_bills(session["user_id"])
+    generate_due_bill_notifications(session["user_id"])
+    unread_count, recent_notifications = get_navbar_notifications(session["user_id"])
 
     conn   = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -684,6 +1283,17 @@ def home():
     balance = total_income - total_expense
     conn.close()
 
+    ai_insights = build_ai_insights(session["user_id"])
+    monthly_trend = build_monthly_trend(session["user_id"])
+
+    receipt_error_code = request.args.get("receipt_error", "")
+    receipt_error_msg  = _RECEIPT_ERRORS.get(receipt_error_code, "")
+    receipt_added      = request.args.get("receipt_added") == "1"
+    receipt_amount     = request.args.get("receipt_amount", "")
+    receipt_cat        = request.args.get("receipt_cat", "")
+    receipt_orig       = request.args.get("receipt_orig", "")   # e.g. "USD 12.50"
+    receipt_rate       = request.args.get("receipt_rate", "")   # e.g. "84.2500"
+
     return render_template(
         "index.html",
         expenses=expenses,
@@ -691,7 +1301,17 @@ def home():
         total_income=total_income,
         total_expense=total_expense,
         balance=balance,
-        category_summary=category_summary
+        category_summary=category_summary,
+        ai_insights=ai_insights,
+        monthly_trend=monthly_trend,
+        unread_count=unread_count,
+        recent_notifications=recent_notifications,
+        receipt_error_msg=receipt_error_msg,
+        receipt_added=receipt_added,
+        receipt_amount=receipt_amount,
+        receipt_cat=receipt_cat,
+        receipt_orig=receipt_orig,
+        receipt_rate=receipt_rate,
     )
 
 
@@ -728,6 +1348,16 @@ def add_expense():
     return redirect("/")
 
 
+_RECEIPT_ERRORS = {
+    "no_file":          "⚠️ No file selected. Please choose a receipt image or PDF.",
+    "bad_file":         "⚠️ Unsupported file type. Please upload a JPG, PNG, WEBP, or PDF.",
+    "ocr_missing":      "⚠️ Could not read the receipt. Make sure GROQ_API_KEY is set and try again.",
+    "ocr_failed":       "⚠️ The AI could not read this receipt. Try a clearer photo with good lighting.",
+    "amount_not_found": "⚠️ Could not detect a total amount in the receipt. Please add the expense manually.",
+    "fx_failed":        "⚠️ Detected a foreign currency but could not fetch the live exchange rate. Please add the expense manually.",
+}
+
+
 @app.route("/scan_receipt", methods=["POST"])
 def scan_receipt():
     if "user_id" not in session:
@@ -748,16 +1378,42 @@ def scan_receipt():
 
     try:
         receipt_text = _extract_receipt_text(image_path)
-    except RuntimeError:
-        return redirect("/?receipt_error=ocr_missing#receipt-scanner")
+    except RuntimeError as exc:
+        print(f"[scan_receipt] OCR error: {exc}")
+        err_code = "ocr_missing" if "GROQ_API_KEY" in str(exc) else "ocr_failed"
+        return redirect(f"/?receipt_error={err_code}#receipt-scanner")
+    except Exception as exc:
+        print(f"[scan_receipt] Unexpected OCR error: {exc}")
+        return redirect("/?receipt_error=ocr_failed#receipt-scanner")
 
-    amount = _guess_receipt_amount(receipt_text)
-    if amount is None or amount <= 0:
+    # ── Step 1: Detect currency and get the AI-parsed amount ──────────────
+    detected_currency, ai_amount = _detect_receipt_currency_and_amount(receipt_text)
+
+    # ── Step 2: Get the numeric amount (AI first, then regex fallback) ────
+    amount_in_original = ai_amount if (ai_amount and ai_amount > 0) else _guess_receipt_amount(receipt_text)
+    if amount_in_original is None or amount_in_original <= 0:
         return redirect("/?receipt_error=amount_not_found#receipt-scanner")
 
-    category = _guess_receipt_category(receipt_text)
-    description = _guess_receipt_description(receipt_text, original_filename)
+    # ── Step 3: Convert to INR if foreign currency ────────────────────────
+    converted_note = ""
+    final_amount   = amount_in_original
+
+    if not _is_inr(detected_currency, receipt_text):
+        rate = _fetch_inr_rate(detected_currency)
+        if rate is None:
+            return redirect("/?receipt_error=fx_failed#receipt-scanner")
+        final_amount   = round(amount_in_original * rate, 2)
+        converted_note = f"{detected_currency} {amount_in_original:.2f} @ ₹{rate:.4f} = ₹{final_amount:.2f}"
+        print(f"[scan_receipt] Currency conversion: {converted_note}")
+
+    # ── Step 4: Guess category / description / date ───────────────────────
+    category     = _guess_receipt_category(receipt_text)
+    description  = _guess_receipt_description(receipt_text, original_filename)
     expense_date = _guess_receipt_date(receipt_text)
+
+    # Append conversion note to description so it's visible in expense list
+    if converted_note:
+        description = f"{description} [{converted_note}]"
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -767,18 +1423,20 @@ def scan_receipt():
         (user_id, amount, category, description, date)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (
-            session["user_id"],
-            amount,
-            category,
-            description,
-            expense_date
-        )
+        (session["user_id"], final_amount, category, description, expense_date)
     )
     conn.commit()
     conn.close()
 
-    return redirect("/?receipt_added=1#expense-form")
+    # Build success redirect with enough info for a helpful banner
+    from urllib.parse import quote
+    extra = ""
+    if converted_note:
+        extra = f"&receipt_orig={quote(detected_currency + ' ' + str(round(amount_in_original,2)))}&receipt_rate={rate:.4f}"
+
+    return redirect(
+        f"/?receipt_added=1&receipt_amount={final_amount:.2f}&receipt_cat={category}{extra}#expense-form"
+    )
 
 
 @app.route("/delete/<int:id>")
@@ -1132,6 +1790,7 @@ def bills():
     conn.close()
 
     today_str = date.today().strftime("%Y-%m-%d")
+    unread_count, recent_notifications = get_navbar_notifications(session["user_id"])
 
     return render_template(
         "bills.html",
@@ -1139,7 +1798,9 @@ def bills():
         paid_bills=paid_bills,
         today=today_str,
         upcoming_count=upcoming_count,
-        upcoming_next_date=upcoming_next_date
+        upcoming_next_date=upcoming_next_date,
+        unread_count=unread_count,
+        recent_notifications=recent_notifications
     )
 
 
@@ -2160,6 +2821,135 @@ def group_details(group_id):
         is_owner=is_owner,
         my_upi_id=my_upi_id
     )
+
+
+# =========================
+# NOTIFICATIONS
+# =========================
+
+@app.route("/notifications/mark_read/<int:notification_id>", methods=["POST"])
+def mark_notification_read(notification_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    # Scoped to user_id so a user can't mark someone else's notification
+    # read by guessing the id in the URL.
+    cursor.execute(
+        "UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?",
+        (notification_id, session["user_id"])
+    )
+    conn.commit()
+    conn.close()
+
+    return ("", 204)
+
+
+@app.route("/notifications/mark_all_read", methods=["POST"])
+def mark_all_notifications_read():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE notifications SET is_read=1 WHERE user_id=? AND is_read=0",
+        (session["user_id"],)
+    )
+    conn.commit()
+    conn.close()
+
+    return ("", 204)
+
+
+# =========================
+# ASK EXPENSE MANAGER (AI CHAT)
+# =========================
+
+@app.route("/api/monthly_trend")
+def api_monthly_trend():
+    """
+    Returns this user's last-12-months income/expense trend as JSON.
+    Used by the chart toggle button on the Ask Expense Manager page so
+    it can render the same trend chart shown on the dashboard without
+    a full page reload.
+    """
+    if "user_id" not in session:
+        return {"error": "not logged in"}, 401
+
+    trend = build_monthly_trend(session["user_id"])
+    return {"trend": trend}
+
+
+@app.route("/ask_ai")
+def ask_ai_page():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    unread_count, recent_notifications = get_navbar_notifications(session["user_id"])
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, question, answer, created_at FROM ai_chats
+        WHERE user_id=? ORDER BY id ASC
+        """,
+        (session["user_id"],)
+    )
+    chat_history = cursor.fetchall()
+    conn.close()
+
+    return render_template(
+        "ask_ai.html",
+        chat_history=chat_history,
+        unread_count=unread_count,
+        recent_notifications=recent_notifications
+    )
+
+
+@app.route("/ask_ai", methods=["POST"])
+def ask_ai_submit():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    question = request.form.get("question", "").strip()
+    if not question:
+        return redirect("/ask_ai")
+
+    try:
+        answer = ask_expense_manager_ai(session["user_id"], question)
+    except RuntimeError as exc:
+        answer = f"⚠️ {exc}"
+    except Exception as exc:
+        print(f"[ask_ai_submit] Unexpected error: {exc}")
+        answer = "⚠️ Something went wrong answering that. Please try again."
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO ai_chats (user_id, question, answer) VALUES (?, ?, ?)",
+        (session["user_id"], question, answer)
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect("/ask_ai")
+
+
+@app.route("/ask_ai/clear", methods=["POST"])
+def ask_ai_clear():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ai_chats WHERE user_id=?", (session["user_id"],))
+    conn.commit()
+    conn.close()
+
+    return redirect("/ask_ai")
 
 
 if __name__ == "__main__":

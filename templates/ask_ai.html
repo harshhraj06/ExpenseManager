@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ask Expense Manager · Expense Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="nav">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+    </div>
+
+    <div class="nav-links">
+      <span>Welcome {{ session['username'] }}</span>
+      <a href="/">Dashboard</a>
+      <a href="/groups">Groups</a>
+      <a href="/bills">Bills</a>
+      <a href="/ask_ai">Ask Expense Manager</a>
+
+      <div class="notif-bell-wrap">
+        <button type="button" class="notif-bell-btn" id="notifBellBtn" aria-label="Notifications">
+          🔔
+          {% if unread_count and unread_count > 0 %}
+          <span class="notif-badge">{{ unread_count if unread_count <= 9 else '9+' }}</span>
+          {% endif %}
+        </button>
+
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-dropdown-header">
+            <span>Notifications</span>
+            {% if unread_count and unread_count > 0 %}
+            <button type="button" id="notifMarkAllRead" class="notif-mark-all">Mark all read</button>
+            {% endif %}
+          </div>
+
+          {% if recent_notifications %}
+            {% for n in recent_notifications %}
+            <div class="notif-item{% if not n[4] %} notif-unread{% endif %}" data-notif-id="{{ n[0] }}">
+              <div class="notif-item-title">🔔 {{ n[1] }}</div>
+              <div class="notif-item-msg">{{ n[2] }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="notif-empty">No notifications yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <a href="/logout">Logout</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>
+      ASK.<br>
+      UNDERSTAND.<br>
+      DECIDE.
+    </h1>
+    <p>Ask anything about your spending, income, or savings — in plain English.</p>
+  </div>
+
+</div>
+
+<!-- ── Chat Card ── -->
+<div class="card">
+  <div class="section-header">
+    <h2>🤖 Ask Expense Manager</h2>
+    <div class="header-actions">
+      <button type="button" id="toggleChartBtn" class="chart-toggle-btn">📈 Show Trend Chart</button>
+      {% if chat_history %}
+      <form action="/ask_ai/clear" method="POST" onsubmit="return confirm('Clear all chat history?')">
+        <button type="submit" class="delete-btn" style="border:none; cursor:pointer; background:none;">Clear History</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="trend-chart-panel" id="trendChartPanel">
+    <div class="chart-container">
+      <canvas id="askAiTrendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="ai-chat-window" id="aiChatWindow">
+    {% if chat_history %}
+      {% for chat in chat_history %}
+      <div class="ai-chat-bubble ai-chat-question">
+        <span class="ai-chat-label">You</span>
+        <p>{{ chat[1] }}</p>
+      </div>
+      <div class="ai-chat-bubble ai-chat-answer">
+        <span class="ai-chat-label">🤖 Expense Manager</span>
+        <div class="ai-answer-text">{{ chat[2] }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="ai-chat-empty">
+        <p>No conversation yet. Try asking one of these:</p>
+        <div class="ai-chat-suggestions">
+          <button type="button" class="ai-suggestion-btn">How much did I spend this month?</button>
+          <button type="button" class="ai-suggestion-btn">Which category has the highest expense?</button>
+          <button type="button" class="ai-suggestion-btn">How much can I save?</button>
+          <button type="button" class="ai-suggestion-btn">Show my last 5 expenses.</button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <form action="/ask_ai" method="POST" class="ai-chat-form">
+    <input type="text" name="question" id="aiQuestionInput" placeholder="Ask about your expenses, income, or savings..." required autocomplete="off">
+    <button type="submit">Ask</button>
+  </form>
+</div>
+
+<style>
+  .notif-bell-wrap { position: relative; display: inline-block; }
+  .notif-bell-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 1.15rem; position: relative; padding: 4px 8px;
+      color: inherit;
+  }
+  .notif-badge {
+      position: absolute; top: -2px; right: -2px;
+      background: #ef4444; color: white; font-size: 0.65rem;
+      font-weight: 700; border-radius: 999px; padding: 1px 5px;
+      line-height: 1.3; min-width: 16px; text-align: center;
+  }
+  .notif-dropdown {
+      display: none; position: absolute; right: 0; top: calc(100% + 8px);
+      width: 320px; max-height: 380px; overflow-y: auto;
+      background: #1a1a1a; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      z-index: 50;
+  }
+  .notif-dropdown.open { display: block; }
+  .notif-dropdown-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.85rem; font-weight: 600; color: #e5e7eb;
+  }
+  .notif-mark-all {
+      background: none; border: none; color: #60a5fa;
+      font-size: 0.75rem; cursor: pointer; padding: 0;
+  }
+  .notif-item {
+      padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+  }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item:hover { background: rgba(255,255,255,0.04); }
+  .notif-item-title { font-size: 0.85rem; font-weight: 600; color: #f3f4f6; }
+  .notif-item-msg { font-size: 0.78rem; color: #9ca3af; margin-top: 2px; }
+  .notif-unread { background: rgba(96,165,250,0.07); }
+  .notif-empty { padding: 16px 14px; font-size: 0.85rem; color: #9ca3af; text-align: center; }
+
+  .ai-chat-window {
+      max-height: 480px; overflow-y: auto; padding: 6px 2px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+  }
+  .ai-chat-bubble {
+      padding: 10px 14px; border-radius: 12px; max-width: 80%;
+      font-size: 0.92rem; line-height: 1.45;
+  }
+  .ai-chat-bubble p { margin: 4px 0 0 0; white-space: pre-wrap; }
+  .ai-chat-label { font-size: 0.72rem; font-weight: 700; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.03em; }
+  .ai-chat-question { align-self: flex-end; background: rgba(96,165,250,0.15); color: #e5e7eb; }
+  .ai-chat-answer { align-self: flex-start; background: rgba(255,255,255,0.06); color: #e5e7eb; }
+  .ai-chat-empty { text-align: center; padding: 30px 10px; color: #9ca3af; }
+  .ai-chat-suggestions {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px;
+  }
+  .ai-suggestion-btn {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: #d1d5db; border-radius: 999px; padding: 7px 14px;
+      font-size: 0.82rem; cursor: pointer;
+  }
+  .ai-suggestion-btn:hover { background: rgba(255,255,255,0.1); }
+  .ai-chat-form { display: flex; gap: 10px; margin-top: 6px; }
+  .ai-chat-form input[type="text"] { flex: 1; }
+
+  .header-actions { display: flex; align-items: center; gap: 16px; }
+  .chart-toggle-btn {
+      background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25);
+      color: #93c5fd; border-radius: 999px; padding: 6px 14px;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .chart-toggle-btn:hover { background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.4); }
+  .chart-toggle-btn.active { background: rgba(96,165,250,0.22); border-color: rgba(96,165,250,0.5); }
+
+  .trend-chart-panel {
+      display: none; height: 260px; margin-bottom: 18px;
+      padding: 16px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+  }
+  .trend-chart-panel.open { display: block; }
+  .trend-chart-panel .chart-container { height: 100%; position: relative; }
+
+  .ai-answer-text { margin: 4px 0 0 0; white-space: pre-wrap; line-height: 1.55; }
+  .ai-answer-text strong { color: #f3f4f6; font-weight: 700; }
+  .ai-answer-text ol, .ai-answer-text ul { margin: 6px 0 0 0; padding-left: 22px; }
+  .ai-answer-text li { margin-bottom: 3px; }
+</style>
+
+<script>
+  (function () {
+      var btn = document.getElementById('notifBellBtn');
+      var dropdown = document.getElementById('notifDropdown');
+      if (btn && dropdown) {
+          btn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              dropdown.classList.toggle('open');
+          });
+          document.addEventListener('click', function (e) {
+              if (!dropdown.contains(e.target) && e.target !== btn) {
+                  dropdown.classList.remove('open');
+              }
+          });
+          dropdown.querySelectorAll('.notif-item').forEach(function (item) {
+              item.addEventListener('click', function () {
+                  var id = item.getAttribute('data-notif-id');
+                  fetch('/notifications/mark_read/' + id, { method: 'POST' }).then(function () {
+                      item.classList.remove('notif-unread');
+                  });
+              });
+          });
+          var markAllBtn = document.getElementById('notifMarkAllRead');
+          if (markAllBtn) {
+              markAllBtn.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  fetch('/notifications/mark_all_read', { method: 'POST' }).then(function () {
+                      window.location.reload();
+                  });
+              });
+          }
+      }
+
+      // Clicking a suggestion fills the input instead of submitting directly,
+      // so the user can tweak it before sending.
+      document.querySelectorAll('.ai-suggestion-btn').forEach(function (suggestion) {
+          suggestion.addEventListener('click', function () {
+              var input = document.getElementById('aiQuestionInput');
+              input.value = suggestion.textContent.trim();
+              input.focus();
+          });
+      });
+
+      // Auto-scroll chat window to the latest message on load.
+      var chatWindow = document.getElementById('aiChatWindow');
+      if (chatWindow) {
+          chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      // Format AI answers: turn **bold** markdown into real <strong> tags
+      // and "1. ..." / "2. ..." numbered lines into a proper <ol>, since
+      // the model sometimes replies in markdown but this page renders
+      // plain text otherwise.
+      function formatAnswer(rawText) {
+          var lines = rawText.split('\n');
+          var html = '';
+          var inList = false;
+
+          lines.forEach(function (line) {
+              var trimmed = line.trim();
+              var listMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+
+              if (listMatch) {
+                  if (!inList) { html += '<ol>'; inList = true; }
+                  html += '<li>' + listMatch[1] + '</li>';
+              } else {
+                  if (inList) { html += '</ol>'; inList = false; }
+                  if (trimmed) { html += '<div>' + trimmed + '</div>'; }
+              }
+          });
+          if (inList) { html += '</ol>'; }
+
+          // Bold: **text** -> <strong>text</strong>
+          html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+          return html;
+      }
+
+      document.querySelectorAll('.ai-answer-text').forEach(function (el) {
+          el.innerHTML = formatAnswer(el.textContent);
+      });
+
+      // Trend chart toggle: fetch once, cache, and show/hide on click.
+      var toggleBtn = document.getElementById('toggleChartBtn');
+      var chartPanel = document.getElementById('trendChartPanel');
+      var trendChartInstance = null;
+
+      if (toggleBtn && chartPanel) {
+          toggleBtn.addEventListener('click', function () {
+              var isOpen = chartPanel.classList.contains('open');
+
+              if (isOpen) {
+                  chartPanel.classList.remove('open');
+                  toggleBtn.classList.remove('active');
+                  toggleBtn.textContent = '📈 Show Trend Chart';
+                  return;
+              }
+
+              chartPanel.classList.add('open');
+              toggleBtn.classList.add('active');
+              toggleBtn.textContent = '📉 Hide Trend Chart';
+
+              if (trendChartInstance) { return; } // already rendered, just toggling visibility
+
+              fetch('/api/monthly_trend')
+                  .then(function (res) { return res.json(); })
+                  .then(function (data) {
+                      var trend = data.trend || [];
+                      var labels = trend.map(function (row) { return row.label; });
+                      var income = trend.map(function (row) { return row.income; });
+                      var expense = trend.map(function (row) { return row.expense; });
+
+                      var ctx = document.getElementById('askAiTrendChart');
+                      trendChartInstance = new Chart(ctx, {
+                          type: 'line',
+                          data: {
+                              labels: labels,
+                              datasets: [
+                                  {
+                                      label: 'Income',
+                                      data: income,
+                                      borderColor: '#4ade80',
+                                      backgroundColor: 'rgba(74,222,128,0.12)',
+                                      tension: 0.3,
+                                      fill: true,
+                                      pointRadius: 3
+                                  },
+                                  {
+                                      label: 'Expenses',
+                                      data: expense,
+                                      borderColor: '#f87171',
+                                      backgroundColor: 'rgba(248,113,113,0.1)',
+                                      tension: 0.3,
+                                      fill: true,
+                                      pointRadius: 3
+                                  }
+                              ]
+                          },
+                          options: {
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              interaction: { mode: 'index', intersect: false },
+                              scales: {
+                                  y: {
+                                      beginAtZero: true,
+                                      ticks: { color: '#9ca3af' },
+                                      grid: { color: 'rgba(255,255,255,0.06)' }
+                                  },
+                                  x: {
+                                      ticks: { color: '#9ca3af' },
+                                      grid: { display: false }
+                                  }
+                              },
+                              plugins: {
+                                  legend: { labels: { color: '#d1d5db' } }
+                              }
+                          }
+                      });
+                  })
+                  .catch(function (err) {
+                      console.error('Failed to load trend chart:', err);
+                      chartPanel.innerHTML = '<div style="padding:20px;color:#f87171;font-size:0.85rem;">Could not load the chart. Please try again.</div>';
+                  });
+          });
+      }
+  })();
+</script>
+
+</body>
+</html>
