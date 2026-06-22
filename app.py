@@ -2,7 +2,7 @@ import os
 import re
 import json
 import secrets
-import sqlite3
+import db_compat as sqlite3
 import requests
 from html import escape
 from collections import defaultdict
@@ -13,22 +13,33 @@ from flask import Flask, render_template, request, redirect, session, send_file,
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-# Always use the database beside this app file when running locally.
-# In production on Render, DATA_DIR is set to the persistent Disk's mount
-# path (e.g. /var/data) so expenses.db and uploaded receipts survive
-# redeploys -- Render's container filesystem itself is wiped on every
-# deploy/restart, so anything written next to app.py would be lost.
+# DATABASE: now stored in a free Render PostgreSQL database instead of a
+# local SQLite file. Render's web service filesystem is wiped on every
+# deploy/restart (no persistent disk on the Free plan), so any local
+# file -- including the old expenses.db -- would be lost. Postgres data
+# lives in Render's separate managed database service and survives
+# redeploys independently of the web service. DATABASE_URL is provided
+# automatically by Render once a PostgreSQL database is created and its
+# connection string is added as an env var on this service. db_compat
+# is a thin wrapper (see db_compat.py) that lets the rest of this file's
+# query code keep using sqlite3-style "?" placeholders and cursor calls
+# while actually talking to Postgres underneath.
+DB_PATH = os.environ.get("DATABASE_URL")
+
+# UPLOAD_FOLDER: receipt images still need a writable folder. Locally
+# this is just a folder next to app.py. On Render this still resets on
+# every deploy (uploaded receipts aren't covered by this Postgres
+# migration), which only matters for the receipt-scanner feature, not
+# for any of your account/expense/income data, which now all lives in
+# Postgres.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.environ.get("DATA_DIR", BASE_DIR)
-os.makedirs(DATA_DIR, exist_ok=True)
-DB_PATH = os.path.join(DATA_DIR, "expenses.db")
-print("DATABASE PATH =", DB_PATH)
-UPLOAD_FOLDER = os.path.join(DATA_DIR, "uploads", "receipts")
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads", "receipts")
 ALLOWED_RECEIPT_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "pdf"}
 os.chdir(BASE_DIR)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 import database  # ensures all tables exist on startup
+
 
 from io import BytesIO
 from reportlab.lib.pagesizes import A4

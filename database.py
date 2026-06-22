@@ -1,19 +1,35 @@
 import os
-import sqlite3
+import db_compat as sqlite3
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.environ.get("DATA_DIR", BASE_DIR)
-os.makedirs(DATA_DIR, exist_ok=True)
-DB_PATH = os.path.join(DATA_DIR, "expenses.db")
+# DATABASE_URL is provided automatically by Render once a PostgreSQL
+# database is created and linked to this web service (Render injects it
+# as an environment variable). This is what replaces the old local
+# expenses.db file -- Postgres data lives in Render's managed database
+# service, completely independent of the web service's own filesystem,
+# so it survives every redeploy/restart instead of being wiped.
+#
+# For local development, set DATABASE_URL in your own environment to
+# point at a local or remote Postgres instance, e.g.:
+#   export DATABASE_URL="postgresql://user:password@localhost:5432/expenses"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-conn = sqlite3.connect(DB_PATH)
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set. On Render: create a free PostgreSQL "
+        "database (New -> PostgreSQL), then add its Internal Database "
+        "URL as the DATABASE_URL environment variable on this web "
+        "service. Locally: export DATABASE_URL pointing at your own "
+        "Postgres instance before running the app."
+    )
+
+conn = sqlite3.connect(DATABASE_URL)
 cursor = conn.cursor()
 
 # ================= USERS =================
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
@@ -22,24 +38,15 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 
 # ================= EXPENSES =================
-# NOTE: column order below matches the REAL physical order confirmed via
-# `sqlite3 expenses.db "PRAGMA table_info(expenses);"` on the live database:
-#   id, amount, category, description, date, user_id
-# user_id is listed last because it was added later via ALTER TABLE on an
-# existing database -- SQLite always appends ALTER TABLE ADD COLUMN at the
-# end, regardless of where it's written in CREATE TABLE. Writing it in this
-# position here keeps this file honest about what's actually on disk, and
-# keeps the safety check below a no-op for databases that already match.
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     amount REAL NOT NULL,
     category TEXT NOT NULL,
     description TEXT,
     date TEXT NOT NULL,
-    user_id INTEGER,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    user_id INTEGER REFERENCES users(id)
 )
 """)
 
@@ -47,12 +54,11 @@ CREATE TABLE IF NOT EXISTS expenses (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS income (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     amount REAL NOT NULL,
     source TEXT NOT NULL,
     date TEXT NOT NULL,
-    user_id INTEGER,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    user_id INTEGER REFERENCES users(id)
 )
 """)
 
@@ -64,10 +70,9 @@ CREATE TABLE IF NOT EXISTS income (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS groups_table (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     group_name TEXT NOT NULL,
-    user_id INTEGER,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    user_id INTEGER REFERENCES users(id)
 )
 """)
 
@@ -80,13 +85,11 @@ CREATE TABLE IF NOT EXISTS groups_table (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS group_members (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER NOT NULL REFERENCES groups_table(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
     role TEXT NOT NULL DEFAULT 'member',
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(group_id) REFERENCES groups_table(id),
-    FOREIGN KEY(user_id) REFERENCES users(id),
     UNIQUE(group_id, user_id)
 )
 """)
@@ -100,12 +103,10 @@ CREATE TABLE IF NOT EXISTS group_members (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS members (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id INTEGER,
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER REFERENCES groups_table(id),
     member_name TEXT NOT NULL,
-    user_id INTEGER,
-    FOREIGN KEY(group_id) REFERENCES groups_table(id),
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    user_id INTEGER REFERENCES users(id)
 )
 """)
 
@@ -113,7 +114,7 @@ CREATE TABLE IF NOT EXISTS members (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS shared_expenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     group_id INTEGER,
     description TEXT,
     amount REAL,
@@ -126,7 +127,7 @@ CREATE TABLE IF NOT EXISTS shared_expenses (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS settlements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     group_id INTEGER,
     payer TEXT,
     receiver TEXT,
@@ -139,30 +140,29 @@ CREATE TABLE IF NOT EXISTS settlements (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS bills (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
     name TEXT NOT NULL,
     amount REAL NOT NULL,
     category TEXT NOT NULL,
     due_date TEXT NOT NULL,
     recurrence TEXT NOT NULL DEFAULT 'none',
     status TEXT NOT NULL DEFAULT 'pending',
-    last_generated_date TEXT,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    last_generated_date TEXT
 )
 """)
+
 # ================= NOTIFICATIONS =================
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS notifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     due_date TEXT,
     is_read INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
@@ -174,43 +174,49 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS password_resets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
     token TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
-    used INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    used INTEGER NOT NULL DEFAULT 0
 )
 """)
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS ai_chats (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
 conn.commit()
 
 # =====================================================
-# SAFETY CHECK (does NOT modify data): add user_id to any
-# expenses/income/groups_table/members that predate these columns,
-# for installs that started from an even older schema version
-# where these columns didn't exist anywhere yet. This only ADDS the
-# column if missing -- it never reorders or rewrites existing
-# rows, since reordering is unnecessary as long as every query
-# in app.py reads columns by name (SELECT user_id, amount, ...)
-# or unpacks SELECT * using the indices that match THIS file's
-# column order above.
+# SAFETY CHECK (does NOT modify data): add columns that
+# might be missing if this database was upgraded from an
+# earlier version of this schema. This only ADDS a column
+# if missing -- it never reorders or rewrites existing rows.
+# Uses Postgres's information_schema instead of sqlite's
+# PRAGMA table_info, and ADD COLUMN IF NOT EXISTS, which
+# Postgres supports natively (so no separate existence
+# check is even required, but we keep one for clarity and
+# to match the original structure of this file).
 # =====================================================
 
+
 def _column_exists(table, column):
-    cursor.execute(f"PRAGMA table_info({table})")
-    return any(row[1] == column for row in cursor.fetchall())
+    cursor.execute(
+        """
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = ? AND column_name = ?
+        """,
+        (table, column),
+    )
+    return cursor.fetchone() is not None
 
 
 for table in ("expenses", "income", "groups_table"):
@@ -245,7 +251,6 @@ for group_id, owner_id in cursor.fetchall():
         """,
         (group_id, owner_id)
     )
-    
 
 conn.commit()
 conn.close()
