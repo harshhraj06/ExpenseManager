@@ -1759,13 +1759,21 @@ def bills():
     # in this table when their due date is within 7 days, so they don't
     # clutter the list right after payment. One-time bills always show
     # here until paid, since last_generated_date stays NULL for them.
+    #
+    # NOTE: due_date is stored as TEXT (see database.py), and this app now
+    # runs on Postgres rather than SQLite (see DB_PATH comment above), so
+    # we can't use SQLite's date('now', '+7 days') here -- that's invalid
+    # syntax in Postgres and was the cause of the 500 error on this page.
+    # due_date::date casts the TEXT column to a real date so it can be
+    # compared against CURRENT_DATE + INTERVAL '7 days', which is the
+    # Postgres-native way to express "7 days from today".
     cursor.execute(
         """
         SELECT * FROM bills
         WHERE user_id=? AND status='pending'
         AND (
             last_generated_date IS NULL
-            OR due_date <= date('now', '+7 days')
+            OR due_date::date <= CURRENT_DATE + INTERVAL '7 days'
         )
         ORDER BY due_date ASC
         """,
@@ -1775,13 +1783,13 @@ def bills():
 
     # Recurring bills that exist but aren't due soon yet (hidden from the
     # table above on purpose) -- surfaced as a count/note instead of being
-    # silently invisible.
+    # silently invisible. Same Postgres date-cast fix applied here.
     cursor.execute(
         """
         SELECT COUNT(*), MIN(due_date) FROM bills
         WHERE user_id=? AND status='pending'
         AND last_generated_date IS NOT NULL
-        AND due_date > date('now', '+7 days')
+        AND due_date::date > CURRENT_DATE + INTERVAL '7 days'
         """,
         (session["user_id"],)
     )
