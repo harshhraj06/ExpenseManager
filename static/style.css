@@ -2124,3 +2124,96 @@ a{
         font-size: 11px;
     }
 }
+
+/* =========================================================
+   OFFLINE SAVE TOASTS
+   ========================================================= */
+
+#offline-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100000;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    pointer-events: none;
+}
+
+.offline-toast {
+    min-width: 280px;
+    max-width: 420px;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 13px 16px;
+
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+
+    background: rgba(18,18,18,.96);
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    box-shadow: 0 15px 45px rgba(0,0,0,.35);
+
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    opacity: 0;
+    transform: translateY(-10px);
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
+}
+
+.offline-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.offline-toast-icon {
+    width: 24px;
+    height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.offline-toast-success .offline-toast-icon {
+    background: rgba(53,199,89,.15);
+    color: #35c759;
+}
+
+.offline-toast-error .offline-toast-icon {
+    background: rgba(255,69,58,.15);
+    color: #ff453a;
+}
+
+@media (max-width: 600px) {
+    #offline-toast-container {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+    }
+
+    .offline-toast {
+        min-width: 0;
+        width: 100%;
+    }
+}

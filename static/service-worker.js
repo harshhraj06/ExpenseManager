@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-manager-v1";
+const CACHE_NAME = "expense-manager-v2";
 
 const APP_SHELL = [
   "/",
@@ -10,7 +10,8 @@ const APP_SHELL = [
   "/static/manifest.json",
   "/static/js/offline.js",
   "/static/js/db.js",
-  "/static/js/sync.js"
+  "/static/js/sync.js",
+  "/static/js/offline-forms.js"
 ];
 
 self.addEventListener("install", event => {

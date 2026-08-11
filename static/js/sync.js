@@ -1,4 +1,4 @@
-const ExpenseSync = (() => {
+window.ExpenseSync = (() => {
     let syncing = false;
 
     async function sync() {
