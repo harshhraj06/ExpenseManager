@@ -1,89 +1,163 @@
 const ExpenseOfflineDB = (() => {
-  const DB_NAME = "ExpenseManagerOffline";
-  const DB_VERSION = 1;
-  const STORE = "pending_operations";
+    const DB_NAME = "ExpenseManagerOffline";
+    const DB_VERSION = 2;
 
-  function open() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const OPERATIONS = "pending_operations";
+    const CACHE = "app_cache";
 
-      request.onupgradeneeded = event => {
-        const db = event.target.result;
+    function open() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        if (!db.objectStoreNames.contains(STORE)) {
-          const store = db.createObjectStore(STORE, {
-            keyPath: "id",
-            autoIncrement: true
-          });
+            request.onupgradeneeded = event => {
+                const db = event.target.result;
 
-          store.createIndex("created_at", "created_at");
-          store.createIndex("type", "type");
-        }
-      };
+                if (!db.objectStoreNames.contains(OPERATIONS)) {
+                    const store = db.createObjectStore(OPERATIONS, {
+                        keyPath: "id",
+                        autoIncrement: true
+                    });
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
+                    store.createIndex("created_at", "created_at");
+                    store.createIndex("type", "type");
+                    store.createIndex("status", "status");
+                }
 
-  async function add(operation) {
-    const db = await open();
+                if (!db.objectStoreNames.contains(CACHE)) {
+                    const cache = db.createObjectStore(CACHE, {
+                        keyPath: "key"
+                    });
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
+                    cache.createIndex("updated_at", "updated_at");
+                }
+            };
 
-      tx.objectStore(STORE).add({
-        ...operation,
-        created_at: new Date().toISOString(),
-        status: "pending"
-      });
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
 
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+    async function add(operation) {
+        const db = await open();
 
-  async function all() {
-    const db = await open();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(OPERATIONS, "readwrite");
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readonly");
-      const request = tx.objectStore(STORE).getAll();
+            tx.objectStore(OPERATIONS).add({
+                ...operation,
+                created_at: new Date().toISOString(),
+                status: "pending"
+            });
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
 
-  async function remove(id) {
-    const db = await open();
+    async function all() {
+        const db = await open();
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).delete(id);
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(OPERATIONS, "readonly");
+            const request = tx.objectStore(OPERATIONS).getAll();
 
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
 
-  async function count() {
-    const db = await open();
+    async function remove(id) {
+        const db = await open();
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readonly");
-      const request = tx.objectStore(STORE).count();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(OPERATIONS, "readwrite");
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
+            tx.objectStore(OPERATIONS).delete(id);
 
-  return {
-    open,
-    add,
-    all,
-    remove,
-    count
-  };
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function count() {
+        const db = await open();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(OPERATIONS, "readonly");
+            const request = tx.objectStore(OPERATIONS).count();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function setCache(key, value) {
+        const db = await open();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(CACHE, "readwrite");
+
+            tx.objectStore(CACHE).put({
+                key,
+                value,
+                updated_at: new Date().toISOString()
+            });
+
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function getCache(key) {
+        const db = await open();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(CACHE, "readonly");
+            const request = tx.objectStore(CACHE).get(key);
+
+            request.onsuccess = () => {
+                resolve(request.result ? request.result.value : null);
+            };
+
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function removeCache(key) {
+        const db = await open();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(CACHE, "readwrite");
+
+            tx.objectStore(CACHE).delete(key);
+
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function clearCache() {
+        const db = await open();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(CACHE, "readwrite");
+
+            tx.objectStore(CACHE).clear();
+
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    return {
+        open,
+        add,
+        all,
+        remove,
+        count,
+        setCache,
+        getCache,
+        removeCache,
+        clearCache
+    };
 })();

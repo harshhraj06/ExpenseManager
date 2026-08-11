@@ -1,63 +1,111 @@
 const ExpenseSync = (() => {
-  let syncing = false;
+    let syncing = false;
 
-  async function sync() {
-    if (syncing || !navigator.onLine) return;
+    async function sync() {
+        if (syncing || !navigator.onLine) {
+            return;
+        }
 
-    syncing = true;
+        syncing = true;
 
-    try {
-      const operations = await ExpenseOfflineDB.all();
+        window.dispatchEvent(
+            new CustomEvent("expense-sync-start")
+        );
 
-      for (const operation of operations) {
         try {
-          const response = await fetch("/api/offline-sync", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            credentials: "same-origin",
-            body: JSON.stringify(operation)
-          });
+            const operations = await ExpenseOfflineDB.all();
 
-          if (response.ok) {
-            await ExpenseOfflineDB.remove(operation.id);
-          }
-        } catch {
-          break;
+            if (!operations.length) {
+                updateStatus();
+                return;
+            }
+
+            for (const operation of operations) {
+                try {
+                    const response = await fetch("/api/offline-sync", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        credentials: "same-origin",
+                        body: JSON.stringify(operation)
+                    });
+
+                    if (response.ok) {
+                        await ExpenseOfflineDB.remove(operation.id);
+
+                        window.dispatchEvent(
+                            new CustomEvent("expense-sync-operation", {
+                                detail: {
+                                    operation
+                                }
+                            })
+                        );
+                    } else if (response.status === 401 || response.status === 403) {
+                        console.warn(
+                            "Offline operation rejected because authentication is required."
+                        );
+
+                        break;
+                    } else {
+                        console.warn(
+                            "Offline operation failed:",
+                            response.status
+                        );
+
+                        break;
+                    }
+                } catch (error) {
+                    console.warn(
+                        "Sync interrupted:",
+                        error
+                    );
+
+                    break;
+                }
+            }
+        } finally {
+            syncing = false;
+
+            window.dispatchEvent(
+                new CustomEvent("expense-sync-complete")
+            );
+
+            await updateStatus();
         }
-      }
-
-      updateStatus();
-    } finally {
-      syncing = false;
     }
-  }
 
-  async function updateStatus() {
-    const count = await ExpenseOfflineDB.count();
+    async function updateStatus() {
+        const pending = await ExpenseOfflineDB.count();
 
-    window.dispatchEvent(
-      new CustomEvent("expense-sync-status", {
-        detail: {
-          pending: count,
-          online: navigator.onLine
+        window.dispatchEvent(
+            new CustomEvent("expense-sync-status", {
+                detail: {
+                    pending,
+                    online: navigator.onLine,
+                    syncing
+                }
+            })
+        );
+    }
+
+    window.addEventListener("online", () => {
+        updateStatus();
+        sync();
+    });
+
+    window.addEventListener("offline", updateStatus);
+
+    window.addEventListener("load", () => {
+        updateStatus();
+
+        if (navigator.onLine) {
+            sync();
         }
-      })
-    );
-  }
+    });
 
-  window.addEventListener("online", sync);
-
-  window.addEventListener("offline", updateStatus);
-
-  window.addEventListener("load", () => {
-    updateStatus();
-    sync();
-  });
-
-  return {
-    sync,
-    updateStatus
-  };
+    return {
+        sync,
+        updateStatus
+    };
 })();

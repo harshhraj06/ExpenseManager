@@ -2049,3 +2049,78 @@ a{
         bottom: 12px;
     }
 }
+
+/* =========================================================
+   OFFLINE-FIRST STATUS
+   ========================================================= */
+
+#offline-indicator {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 9px 13px;
+
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+
+    background: rgba(20,20,20,.94);
+    color: #fff;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.offline-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #35c759;
+
+    box-shadow: 0 0 8px rgba(53,199,89,.6);
+}
+
+.offline-dot.offline {
+    background: #ff453a;
+    box-shadow: 0 0 8px rgba(255,69,58,.6);
+}
+
+.offline-dot.syncing {
+    background: #ffcc00;
+
+    animation: offline-sync-pulse 1s infinite;
+}
+
+.offline-pending {
+    opacity: .65;
+}
+
+@keyframes offline-sync-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .35;
+    }
+}
+
+@media (max-width: 600px) {
+    #offline-indicator {
+        right: 10px;
+        bottom: 10px;
+        font-size: 11px;
+    }
+}
