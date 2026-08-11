@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>Budgets | Expense Manager</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='budgets.css') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta
+        name="theme-color"
+        content="#080808">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
+</head>
+
+<body class="budget-page">
+
+<div class="budget-shell">
+
+    <header class="budget-header">
+
+        <div>
+            <a
+                href="/"
+                class="budget-back">
+                ← Dashboard
+            </a>
+
+            <span class="budget-eyebrow">
+                Personal Finance
+            </span>
+
+            <h1>Monthly Budgets</h1>
+
+            <p>
+                Set limits before your spending
+                decides them for you.
+            </p>
+        </div>
+
+        <form
+            method="GET"
+            action="/budgets"
+            class="month-picker">
+
+            <label for="budget-month">
+                Month
+            </label>
+
+            <input
+                id="budget-month"
+                type="month"
+                name="month"
+                value="{{ selected_month }}"
+                onchange="this.form.submit()">
+
+        </form>
+
+    </header>
+
+
+    {% if notice %}
+
+    <div class="budget-notice">
+        {{ notice }}
+    </div>
+
+    {% endif %}
+
+
+    <section class="budget-summary">
+
+        <article class="budget-summary-card">
+
+            <span>Total Budget</span>
+
+            <strong>
+                ₹{{ total_budget }}
+            </strong>
+
+        </article>
+
+
+        <article class="budget-summary-card">
+
+            <span>Spent</span>
+
+            <strong>
+                ₹{{ total_spent }}
+            </strong>
+
+        </article>
+
+
+        <article class="budget-summary-card">
+
+            <span>Remaining</span>
+
+            <strong
+                class="{% if total_remaining < 0 %}negative{% endif %}">
+                ₹{{ total_remaining }}
+            </strong>
+
+        </article>
+
+
+        <article class="budget-summary-card">
+
+            <span>Used</span>
+
+            <strong>
+                {{ total_percentage }}%
+            </strong>
+
+        </article>
+
+    </section>
+
+
+    <section class="budget-layout">
+
+        <div class="budget-panel">
+
+            <div class="budget-panel-heading">
+
+                <div>
+                    <span class="budget-eyebrow">
+                        Planning
+                    </span>
+
+                    <h2>Set a category budget</h2>
+                </div>
+
+            </div>
+
+
+            <form
+                action="/budgets"
+                method="POST"
+                class="budget-form">
+
+                <input
+                    type="hidden"
+                    name="month"
+                    value="{{ selected_month }}">
+
+
+                <div class="budget-field">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select
+                        name="category"
+                        required>
+
+                        <option value="">
+                            Choose category
+                        </option>
+
+                        {% for category in categories %}
+
+                        <option
+                            value="{{ category }}">
+                            {{ category }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="budget-field">
+
+                    <label>
+                        Monthly limit
+                    </label>
+
+                    <div class="budget-money-input">
+
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            name="monthly_limit"
+                            min="1"
+                            step="0.01"
+                            placeholder="5000"
+                            required>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="budget-save-button">
+
+                    Save Budget
+
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="budget-panel">
+
+            <div class="budget-panel-heading">
+
+                <div>
+                    <span class="budget-eyebrow">
+                        {{ selected_month }}
+                    </span>
+
+                    <h2>Category limits</h2>
+                </div>
+
+                <span class="budget-count">
+                    {{ budget_items|length }}
+                </span>
+
+            </div>
+
+
+            {% if budget_items %}
+
+            <div class="budget-list">
+
+                {% for item in budget_items %}
+
+                <article
+                    class="budget-item
+                    budget-{{ item.status }}">
+
+                    <div class="budget-item-top">
+
+                        <div>
+
+                            <h3>
+                                {{ item.category }}
+                            </h3>
+
+                            <p>
+                                ₹{{ item.spent }}
+                                of
+                                ₹{{ item.limit }}
+                            </p>
+
+                        </div>
+
+
+                        <div class="budget-item-right">
+
+                            <strong>
+                                {{ item.percentage }}%
+                            </strong>
+
+                            <form
+                                action="/budgets/delete/{{ item.id }}"
+                                method="POST">
+
+                                <input
+                                    type="hidden"
+                                    name="month"
+                                    value="{{ selected_month }}">
+
+                                <button
+                                    type="submit"
+                                    class="budget-delete"
+                                    onclick="return confirm('Remove this budget?')">
+
+                                    ×
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="budget-progress">
+
+                        <div
+                            class="budget-progress-fill"
+                            style="width: {{ item.bar_percentage }}%">
+                        </div>
+
+                    </div>
+
+
+                    <div class="budget-item-footer">
+
+                        {% if item.remaining >= 0 %}
+
+                        <span>
+                            ₹{{ item.remaining }}
+                            remaining
+                        </span>
+
+                        {% else %}
+
+                        <span class="budget-over-text">
+                            ₹{{ item.remaining|abs }}
+                            over budget
+                        </span>
+
+                        {% endif %}
+
+
+                        {% if item.status == "over" %}
+
+                        <span class="budget-status">
+                            Limit exceeded
+                        </span>
+
+                        {% elif item.status == "warning" %}
+
+                        <span class="budget-status">
+                            Near limit
+                        </span>
+
+                        {% else %}
+
+                        <span class="budget-status">
+                            On track
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="budget-empty">
+
+                <div class="budget-empty-icon">
+                    ◎
+                </div>
+
+                <h3>
+                    No budgets yet
+                </h3>
+
+                <p>
+                    Add your first category limit
+                    for this month.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script
+    src="{{ url_for('static', filename='js/db.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/sync.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/offline.js') }}">
+</script>
+
+</body>
+</html>

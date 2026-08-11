@@ -1,11 +1,6 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover">
-
     <script>
         (() => {
             const saved =
@@ -32,10 +27,55 @@
         })();
     </script>
 
-    <title>Forgot Password</title>
+  <meta charset="UTF-8">
+  <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Offline — Expense Manager</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .offline-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    .offline-card {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      padding: 42px 28px;
+      border-radius: 24px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .offline-card img {
+      width: 82px;
+      height: 82px;
+      object-fit: contain;
+      margin-bottom: 20px;
+    }
+
+    .offline-card h1 {
+      margin-bottom: 12px;
+    }
+
+    .offline-card p {
+      opacity: .7;
+      line-height: 1.6;
+    }
+
+    .offline-card button {
+      margin-top: 20px;
+      padding: 12px 22px;
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0b0b0b">
     <link
@@ -61,51 +101,18 @@
         href="{{ url_for('static', filename='mobile.css') }}">
 
 </head>
-
 <body>
-
-<div class="container">
-
-    <div class="card">
-
-        <h1>🔑 Forgot Password</h1>
-
-        {% if message %}
-        <p style="color:#16a34a;">{{ message }}</p>
-        {% endif %}
-
-        {% if error %}
-        <p style="color:#dc2626;">{{ error }}</p>
-        {% endif %}
-
-        {% if not message %}
-
-        <p>Enter your account email and we'll send you a link to reset your password.</p>
-
-        <form action="/forgot_password" method="POST">
-
-            <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                required>
-
-            <button type="submit">
-                Send Reset Link
-            </button>
-
-        </form>
-
-        {% endif %}
-
-        <p>
-            <a href="/login">← Back to Login</a>
-        </p>
-
-    </div>
-
-</div>
-
+  <main class="offline-page">
+    <section class="offline-card">
+      <img src="/static/logo.png" alt="Expense Manager">
+      <h1>You're offline</h1>
+      <p>
+        Expense Manager is available offline for locally stored data.
+        Reconnect to sync your pending changes.
+      </p>
+      <button onclick="location.reload()">Try Again</button>
+    </section>
+  </main>
     <script src="/static/js/db.js"></script>
     <script src="/static/js/sync.js"></script>
     <script src="/static/js/offline.js"></script>

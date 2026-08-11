@@ -1998,3 +1998,390 @@ a{
     color: #6b7280;
     font-size: 14px;
 }
+
+/* =========================================================
+   OFFLINE-FIRST UI
+   ========================================================= */
+
+#offline-indicator {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 99999;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 9px 13px;
+    border-radius: 999px;
+
+    background: rgba(15, 15, 15, .92);
+    border: 1px solid rgba(255, 255, 255, .12);
+
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    backdrop-filter: blur(12px);
+}
+
+.offline-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #35d07f;
+}
+
+.offline-dot.offline {
+    background: #ff5252;
+}
+
+.offline-pending {
+    opacity: .6;
+    margin-left: 2px;
+}
+
+@media (max-width: 600px) {
+    #offline-indicator {
+        right: 12px;
+        bottom: 12px;
+    }
+}
+
+/* =========================================================
+   OFFLINE-FIRST STATUS
+   ========================================================= */
+
+#offline-indicator {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 9px 13px;
+
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+
+    background: rgba(20,20,20,.94);
+    color: #fff;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.offline-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #35c759;
+
+    box-shadow: 0 0 8px rgba(53,199,89,.6);
+}
+
+.offline-dot.offline {
+    background: #ff453a;
+    box-shadow: 0 0 8px rgba(255,69,58,.6);
+}
+
+.offline-dot.syncing {
+    background: #ffcc00;
+
+    animation: offline-sync-pulse 1s infinite;
+}
+
+.offline-pending {
+    opacity: .65;
+}
+
+@keyframes offline-sync-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .35;
+    }
+}
+
+@media (max-width: 600px) {
+    #offline-indicator {
+        right: 10px;
+        bottom: 10px;
+        font-size: 11px;
+    }
+}
+
+/* =========================================================
+   OFFLINE SAVE TOASTS
+   ========================================================= */
+
+#offline-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100000;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    pointer-events: none;
+}
+
+.offline-toast {
+    min-width: 280px;
+    max-width: 420px;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 13px 16px;
+
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+
+    background: rgba(18,18,18,.96);
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    box-shadow: 0 15px 45px rgba(0,0,0,.35);
+
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    opacity: 0;
+    transform: translateY(-10px);
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
+}
+
+.offline-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.offline-toast-icon {
+    width: 24px;
+    height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.offline-toast-success .offline-toast-icon {
+    background: rgba(53,199,89,.15);
+    color: #35c759;
+}
+
+.offline-toast-error .offline-toast-icon {
+    background: rgba(255,69,58,.15);
+    color: #ff453a;
+}
+
+@media (max-width: 600px) {
+    #offline-toast-container {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+    }
+
+    .offline-toast {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+/* =========================================================
+   OFFLINE TRANSACTION ROWS
+   ========================================================= */
+
+.offline-transaction-row {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(255, 204, 0, .07),
+            transparent
+        );
+}
+
+.offline-transaction-row td {
+    opacity: .9;
+}
+
+.offline-transaction-synced {
+    animation: offline-row-synced .8s ease;
+}
+
+.offline-row-status,
+.offline-local-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 8px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.offline-row-status.pending,
+.offline-local-badge {
+    background: rgba(255, 204, 0, .12);
+    color: #ffcc00;
+    border: 1px solid rgba(255, 204, 0, .18);
+}
+
+.offline-row-status.synced {
+    background: rgba(53, 199, 89, .12);
+    color: #35c759;
+    border: 1px solid rgba(53, 199, 89, .18);
+}
+
+@keyframes offline-row-synced {
+    0% {
+        background: rgba(53, 199, 89, .20);
+    }
+
+    100% {
+        background: transparent;
+    }
+}
+
+/* =========================================================
+   CLEAN HEADER NAVIGATION
+   ========================================================= */
+
+.navbar {
+    box-sizing: border-box;
+    width: min(100% - 32px, 1320px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.nav-links {
+    flex: 1;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 22px;
+}
+
+.nav-links > a {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.nav-links .add-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+@media (max-width: 1200px) {
+    .nav-links {
+        gap: 14px;
+    }
+
+    .nav-links > a {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .navbar {
+        width: calc(100% - 20px);
+    }
+
+    .nav-links {
+        flex-wrap: wrap;
+    }
+
+    .nav-links .add-btn {
+        margin-left: 0;
+    }
+}
+
+
+/* EXPENSE HISTORY TOGGLE */
+.expense-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.expense-history-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.expense-history-toggle-btn {
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #f5f5f5;
+    transition: all 0.2s ease;
+}
+
+.expense-history-toggle-btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.22);
+}
+
+.expense-history-toggle-btn.history-hidden {
+    background: rgba(255,255,255,0.03);
+    color: #d5d5d5;
+}
+
+#expense-history-table {
+    transition: all 0.22s ease;
+}
+
+#expense-history-table.is-hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .expense-history-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .expense-history-actions {
+        width: 100%;
+    }
+}

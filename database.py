@@ -261,3 +261,145 @@ conn.commit()
 conn.close()
 
 print("Database created successfully")
+# =========================================================
+# Monthly Budgets
+# =========================================================
+
+def ensure_budgets_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS budgets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                monthly_limit REAL NOT NULL,
+                month TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, category, month)
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_budgets_table()
+
+
+# =========================================================
+# Savings Goals
+# =========================================================
+
+def ensure_savings_goals_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS savings_goals (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                target_amount REAL NOT NULL,
+                saved_amount REAL NOT NULL DEFAULT 0,
+                target_date TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_savings_goals_table()
+
+
+# =========================================================
+# Subscriptions
+# =========================================================
+
+def ensure_subscriptions_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                billing_cycle TEXT NOT NULL DEFAULT 'monthly',
+                category TEXT NOT NULL DEFAULT 'Other',
+                next_renewal TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_subscriptions_table()
+
+
+# =========================================================
+# Recurring Transactions
+# =========================================================
+
+def ensure_recurring_transactions_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS recurring_transactions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                transaction_type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                category TEXT,
+                source TEXT,
+                description TEXT,
+                frequency TEXT NOT NULL DEFAULT 'monthly',
+                next_run TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                last_generated_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_recurring_transactions_table()

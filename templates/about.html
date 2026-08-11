@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>
+        About | Expense Manager
+    </title>
+
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light"
+                || saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='about.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+</head>
+
+
+<body class="about-page">
+
+    <main class="about-shell">
+
+
+        <div class="about-nav">
+
+            <a
+                href="/"
+                class="about-back">
+
+                ← Dashboard
+
+            </a>
+
+            <span class="about-brand">
+                ₹ Expense Manager
+            </span>
+
+        </div>
+
+
+        <!-- HERO -->
+
+        <section class="about-hero">
+
+            <div class="about-hero-copy">
+
+                <span class="about-eyebrow">
+                    About the project
+                </span>
+
+                <h1>
+                    Built to make money
+                    <span>easier to understand.</span>
+                </h1>
+
+                <p>
+                    Expense Manager is a modern personal-finance
+                    platform designed to bring expenses, income,
+                    budgets, bills, savings and financial insights
+                    together in one simple experience.
+                </p>
+
+            </div>
+
+
+            <div class="about-founder-card">
+
+                <div class="founder-avatar">
+                    HR
+                </div>
+
+                <div class="founder-info">
+
+                    <span>
+                        Founder & Developer
+                    </span>
+
+                    <h2>
+                        Harsh Raj
+                    </h2>
+
+                    <p>
+                        Full-Stack Developer
+                    </p>
+
+                </div>
+
+                <div class="founder-status">
+
+                    <span></span>
+
+                    Actively building
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- PROJECT -->
+
+        <section class="about-grid">
+
+            <article class="about-card about-large-card">
+
+                <span class="about-card-number">
+                    01
+                </span>
+
+                <span class="about-eyebrow">
+                    The project
+                </span>
+
+                <h2>
+                    What is Expense Manager?
+                </h2>
+
+                <p>
+                    Expense Manager started as a simple way to
+                    track everyday income and expenses and grew
+                    into a complete personal-finance platform.
+                </p>
+
+                <p>
+                    The goal is to help users understand where
+                    their money goes, control spending, plan
+                    budgets, manage recurring payments and make
+                    better financial decisions without making
+                    finance feel complicated.
+                </p>
+
+            </article>
+
+
+            <article class="about-card">
+
+                <span class="about-card-number">
+                    02
+                </span>
+
+                <span class="about-eyebrow">
+                    Philosophy
+                </span>
+
+                <h2>
+                    Simple on the surface.
+                </h2>
+
+                <p>
+                    Financial software can become complicated
+                    quickly. Expense Manager focuses on keeping
+                    powerful features behind a clean and easy
+                    interface.
+                </p>
+
+            </article>
+
+        </section>
+
+
+
+        <!-- TECH STACK -->
+
+        <section class="about-section">
+
+            <div class="about-section-heading">
+
+                <div>
+
+                    <span class="about-eyebrow">
+                        Under the hood
+                    </span>
+
+                    <h2>
+                        How it was made
+                    </h2>
+
+                </div>
+
+                <p>
+                    Built end-to-end as a full-stack web
+                    application.
+                </p>
+
+            </div>
+
+
+            <div class="tech-grid">
+
+                <article class="tech-card">
+
+                    <span class="tech-number">
+                        01
+                    </span>
+
+                    <h3>
+                        Python + Flask
+                    </h3>
+
+                    <p>
+                        Backend application, authentication,
+                        routes, business logic and APIs.
+                    </p>
+
+                </article>
+
+
+                <article class="tech-card">
+
+                    <span class="tech-number">
+                        02
+                    </span>
+
+                    <h3>
+                        PostgreSQL
+                    </h3>
+
+                    <p>
+                        Production data storage for users,
+                        transactions, budgets and finance data.
+                    </p>
+
+                </article>
+
+
+                <article class="tech-card">
+
+                    <span class="tech-number">
+                        03
+                    </span>
+
+                    <h3>
+                        HTML + CSS
+                    </h3>
+
+                    <p>
+                        Responsive interfaces, dark/light themes
+                        and the complete visual experience.
+                    </p>
+
+                </article>
+
+
+                <article class="tech-card">
+
+                    <span class="tech-number">
+                        04
+                    </span>
+
+                    <h3>
+                        JavaScript
+                    </h3>
+
+                    <p>
+                        Offline behaviour, PWA features,
+                        live interactions and UI controls.
+                    </p>
+
+                </article>
+
+
+                <article class="tech-card">
+
+                    <span class="tech-number">
+                        05
+                    </span>
+
+                    <h3>
+                        Chart.js
+                    </h3>
+
+                    <p>
+                        Financial analytics, charts and
+                        spending visualisation.
+                    </p>
+
+                </article>
+
+
+                <article class="tech-card">
+
+                    <span class="tech-number">
+                        06
+                    </span>
+
+                    <h3>
+                        PWA + IndexedDB
+                    </h3>
+
+                    <p>
+                        Offline-first transaction support,
+                        local persistence and background sync.
+                    </p>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- FEATURES -->
+
+        <section class="about-section">
+
+            <div class="about-section-heading">
+
+                <div>
+
+                    <span class="about-eyebrow">
+                        Built-in capabilities
+                    </span>
+
+                    <h2>
+                        More than an expense tracker
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="about-feature-grid">
+
+                <div>
+                    <span>01</span>
+                    Income & Expense Tracking
+                </div>
+
+                <div>
+                    <span>02</span>
+                    Monthly Budgets
+                </div>
+
+                <div>
+                    <span>03</span>
+                    Savings Goals
+                </div>
+
+                <div>
+                    <span>04</span>
+                    Bills & Reminders
+                </div>
+
+                <div>
+                    <span>05</span>
+                    Subscription Tracking
+                </div>
+
+                <div>
+                    <span>06</span>
+                    Recurring Transactions
+                </div>
+
+                <div>
+                    <span>07</span>
+                    Financial Reports
+                </div>
+
+                <div>
+                    <span>08</span>
+                    Financial Health Score
+                </div>
+
+                <div>
+                    <span>09</span>
+                    Split Expenses
+                </div>
+
+                <div>
+                    <span>10</span>
+                    Offline-First Support
+                </div>
+
+                <div>
+                    <span>11</span>
+                    Dark & Light Mode
+                </div>
+
+                <div>
+                    <span>12</span>
+                    Multi-language UI
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- JOURNEY -->
+
+        <section class="about-story">
+
+            <span class="about-eyebrow">
+                The journey
+            </span>
+
+            <h2>
+                From a basic tracker to a complete
+                finance application.
+            </h2>
+
+            <div class="story-line">
+
+                <article>
+
+                    <span>
+                        Step 01
+                    </span>
+
+                    <strong>
+                        Track
+                    </strong>
+
+                    <p>
+                        Income and expense management.
+                    </p>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Step 02
+                    </span>
+
+                    <strong>
+                        Understand
+                    </strong>
+
+                    <p>
+                        Analytics, reports and categories.
+                    </p>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Step 03
+                    </span>
+
+                    <strong>
+                        Plan
+                    </strong>
+
+                    <p>
+                        Budgets, goals and recurring payments.
+                    </p>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Step 04
+                    </span>
+
+                    <strong>
+                        Automate
+                    </strong>
+
+                    <p>
+                        Offline sync and smart finance tools.
+                    </p>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- FOUNDER -->
+
+        <section class="about-founder-section">
+
+            <div>
+
+                <span class="about-eyebrow">
+                    Created by
+                </span>
+
+                <h2>
+                    Harsh Raj
+                </h2>
+
+                <p>
+                    Expense Manager is designed and developed
+                    as an end-to-end full-stack project,
+                    combining backend engineering, databases,
+                    responsive UI, offline capabilities and
+                    personal-finance tools into one product.
+                </p>
+
+            </div>
+
+
+            <div class="about-signature">
+
+                <span>
+                    BUILT WITH
+                </span>
+
+                <strong>
+                    CODE + CURIOSITY
+                </strong>
+
+                <small>
+                    Expense Manager
+                </small>
+
+            </div>
+
+        </section>
+
+
+
+        <footer class="about-footer">
+
+            <span>
+                ₹ Expense Manager
+            </span>
+
+            <p>
+                Designed & developed by Harsh Raj
+            </p>
+
+            <a href="/">
+                Back to Dashboard →
+            </a>
+
+        </footer>
+
+    </main>
+
+</body>
+</html>

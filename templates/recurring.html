@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>
+        Recurring Transactions | Expense Manager
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='recurring.css') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta
+        name="theme-color"
+        content="#080808">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
+</head>
+
+<body class="recurring-page">
+
+<div class="recurring-shell">
+
+    <header class="recurring-header">
+
+        <div>
+            <a
+                href="/"
+                class="recurring-back">
+                ← Dashboard
+            </a>
+
+            <span class="recurring-eyebrow">
+                Automation
+            </span>
+
+            <h1>
+                Recurring Transactions
+            </h1>
+
+            <p>
+                Automate rent, salary, EMI,
+                fees and other predictable transactions.
+            </p>
+        </div>
+
+        <form
+            action="/recurring/process"
+            method="POST">
+
+            <button
+                class="process-now-button"
+                type="submit">
+                Run Due Transactions
+            </button>
+
+        </form>
+
+    </header>
+
+
+    {% if notice %}
+
+    <div class="recurring-notice">
+        {{ notice }}
+    </div>
+
+    {% endif %}
+
+
+    <section class="recurring-summary">
+
+        <article>
+            <span>Monthly Income</span>
+            <strong class="positive">
+                ₹{{ monthly_income }}
+            </strong>
+        </article>
+
+        <article>
+            <span>Monthly Expenses</span>
+            <strong>
+                ₹{{ monthly_expenses }}
+            </strong>
+        </article>
+
+        <article>
+            <span>Active</span>
+            <strong>
+                {{ active_count }}
+            </strong>
+        </article>
+
+        <article>
+            <span>Due Now</span>
+            <strong
+                class="{% if due_count > 0 %}warning{% endif %}">
+                {{ due_count }}
+            </strong>
+        </article>
+
+    </section>
+
+
+    <section class="recurring-layout">
+
+        <div class="recurring-panel">
+
+            <span class="recurring-eyebrow">
+                New Automation
+            </span>
+
+            <h2>
+                Create schedule
+            </h2>
+
+
+            <form
+                action="/recurring"
+                method="POST"
+                class="recurring-form">
+
+                <div class="recurring-field">
+
+                    <label>
+                        Name
+                    </label>
+
+                    <input
+                        type="text"
+                        name="name"
+                        maxlength="80"
+                        placeholder="Rent, Salary, EMI..."
+                        required>
+
+                </div>
+
+
+                <div class="recurring-field">
+
+                    <label>
+                        Type
+                    </label>
+
+                    <select
+                        name="transaction_type"
+                        id="recurring-type"
+                        required>
+
+                        <option value="expense">
+                            Expense
+                        </option>
+
+                        <option value="income">
+                            Income
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="recurring-field">
+
+                    <label>
+                        Amount
+                    </label>
+
+                    <div class="recurring-money">
+
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            name="amount"
+                            min="1"
+                            step="0.01"
+                            placeholder="10000"
+                            required>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="recurring-field"
+                    id="recurring-category-wrap">
+
+                    <label>
+                        Expense Category
+                    </label>
+
+                    <select name="category">
+
+                        {% for category in categories %}
+
+                        <option value="{{ category }}">
+                            {{ category }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div
+                    class="recurring-field hidden"
+                    id="recurring-source-wrap">
+
+                    <label>
+                        Income Source
+                    </label>
+
+                    <input
+                        type="text"
+                        name="source"
+                        placeholder="Salary, Freelance...">
+
+                </div>
+
+
+                <div class="recurring-field">
+
+                    <label>
+                        Frequency
+                    </label>
+
+                    <select
+                        name="frequency"
+                        required>
+
+                        <option value="monthly">
+                            Monthly
+                        </option>
+
+                        <option value="yearly">
+                            Yearly
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="recurring-field">
+
+                    <label>
+                        First transaction date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="next_run"
+                        required>
+
+                </div>
+
+
+                <div
+                    class="recurring-field"
+                    id="recurring-description-wrap">
+
+                    <label>
+                        Description
+                    </label>
+
+                    <input
+                        type="text"
+                        name="description"
+                        placeholder="Optional description">
+
+                </div>
+
+
+                <button
+                    class="recurring-save-button"
+                    type="submit">
+
+                    Create Schedule
+
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="recurring-panel">
+
+            <div class="recurring-panel-heading">
+
+                <div>
+                    <span class="recurring-eyebrow">
+                        Automation List
+                    </span>
+
+                    <h2>
+                        Your schedules
+                    </h2>
+                </div>
+
+                <span class="recurring-count">
+                    {{ recurring_items|length }}
+                </span>
+
+            </div>
+
+
+            {% if recurring_items %}
+
+            <div class="recurring-list">
+
+                {% for item in recurring_items %}
+
+                <article
+                    class="
+                        recurring-item
+                        {% if item.status != 'active' %}
+                            paused
+                        {% endif %}
+                    ">
+
+                    <div class="recurring-item-top">
+
+                        <div>
+
+                            <div class="recurring-title-row">
+
+                                <span
+                                    class="
+                                        recurring-type
+                                        {{ item.transaction_type }}
+                                    ">
+
+                                    {{ item.transaction_type }}
+
+                                </span>
+
+                                <h3>
+                                    {{ item.name }}
+                                </h3>
+
+                            </div>
+
+                            <p>
+                                {% if item.transaction_type == "expense" %}
+                                    {{ item.category }}
+                                {% else %}
+                                    {{ item.source }}
+                                {% endif %}
+
+                                · {{ item.frequency }}
+                            </p>
+
+                        </div>
+
+                        <strong>
+                            ₹{{ item.amount }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="recurring-meta">
+
+                        <div>
+                            <span>Next Run</span>
+                            <strong>
+                                {{ item.next_run }}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Monthly Equivalent</span>
+                            <strong>
+                                ₹{{ item.monthly_equivalent }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="recurring-footer">
+
+                        <span
+                            class="
+                                recurring-status
+                                {{ item.status }}
+                            ">
+
+                            {{ item.status }}
+
+                        </span>
+
+
+                        <div class="recurring-actions">
+
+                            <form
+                                action="/recurring/{{ item.id }}/toggle"
+                                method="POST">
+
+                                <button type="submit">
+
+                                    {% if item.status == "active" %}
+                                        Pause
+                                    {% else %}
+                                        Resume
+                                    {% endif %}
+
+                                </button>
+
+                            </form>
+
+
+                            <form
+                                action="/recurring/{{ item.id }}/delete"
+                                method="POST">
+
+                                <button
+                                    type="submit"
+                                    class="delete"
+                                    onclick="return confirm('Delete this recurring schedule?')">
+
+                                    Delete
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="recurring-empty">
+
+                <div>↻</div>
+
+                <h3>
+                    No recurring schedules
+                </h3>
+
+                <p>
+                    Add rent, salary or EMI
+                    and Expense Manager will handle
+                    future transactions automatically.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script
+    src="{{ url_for('static', filename='js/recurring.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/db.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/sync.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/offline.js') }}">
+</script>
+
+</body>
+</html>

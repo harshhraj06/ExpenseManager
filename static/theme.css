@@ -1,0 +1,1410 @@
+/* =========================================================
+   EXPENSE MANAGER — GLOBAL THEME SYSTEM
+   ========================================================= */
+
+:root {
+    color-scheme: dark;
+
+    --theme-bg: #080808;
+    --theme-bg-secondary: #0d0d0d;
+    --theme-surface: rgba(255, 255, 255, 0.035);
+    --theme-surface-strong: #111111;
+
+    --theme-text: #f5f5f5;
+    --theme-text-secondary: #b0b0b0;
+    --theme-muted: #747474;
+
+    --theme-border: rgba(255, 255, 255, 0.08);
+    --theme-border-strong: rgba(255, 255, 255, 0.14);
+
+    --theme-input: rgba(255, 255, 255, 0.035);
+    --theme-hover: rgba(255, 255, 255, 0.065);
+
+    --theme-shadow: rgba(0, 0, 0, 0.28);
+
+    --theme-button-bg: #f3f3f3;
+    --theme-button-text: #080808;
+}
+
+
+/* =========================================================
+   LIGHT THEME VARIABLES
+   ========================================================= */
+
+html[data-theme="light"] {
+    color-scheme: light;
+
+    --theme-bg: #f4f6f8;
+    --theme-bg-secondary: #ffffff;
+
+    --theme-surface: rgba(255, 255, 255, 0.92);
+    --theme-surface-strong: #ffffff;
+
+    --theme-text: #16181c;
+    --theme-text-secondary: #555b65;
+    --theme-muted: #7b818b;
+
+    --theme-border: rgba(18, 24, 35, 0.09);
+    --theme-border-strong: rgba(18, 24, 35, 0.15);
+
+    --theme-input: #f6f7f9;
+    --theme-hover: #f0f2f5;
+
+    --theme-shadow: rgba(20, 30, 45, 0.09);
+
+    --theme-button-bg: #15171a;
+    --theme-button-text: #ffffff;
+}
+
+
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+html,
+body {
+    background: var(--theme-bg) !important;
+    color: var(--theme-text) !important;
+}
+
+body {
+    transition:
+        background-color .22s ease,
+        color .22s ease;
+}
+
+html[data-theme="light"] body {
+    background:
+        radial-gradient(
+            circle at 50% -15%,
+            rgba(0, 0, 0, .035),
+            transparent 34rem
+        ),
+        var(--theme-bg) !important;
+}
+
+
+/* =========================================================
+   TEXT
+   ========================================================= */
+
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] h4,
+html[data-theme="light"] strong {
+    color: var(--theme-text);
+}
+
+html[data-theme="light"] p,
+html[data-theme="light"] label {
+    color: var(--theme-text-secondary);
+}
+
+html[data-theme="light"] .pro-eyebrow,
+html[data-theme="light"] .recurring-eyebrow,
+html[data-theme="light"] .financial-health-eyebrow {
+    color: #7b818a !important;
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+html[data-theme="light"] .navbar,
+html[data-theme="light"] nav {
+    background:
+        rgba(255, 255, 255, .86) !important;
+
+    border-color:
+        var(--theme-border) !important;
+
+    box-shadow:
+        0 8px 30px
+        rgba(25, 35, 50, .045);
+}
+
+html[data-theme="light"] .navbar a,
+html[data-theme="light"] .nav-links a {
+    color: #4f555e;
+}
+
+html[data-theme="light"] .navbar a:hover,
+html[data-theme="light"] .nav-links a:hover {
+    color: #111318;
+}
+
+
+/* =========================================================
+   COMMON CARDS
+   ========================================================= */
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .pro-control-center,
+html[data-theme="light"] .recurring-panel,
+html[data-theme="light"] .recurring-summary article,
+html[data-theme="light"] .recurring-item,
+html[data-theme="light"] .financial-health-card,
+html[data-theme="light"] .budget-card,
+html[data-theme="light"] .goal-card,
+html[data-theme="light"] .subscription-card,
+html[data-theme="light"] .report-card {
+    background:
+        var(--theme-surface) !important;
+
+    border-color:
+        var(--theme-border) !important;
+
+    box-shadow:
+        0 18px 45px
+        var(--theme-shadow) !important;
+}
+
+
+/* =========================================================
+   FINANCIAL CONTROL CENTER
+   ========================================================= */
+
+html[data-theme="light"] .pro-control-center {
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #fafbfc
+        ) !important;
+
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"] .pro-control-top,
+html[data-theme="light"] .pro-control-search-row,
+html[data-theme="light"] .pro-health-zone {
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"] .pro-control-copy h2,
+html[data-theme="light"] .pro-control-section-heading h3 {
+    color:
+        var(--theme-text) !important;
+}
+
+html[data-theme="light"] .pro-today {
+    color:
+        var(--theme-muted) !important;
+}
+
+
+/* =========================================================
+   QUICK ACTIONS
+   ========================================================= */
+
+html[data-theme="light"] .pro-action {
+    background:
+        #f5f6f8 !important;
+
+    border-color:
+        var(--theme-border) !important;
+
+    color:
+        #555b64 !important;
+}
+
+html[data-theme="light"] .pro-action:hover {
+    background:
+        #eceff2 !important;
+
+    border-color:
+        var(--theme-border-strong) !important;
+
+    color:
+        #111318 !important;
+}
+
+html[data-theme="light"] .pro-action.primary {
+    background:
+        #17191c !important;
+
+    border-color:
+        #17191c !important;
+
+    color:
+        #ffffff !important;
+}
+
+html[data-theme="light"] .pro-action.primary:hover {
+    background:
+        #000000 !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+html[data-theme="light"] .pro-search-box {
+    background:
+        #f6f7f9 !important;
+
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"] .pro-search-box input {
+    color:
+        #181a1e !important;
+}
+
+html[data-theme="light"] .pro-search-box input::placeholder {
+    color:
+        #8d929a !important;
+}
+
+html[data-theme="light"] .pro-search-box button {
+    background:
+        #e9ebee !important;
+
+    color:
+        #31353a !important;
+}
+
+html[data-theme="light"] .pro-search-box button:hover {
+    background:
+        #dfe2e6 !important;
+}
+
+
+/* =========================================================
+   FINANCIAL HEALTH
+   ========================================================= */
+
+html[data-theme="light"]
+.financial-health-card {
+    background:
+        #fafbfc !important;
+}
+
+html[data-theme="light"]
+.financial-health-metrics span {
+    background:
+        #f1f3f5 !important;
+
+    color:
+        #7c8189 !important;
+}
+
+html[data-theme="light"]
+.financial-health-metrics strong {
+    color:
+        #30343a !important;
+}
+
+html[data-theme="light"]
+.financial-health-content > p {
+    color:
+        #737981 !important;
+}
+
+html[data-theme="light"]
+.financial-health-status {
+    background:
+        #eef0f2 !important;
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+html[data-theme="light"] table,
+html[data-theme="light"] #expense-history-table {
+    background:
+        #ffffff !important;
+
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"] th,
+html[data-theme="light"] #expense-history-table th {
+    background:
+        #f5f6f8 !important;
+
+    color:
+        #747a83 !important;
+
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"] td,
+html[data-theme="light"] #expense-history-table td {
+    color:
+        #383d44 !important;
+
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"] tbody tr:hover,
+html[data-theme="light"]
+#expense-history-table
+tr:not(:first-child):hover {
+    background:
+        #f7f8fa !important;
+}
+
+html[data-theme="light"]
+#expense-history-table
+td:first-child {
+    color:
+        #191c20 !important;
+}
+
+
+/* =========================================================
+   EXPENSE HISTORY
+   ========================================================= */
+
+html[data-theme="light"]
+.expense-history-section {
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #fafbfc
+        ) !important;
+
+    border-color:
+        var(--theme-border) !important;
+}
+
+html[data-theme="light"]
+.expense-history-count {
+    background:
+        #f0f2f4;
+
+    color:
+        #747a83;
+}
+
+html[data-theme="light"]
+.expense-history-actions
+.download-btn {
+    background:
+        #f1f3f5 !important;
+
+    border-color:
+        var(--theme-border) !important;
+
+    color:
+        #34383e !important;
+}
+
+html[data-theme="light"]
+.expense-history-toggle-btn {
+    background:
+        rgba(0, 122, 255, .075) !important;
+
+    border-color:
+        rgba(0, 122, 255, .16) !important;
+
+    color:
+        #006fd6 !important;
+}
+
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea {
+    background:
+        #f7f8fa !important;
+
+    border-color:
+        var(--theme-border) !important;
+
+    color:
+        #17191d !important;
+
+    color-scheme: light;
+}
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder {
+    color:
+        #979ca4 !important;
+}
+
+html[data-theme="light"] select option {
+    background:
+        #ffffff;
+
+    color:
+        #17191d;
+}
+
+
+/* =========================================================
+   RECURRING PAGE
+   ========================================================= */
+
+html[data-theme="light"] .recurring-page {
+    background:
+        radial-gradient(
+            circle at 50% -10%,
+            rgba(0, 0, 0, .04),
+            transparent 34rem
+        ),
+        #f4f6f8 !important;
+}
+
+html[data-theme="light"] .recurring-back {
+    color:
+        #646a72 !important;
+}
+
+html[data-theme="light"] .recurring-summary span,
+html[data-theme="light"] .recurring-item p {
+    color:
+        #777d85 !important;
+}
+
+html[data-theme="light"] .recurring-meta div {
+    background:
+        #f4f5f7 !important;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+html[data-theme="light"] button:not(.theme-toggle) {
+    border-color:
+        var(--theme-border);
+}
+
+html[data-theme="light"] .process-now-button,
+html[data-theme="light"] .recurring-save-button {
+    background:
+        #17191c;
+
+    color:
+        #ffffff;
+}
+
+
+/* =========================================================
+   THEME TOGGLE
+   ========================================================= */
+
+.theme-toggle {
+    position: fixed;
+
+    right: 22px;
+    bottom: 22px;
+
+    z-index: 9999;
+
+    width: 46px;
+    height: 46px;
+
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        var(--theme-border-strong);
+
+    border-radius: 50%;
+
+    background:
+        rgba(18, 18, 18, .90);
+
+    color:
+        #ffffff;
+
+    box-shadow:
+        0 10px 30px
+        rgba(0, 0, 0, .25);
+
+    backdrop-filter:
+        blur(16px);
+
+    -webkit-backdrop-filter:
+        blur(16px);
+
+    cursor: pointer;
+
+    transition:
+        transform .18s ease,
+        background .18s ease,
+        border-color .18s ease;
+}
+
+.theme-toggle:hover {
+    transform:
+        translateY(-2px)
+        scale(1.03);
+}
+
+html[data-theme="light"]
+.theme-toggle {
+    background:
+        rgba(255, 255, 255, .94);
+
+    color:
+        #17191c;
+
+    border-color:
+        rgba(0, 0, 0, .10);
+
+    box-shadow:
+        0 10px 30px
+        rgba(20, 30, 45, .13);
+}
+
+.theme-toggle-icon {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 1.05rem;
+
+    line-height: 1;
+}
+
+.theme-toggle-label {
+    position: absolute;
+
+    right: 54px;
+
+    padding: 6px 9px;
+
+    border-radius: 8px;
+
+    background:
+        var(--theme-surface-strong);
+
+    color:
+        var(--theme-text);
+
+    border:
+        1px solid
+        var(--theme-border);
+
+    font-size: .62rem;
+    font-weight: 750;
+
+    white-space: nowrap;
+
+    opacity: 0;
+    pointer-events: none;
+
+    transform: translateX(5px);
+
+    transition:
+        opacity .15s ease,
+        transform .15s ease;
+}
+
+.theme-toggle:hover
+.theme-toggle-label {
+    opacity: 1;
+
+    transform: translateX(0);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+    .theme-toggle {
+        right: 14px;
+        bottom: 14px;
+
+        width: 43px;
+        height: 43px;
+    }
+
+    .theme-toggle-label {
+        display: none;
+    }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    body,
+    .theme-toggle {
+        transition: none !important;
+    }
+}
+
+/* =========================================================
+   LIGHT MODE V2 — PROFESSIONAL GREY THEME
+   ========================================================= */
+
+html[data-theme="light"] {
+    --theme-bg: #e7eaee;
+    --theme-bg-secondary: #edf0f3;
+
+    --theme-surface: #f1f3f5;
+    --theme-surface-strong: #f5f6f7;
+
+    --theme-text: #17191c;
+    --theme-text-secondary: #555b63;
+    --theme-muted: #777e87;
+
+    --theme-border: rgba(33, 40, 50, .11);
+    --theme-border-strong: rgba(33, 40, 50, .17);
+
+    --theme-input: #e4e7eb;
+    --theme-hover: #e1e5e9;
+
+    --theme-shadow: rgba(27, 36, 48, .10);
+}
+
+
+/* ---------------------------------------------------------
+   PAGE BACKGROUND
+   --------------------------------------------------------- */
+
+html[data-theme="light"],
+html[data-theme="light"] body {
+    background:
+        linear-gradient(
+            180deg,
+            #e9ecef 0%,
+            #e4e8ec 100%
+        ) !important;
+
+    color: #17191c !important;
+}
+
+
+/* ---------------------------------------------------------
+   GLOBAL LAYOUT SAFETY
+   --------------------------------------------------------- */
+
+html[data-theme="light"] *,
+html[data-theme="light"] *::before,
+html[data-theme="light"] *::after {
+    box-sizing: border-box;
+}
+
+html[data-theme="light"] .dashboard,
+html[data-theme="light"] .container,
+html[data-theme="light"] .card,
+html[data-theme="light"] .pro-control-center,
+html[data-theme="light"] .financial-health-card {
+    min-width: 0;
+}
+
+
+/* ---------------------------------------------------------
+   MAIN CARDS
+   --------------------------------------------------------- */
+
+html[data-theme="light"] .card {
+    background:
+        #f3f4f6 !important;
+
+    border:
+        1px solid
+        rgba(31, 38, 48, .11) !important;
+
+    box-shadow:
+        0 10px 30px
+        rgba(28, 36, 48, .07) !important;
+
+    color:
+        #17191c !important;
+}
+
+
+/* ---------------------------------------------------------
+   FINANCIAL CONTROL CENTER
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.pro-control-center {
+    background:
+        linear-gradient(
+            145deg,
+            #f1f3f5,
+            #eceff2
+        ) !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .12) !important;
+
+    box-shadow:
+        0 16px 40px
+        rgba(30, 38, 48, .08) !important;
+}
+
+html[data-theme="light"]
+.pro-control-top,
+
+html[data-theme="light"]
+.pro-control-search-row,
+
+html[data-theme="light"]
+.pro-health-zone {
+    border-color:
+        rgba(30, 38, 48, .09) !important;
+}
+
+
+/* ---------------------------------------------------------
+   QUICK ACTIONS
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.pro-actions {
+    min-width: 0;
+}
+
+html[data-theme="light"]
+.pro-action {
+    min-width: 0 !important;
+
+    background:
+        #e5e8eb !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .10) !important;
+
+    color:
+        #444a52 !important;
+
+    box-shadow:
+        none !important;
+}
+
+html[data-theme="light"]
+.pro-action:hover {
+    background:
+        #dce1e5 !important;
+
+    border-color:
+        rgba(30, 38, 48, .18) !important;
+
+    color:
+        #111318 !important;
+}
+
+html[data-theme="light"]
+.pro-action.primary {
+    background:
+        #202328 !important;
+
+    border-color:
+        #202328 !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* ---------------------------------------------------------
+   SEARCH BAR
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.pro-search-box {
+    background:
+        #e5e8eb !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .11) !important;
+}
+
+html[data-theme="light"]
+.pro-search-box input {
+    background:
+        transparent !important;
+
+    color:
+        #202328 !important;
+}
+
+html[data-theme="light"]
+.pro-search-box button {
+    background:
+        #d8dde2 !important;
+
+    color:
+        #30353b !important;
+}
+
+
+/* ---------------------------------------------------------
+   FINANCIAL HEALTH CARD
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.financial-health-card {
+    background:
+        #e7eaed !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .10) !important;
+
+    box-shadow:
+        none !important;
+}
+
+html[data-theme="light"]
+.financial-health-metrics {
+    min-width: 0;
+}
+
+html[data-theme="light"]
+.financial-health-metrics span {
+    min-width: 0;
+
+    background:
+        #dde1e5 !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .06);
+
+    color:
+        #656c75 !important;
+}
+
+html[data-theme="light"]
+.financial-health-metrics strong {
+    color:
+        #252a30 !important;
+}
+
+
+/* ---------------------------------------------------------
+   EXPENSE HISTORY
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.expense-history-section {
+    background:
+        #f1f3f5 !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .11) !important;
+}
+
+html[data-theme="light"]
+#expense-history-table {
+    background:
+        #eef0f2 !important;
+
+    border-color:
+        rgba(30, 38, 48, .10) !important;
+}
+
+html[data-theme="light"]
+#expense-history-table th {
+    background:
+        #e2e6e9 !important;
+
+    color:
+        #686f78 !important;
+}
+
+html[data-theme="light"]
+#expense-history-table td {
+    background:
+        transparent !important;
+
+    color:
+        #30353b !important;
+}
+
+html[data-theme="light"]
+#expense-history-table
+tr:not(:first-child):hover {
+    background:
+        #e3e7ea !important;
+}
+
+
+/* ---------------------------------------------------------
+   INPUTS
+   --------------------------------------------------------- */
+
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea {
+    background:
+        #e4e7ea !important;
+
+    color:
+        #202328 !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .12) !important;
+
+    box-shadow:
+        none !important;
+}
+
+html[data-theme="light"] input:focus,
+html[data-theme="light"] select:focus,
+html[data-theme="light"] textarea:focus {
+    border-color:
+        rgba(30, 38, 48, .28) !important;
+
+    outline:
+        2px solid
+        rgba(30, 38, 48, .05) !important;
+}
+
+
+/* ---------------------------------------------------------
+   NAVBAR
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.navbar {
+    background:
+        rgba(237, 240, 243, .94) !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .11) !important;
+
+    box-shadow:
+        0 8px 30px
+        rgba(30, 38, 48, .07) !important;
+}
+
+
+/* ---------------------------------------------------------
+   TABLE WRAPPERS
+   --------------------------------------------------------- */
+
+html[data-theme="light"] table {
+    max-width: 100%;
+}
+
+html[data-theme="light"] .table-wrapper,
+html[data-theme="light"] .table-container {
+    max-width: 100%;
+
+    overflow-x: auto;
+}
+
+
+/* =========================================================
+   THEME BUTTON POSITION
+   Keep it ABOVE Online / Offline status
+   ========================================================= */
+
+.theme-toggle {
+    right: 22px !important;
+
+    bottom: 82px !important;
+
+    z-index: 10001 !important;
+}
+
+html[data-theme="light"]
+.theme-toggle {
+    background:
+        #d9dde1 !important;
+
+    border:
+        1px solid
+        rgba(30, 38, 48, .14) !important;
+
+    color:
+        #202328 !important;
+
+    box-shadow:
+        0 8px 24px
+        rgba(30, 38, 48, .14) !important;
+}
+
+html[data-theme="light"]
+.theme-toggle:hover {
+    background:
+        #cfd4d9 !important;
+}
+
+
+/* =========================================================
+   ONLINE / OFFLINE INDICATOR
+   Keep below theme toggle
+   ========================================================= */
+
+#offline-indicator,
+.offline-indicator,
+#connection-status,
+.connection-status,
+.online-status,
+.offline-status {
+    z-index: 10000 !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE LIGHT MODE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    html[data-theme="light"]
+    .pro-control-center {
+        overflow: hidden;
+    }
+
+    html[data-theme="light"]
+    .pro-actions {
+        width: 100%;
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            ) !important;
+    }
+
+    html[data-theme="light"]
+    .financial-health-metrics {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            ) !important;
+    }
+
+    .theme-toggle {
+        right: 14px !important;
+
+        bottom: 72px !important;
+    }
+}
+
+
+@media (max-width: 430px) {
+
+    html[data-theme="light"]
+    .pro-actions {
+        grid-template-columns:
+            1fr !important;
+    }
+}
+
+/* =========================================================
+   LIGHT MODE V3 — DARK TEXT FIX
+   ========================================================= */
+
+html[data-theme="light"] {
+    --light-text: #111317;
+    --light-text-soft: #2c3036;
+    --light-text-muted: #555b63;
+}
+
+
+/* ---------------------------------------------------------
+   MAIN TEXT
+   --------------------------------------------------------- */
+
+html[data-theme="light"] body,
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] h4,
+html[data-theme="light"] h5,
+html[data-theme="light"] h6,
+html[data-theme="light"] p,
+html[data-theme="light"] span,
+html[data-theme="light"] label,
+html[data-theme="light"] strong,
+html[data-theme="light"] small,
+html[data-theme="light"] li,
+html[data-theme="light"] td,
+html[data-theme="light"] th,
+html[data-theme="light"] blockquote {
+    color: var(--light-text) !important;
+}
+
+
+/* ---------------------------------------------------------
+   LOGO / BRAND
+   --------------------------------------------------------- */
+
+html[data-theme="light"] .logo,
+html[data-theme="light"] .logo-text,
+html[data-theme="light"] .brand,
+html[data-theme="light"] .brand-name,
+html[data-theme="light"] .navbar-brand,
+html[data-theme="light"] .navbar .logo,
+html[data-theme="light"] header .logo {
+    color: #050505 !important;
+}
+
+
+/* ---------------------------------------------------------
+   QUOTE / TAGLINE / WELCOME TEXT
+   --------------------------------------------------------- */
+
+html[data-theme="light"] .quote,
+html[data-theme="light"] .dashboard-quote,
+html[data-theme="light"] .hero-quote,
+html[data-theme="light"] .tagline,
+html[data-theme="light"] .welcome-text,
+html[data-theme="light"] .welcome,
+html[data-theme="light"] blockquote {
+    color: #17191c !important;
+}
+
+
+/* ---------------------------------------------------------
+   NAVBAR
+   --------------------------------------------------------- */
+
+html[data-theme="light"] .navbar,
+html[data-theme="light"] .navbar a,
+html[data-theme="light"] .nav-links,
+html[data-theme="light"] .nav-links a,
+html[data-theme="light"] nav a {
+    color: #111317 !important;
+}
+
+html[data-theme="light"] .navbar a:hover,
+html[data-theme="light"] .nav-links a:hover {
+    color: #000000 !important;
+}
+
+
+/* ---------------------------------------------------------
+   FINANCIAL CONTROL CENTER
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.pro-control-center,
+
+html[data-theme="light"]
+.pro-control-center h2,
+
+html[data-theme="light"]
+.pro-control-center h3,
+
+html[data-theme="light"]
+.pro-control-center p,
+
+html[data-theme="light"]
+.pro-control-center span {
+    color: #111317 !important;
+}
+
+html[data-theme="light"]
+.pro-eyebrow,
+
+html[data-theme="light"]
+.financial-health-eyebrow {
+    color: #3f454c !important;
+}
+
+
+/* ---------------------------------------------------------
+   QUICK ACTIONS
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.pro-action {
+    color: #111317 !important;
+}
+
+html[data-theme="light"]
+.pro-action.primary {
+    background: #d6dade !important;
+
+    border-color:
+        rgba(30,38,48,.16) !important;
+
+    color: #050505 !important;
+}
+
+html[data-theme="light"]
+.pro-action.primary:hover {
+    background: #c9ced3 !important;
+
+    color: #000000 !important;
+}
+
+
+/* ---------------------------------------------------------
+   SEARCH
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.pro-search-box input {
+    color: #111317 !important;
+}
+
+html[data-theme="light"]
+.pro-search-box input::placeholder {
+    color: #555b63 !important;
+}
+
+html[data-theme="light"]
+.pro-search-box button {
+    color: #111317 !important;
+}
+
+
+/* ---------------------------------------------------------
+   CARDS
+   --------------------------------------------------------- */
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .card h1,
+html[data-theme="light"] .card h2,
+html[data-theme="light"] .card h3,
+html[data-theme="light"] .card p,
+html[data-theme="light"] .card span,
+html[data-theme="light"] .card strong {
+    color: #111317 !important;
+}
+
+
+/* ---------------------------------------------------------
+   TABLES
+   --------------------------------------------------------- */
+
+html[data-theme="light"] table,
+html[data-theme="light"] table th,
+html[data-theme="light"] table td,
+html[data-theme="light"]
+#expense-history-table th,
+html[data-theme="light"]
+#expense-history-table td {
+    color: #111317 !important;
+}
+
+
+/* ---------------------------------------------------------
+   INPUT LABELS
+   --------------------------------------------------------- */
+
+html[data-theme="light"] label {
+    color: #111317 !important;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea {
+    color: #111317 !important;
+}
+
+
+/* ---------------------------------------------------------
+   EXPENSE HISTORY BUTTONS
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.expense-history-actions
+.download-btn,
+
+html[data-theme="light"]
+.expense-history-toggle-btn {
+    color: #111317 !important;
+}
+
+
+/* ---------------------------------------------------------
+   KEEP IMPORTANT STATUS COLORS
+   --------------------------------------------------------- */
+
+html[data-theme="light"] .positive,
+html[data-theme="light"] .income,
+html[data-theme="light"] .success {
+    color: #137a35 !important;
+}
+
+html[data-theme="light"] .negative,
+html[data-theme="light"] .expense,
+html[data-theme="light"] .danger,
+html[data-theme="light"] .delete-btn {
+    color: #c62828 !important;
+}
+
+html[data-theme="light"] .warning {
+    color: #996c00 !important;
+}
+
+
+/* ---------------------------------------------------------
+   THEME BUTTON
+   --------------------------------------------------------- */
+
+html[data-theme="light"]
+.theme-toggle,
+
+html[data-theme="light"]
+.theme-toggle span {
+    color: #050505 !important;
+}
+
+/* =========================================================
+   LIGHT MODE — KEEP LOGO IN DARK-MODE STYLE
+   ========================================================= */
+
+html[data-theme="light"] .logo,
+html[data-theme="light"] .logo-text,
+html[data-theme="light"] .brand,
+html[data-theme="light"] .brand-name,
+html[data-theme="light"] .navbar-brand,
+html[data-theme="light"] .navbar .logo,
+html[data-theme="light"] header .logo {
+    color: #ffffff !important;
+}
+
+/* If logo contains nested text/icons */
+html[data-theme="light"] .logo *,
+html[data-theme="light"] .brand *,
+html[data-theme="light"] .navbar-brand * {
+    color: #ffffff !important;
+}
+
+/* Give logo its dark-mode background so it remains visible */
+html[data-theme="light"] .logo,
+html[data-theme="light"] .brand,
+html[data-theme="light"] .navbar-brand {
+    background: #0b0b0b !important;
+
+    border-radius: 9px;
+
+    padding: 7px 10px;
+
+    border: 1px solid rgba(255,255,255,.08);
+}

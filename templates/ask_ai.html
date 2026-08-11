@@ -1,9 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
     <title>Ask Expense Manager · Expense Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0b0b0b">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
 </head>
 
 <body>
@@ -20,6 +74,9 @@
       <a href="/">Dashboard</a>
       <a href="/groups">Groups</a>
       <a href="/bills">Bills</a>
+
+
+
       <a href="/ask_ai">Ask Expense Manager</a>
 
       <div class="notif-bell-wrap">
@@ -374,5 +431,8 @@
   })();
 </script>
 
+    <script src="/static/js/db.js"></script>
+    <script src="/static/js/sync.js"></script>
+    <script src="/static/js/offline.js"></script>
 </body>
 </html>

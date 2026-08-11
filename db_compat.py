@@ -99,6 +99,26 @@ def is_postgres():
     )
 
 
+
+# ------------------------------------------------------------------
+# Compatibility exceptions
+# ------------------------------------------------------------------
+
+class IntegrityError(Exception):
+    """Database integrity error compatible with the app's old SQLite API."""
+    pass
+
+
+class OperationalError(Exception):
+    """Database operational error compatible with the app's old SQLite API."""
+    pass
+
+
+class DatabaseError(Exception):
+    """Generic database error compatible with the app's old SQLite API."""
+    pass
+
+
 class SQLiteCursorWrapper:
     """
     Makes SQLite behave closer to PostgreSQL for the SQL used by this app.
@@ -384,6 +404,19 @@ def connect(database=None):
 
     connection.execute(
         "PRAGMA busy_timeout = 5000"
+    )
+
+    # Additional SQLite performance settings for offline-first usage.
+    connection.execute(
+        "PRAGMA temp_store = MEMORY"
+    )
+
+    connection.execute(
+        "PRAGMA cache_size = -20000"
+    )
+
+    connection.execute(
+        "PRAGMA mmap_size = 268435456"
     )
 
     return SQLiteConnectionWrapper(connection)

@@ -9,7 +9,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from urllib.parse import urlencode
 
-from flask import Flask, render_template, request, redirect, session, send_file, abort
+from flask import Flask, render_template, request, redirect, session, send_file, send_from_directory, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -49,8 +49,114 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
+
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "harsh_secret_key_123")
+
+@app.route("/service-worker.js")
+def service_worker():
+    response = send_from_directory(
+        os.path.join(BASE_DIR, "static"),
+        "service-worker.js",
+        mimetype="application/javascript"
+    )
+
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+
+    return response
+
+
+@app.route("/offline")
+def offline():
+    return render_template("offline.html")
+
+
+@app.route("/api/offline-sync", methods=["POST"])
+def offline_sync():
+    if "user_id" not in session:
+        return {"error": "Authentication required"}, 401
+
+    payload = request.get_json(silent=True) or {}
+
+    operation_type = payload.get("type")
+    data = payload.get("data") or {}
+
+    if operation_type not in {"expense", "income"}:
+        return {"error": "Unsupported offline operation"}, 400
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if operation_type == "expense":
+            cursor.execute(
+                """
+                INSERT INTO expenses
+                (amount, category, description, date, user_id)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    data.get("amount"),
+                    data.get("category"),
+                    data.get("description"),
+                    data.get("date"),
+                    session["user_id"]
+                )
+            )
+
+        else:
+            cursor.execute(
+                """
+                INSERT INTO income
+                (amount, source, date, user_id)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    data.get("amount"),
+                    data.get("source"),
+                    data.get("date"),
+                    session["user_id"]
+                )
+            )
+
+        conn.commit()
+
+        return {"success": True}
+
+    except Exception as exc:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        return {
+            "success": False,
+            "error": str(exc)
+        }, 500
+
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
+if not SECRET_KEY:
+    if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+        raise RuntimeError(
+            "SECRET_KEY environment variable is required in production."
+        )
+
+    SECRET_KEY = "expense-manager-local-development-only"
+
+app.secret_key = SECRET_KEY
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
 # ─────────────────────────────────────────────
@@ -78,7 +184,7 @@ UPI_ID = "yourname@upi"
 # crashing the app.
 # ─────────────────────────────────────────────
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-print("RESEND_API_KEY:", RESEND_API_KEY)
+print("Resend email service configured:", bool(RESEND_API_KEY))
 RESEND_FROM_ADDRESS = os.environ.get("RESEND_FROM_ADDRESS", "onboarding@resend.dev")
 RESEND_API_URL = "https://api.resend.com/emails"
 
@@ -2975,6 +3081,3123 @@ def ask_ai_clear():
     conn.close()
 
     return redirect("/ask_ai")
+
+
+
+
+# =========================================================
+# MONTHLY BUDGETS
+# =========================================================
+
+@app.route("/budgets", methods=["GET", "POST"])
+def budgets():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    categories = [
+        "Food",
+        "Travel",
+        "Shopping",
+        "Bills",
+        "Entertainment",
+        "Education"
+    ]
+
+    today = date.today()
+
+    selected_month = (
+        request.values.get("month")
+        or today.strftime("%Y-%m")
+    ).strip()
+
+    try:
+        year, month_number = map(
+            int,
+            selected_month.split("-")
+        )
+
+        month_start = date(
+            year,
+            month_number,
+            1
+        )
+
+    except Exception:
+        selected_month = today.strftime("%Y-%m")
+
+        month_start = date(
+            today.year,
+            today.month,
+            1
+        )
+
+    if month_start.month == 12:
+        next_month = date(
+            month_start.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            month_start.year,
+            month_start.month + 1,
+            1
+        )
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            category = str(
+                request.form.get("category") or ""
+            ).strip()
+
+            try:
+                monthly_limit = float(
+                    request.form.get(
+                        "monthly_limit"
+                    ) or 0
+                )
+            except (TypeError, ValueError):
+                monthly_limit = 0
+
+            if category not in categories:
+                session["budget_notice"] = (
+                    "Please choose a valid category."
+                )
+
+                return redirect(
+                    f"/budgets?month={selected_month}"
+                )
+
+            if monthly_limit <= 0:
+                session["budget_notice"] = (
+                    "Budget must be greater than ₹0."
+                )
+
+                return redirect(
+                    f"/budgets?month={selected_month}"
+                )
+
+            cursor.execute(
+                """
+                INSERT INTO budgets (
+                    user_id,
+                    category,
+                    monthly_limit,
+                    month
+                )
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (user_id, category, month)
+                DO UPDATE SET
+                    monthly_limit = excluded.monthly_limit
+                """,
+                (
+                    session["user_id"],
+                    category,
+                    monthly_limit,
+                    selected_month
+                )
+            )
+
+            conn.commit()
+
+            session["budget_notice"] = (
+                f"{category} budget saved."
+            )
+
+            return redirect(
+                f"/budgets?month={selected_month}"
+            )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                category,
+                monthly_limit
+            FROM budgets
+            WHERE user_id = ?
+              AND month = ?
+            ORDER BY category
+            """,
+            (
+                session["user_id"],
+                selected_month
+            )
+        )
+
+        budget_rows = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                category,
+                COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            GROUP BY category
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        spent_rows = cursor.fetchall()
+
+        spent_map = {
+            row[0]: float(row[1] or 0)
+            for row in spent_rows
+        }
+
+        budget_items = []
+
+        total_budget = 0.0
+        total_spent = 0.0
+
+        for row in budget_rows:
+            budget_id = row[0]
+            category = row[1]
+            limit_value = float(row[2] or 0)
+
+            spent = spent_map.get(
+                category,
+                0.0
+            )
+
+            percentage = (
+                (spent / limit_value) * 100
+                if limit_value > 0
+                else 0
+            )
+
+            remaining = (
+                limit_value - spent
+            )
+
+            if percentage >= 100:
+                status = "over"
+            elif percentage >= 80:
+                status = "warning"
+            else:
+                status = "good"
+
+            budget_items.append({
+                "id": budget_id,
+                "category": category,
+                "limit": round(
+                    limit_value,
+                    2
+                ),
+                "spent": round(
+                    spent,
+                    2
+                ),
+                "remaining": round(
+                    remaining,
+                    2
+                ),
+                "percentage": round(
+                    percentage,
+                    1
+                ),
+                "bar_percentage": min(
+                    percentage,
+                    100
+                ),
+                "status": status
+            })
+
+            total_budget += limit_value
+            total_spent += spent
+
+        total_remaining = (
+            total_budget - total_spent
+        )
+
+        total_percentage = (
+            (total_spent / total_budget) * 100
+            if total_budget > 0
+            else 0
+        )
+
+        notice = session.pop(
+            "budget_notice",
+            None
+        )
+
+        return render_template(
+            "budgets.html",
+            categories=categories,
+            selected_month=selected_month,
+            budget_items=budget_items,
+            total_budget=round(
+                total_budget,
+                2
+            ),
+            total_spent=round(
+                total_spent,
+                2
+            ),
+            total_remaining=round(
+                total_remaining,
+                2
+            ),
+            total_percentage=round(
+                total_percentage,
+                1
+            ),
+            notice=notice
+        )
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route(
+    "/budgets/delete/<int:budget_id>",
+    methods=["POST"]
+)
+def delete_budget(budget_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    selected_month = (
+        request.form.get("month")
+        or ""
+    ).strip()
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM budgets
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                budget_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["budget_notice"] = (
+        "Budget removed."
+    )
+
+    if selected_month:
+        return redirect(
+            f"/budgets?month={selected_month}"
+        )
+
+    return redirect("/budgets")
+
+
+
+
+
+# =========================================================
+# SAVINGS GOALS
+# =========================================================
+
+@app.route("/goals", methods=["GET", "POST"])
+def savings_goals():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            name = str(
+                request.form.get("name") or ""
+            ).strip()
+
+            try:
+                target_amount = float(
+                    request.form.get("target_amount") or 0
+                )
+            except (TypeError, ValueError):
+                target_amount = 0
+
+            try:
+                saved_amount = float(
+                    request.form.get("saved_amount") or 0
+                )
+            except (TypeError, ValueError):
+                saved_amount = 0
+
+            target_date_text = str(
+                request.form.get("target_date") or ""
+            ).strip()
+
+            try:
+                target_date = date.fromisoformat(
+                    target_date_text
+                )
+            except ValueError:
+                target_date = None
+
+            if not name:
+                session["goal_notice"] = (
+                    "Enter a goal name."
+                )
+                return redirect("/goals")
+
+            if target_amount <= 0:
+                session["goal_notice"] = (
+                    "Target amount must be greater than ₹0."
+                )
+                return redirect("/goals")
+
+            if saved_amount < 0:
+                session["goal_notice"] = (
+                    "Saved amount cannot be negative."
+                )
+                return redirect("/goals")
+
+            if saved_amount > target_amount:
+                saved_amount = target_amount
+
+            if not target_date:
+                session["goal_notice"] = (
+                    "Choose a valid target date."
+                )
+                return redirect("/goals")
+
+            cursor.execute(
+                """
+                INSERT INTO savings_goals (
+                    user_id,
+                    name,
+                    target_amount,
+                    saved_amount,
+                    target_date
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    session["user_id"],
+                    name,
+                    target_amount,
+                    saved_amount,
+                    target_date.isoformat()
+                )
+            )
+
+            conn.commit()
+
+            session["goal_notice"] = (
+                f"{name} goal created."
+            )
+
+            return redirect("/goals")
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                target_amount,
+                saved_amount,
+                target_date
+            FROM savings_goals
+            WHERE user_id = ?
+            ORDER BY target_date ASC, id DESC
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        rows = cursor.fetchall()
+
+        today = date.today()
+
+        goals = []
+
+        total_target = 0.0
+        total_saved = 0.0
+
+        for row in rows:
+            goal_id = row[0]
+            name = row[1]
+            target_amount = float(row[2] or 0)
+            saved_amount = float(row[3] or 0)
+
+            try:
+                target_date = date.fromisoformat(
+                    str(row[4])
+                )
+            except ValueError:
+                target_date = today
+
+            remaining = max(
+                target_amount - saved_amount,
+                0
+            )
+
+            progress = (
+                (saved_amount / target_amount) * 100
+                if target_amount > 0
+                else 0
+            )
+
+            days_remaining = (
+                target_date - today
+            ).days
+
+            month_difference = (
+                (target_date.year - today.year) * 12
+                + target_date.month
+                - today.month
+            )
+
+            if (
+                target_date.day > today.day
+                and days_remaining > 0
+            ):
+                month_difference += 1
+
+            months_remaining = max(
+                month_difference,
+                1
+            )
+
+            if remaining <= 0:
+                monthly_required = 0
+                status = "complete"
+
+            elif days_remaining < 0:
+                monthly_required = remaining
+                status = "overdue"
+
+            else:
+                monthly_required = (
+                    remaining / months_remaining
+                )
+
+                if progress >= 75:
+                    status = "strong"
+                elif progress >= 35:
+                    status = "progress"
+                else:
+                    status = "starting"
+
+            goals.append({
+                "id": goal_id,
+                "name": name,
+                "target_amount": round(
+                    target_amount,
+                    2
+                ),
+                "saved_amount": round(
+                    saved_amount,
+                    2
+                ),
+                "remaining": round(
+                    remaining,
+                    2
+                ),
+                "progress": round(
+                    progress,
+                    1
+                ),
+                "bar_progress": min(
+                    progress,
+                    100
+                ),
+                "target_date": target_date.isoformat(),
+                "days_remaining": days_remaining,
+                "monthly_required": round(
+                    monthly_required,
+                    2
+                ),
+                "status": status
+            })
+
+            total_target += target_amount
+            total_saved += saved_amount
+
+        total_remaining = max(
+            total_target - total_saved,
+            0
+        )
+
+        overall_progress = (
+            (total_saved / total_target) * 100
+            if total_target > 0
+            else 0
+        )
+
+        notice = session.pop(
+            "goal_notice",
+            None
+        )
+
+        return render_template(
+            "goals.html",
+            goals=goals,
+            total_target=round(
+                total_target,
+                2
+            ),
+            total_saved=round(
+                total_saved,
+                2
+            ),
+            total_remaining=round(
+                total_remaining,
+                2
+            ),
+            overall_progress=round(
+                overall_progress,
+                1
+            ),
+            notice=notice
+        )
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route(
+    "/goals/<int:goal_id>/contribute",
+    methods=["POST"]
+)
+def contribute_to_goal(goal_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    try:
+        amount = float(
+            request.form.get("amount") or 0
+        )
+    except (TypeError, ValueError):
+        amount = 0
+
+    if amount <= 0:
+        session["goal_notice"] = (
+            "Contribution must be greater than ₹0."
+        )
+        return redirect("/goals")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                target_amount,
+                saved_amount,
+                name
+            FROM savings_goals
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                goal_id,
+                session["user_id"]
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            session["goal_notice"] = (
+                "Savings goal not found."
+            )
+            return redirect("/goals")
+
+        target_amount = float(row[0] or 0)
+        saved_amount = float(row[1] or 0)
+        goal_name = row[2]
+
+        new_saved_amount = min(
+            target_amount,
+            saved_amount + amount
+        )
+
+        cursor.execute(
+            """
+            UPDATE savings_goals
+            SET saved_amount = ?
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                new_saved_amount,
+                goal_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+        if new_saved_amount >= target_amount:
+            session["goal_notice"] = (
+                f"{goal_name} completed 🎉"
+            )
+        else:
+            session["goal_notice"] = (
+                f"₹{amount:.2f} added to {goal_name}."
+            )
+
+    finally:
+        conn.close()
+
+    return redirect("/goals")
+
+
+@app.route(
+    "/goals/<int:goal_id>/delete",
+    methods=["POST"]
+)
+def delete_savings_goal(goal_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM savings_goals
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                goal_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["goal_notice"] = (
+        "Savings goal removed."
+    )
+
+    return redirect("/goals")
+
+
+
+
+
+# =========================================================
+# SUBSCRIPTIONS
+# =========================================================
+
+@app.route("/subscriptions", methods=["GET", "POST"])
+def subscriptions():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    categories = [
+        "Entertainment",
+        "Music",
+        "Software",
+        "Cloud",
+        "Education",
+        "Fitness",
+        "News",
+        "Other"
+    ]
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            name = str(
+                request.form.get("name") or ""
+            ).strip()
+
+            try:
+                amount = float(
+                    request.form.get("amount") or 0
+                )
+            except (TypeError, ValueError):
+                amount = 0
+
+            billing_cycle = str(
+                request.form.get("billing_cycle") or "monthly"
+            ).strip().lower()
+
+            category = str(
+                request.form.get("category") or "Other"
+            ).strip()
+
+            next_renewal_text = str(
+                request.form.get("next_renewal") or ""
+            ).strip()
+
+            try:
+                next_renewal = date.fromisoformat(
+                    next_renewal_text
+                )
+            except ValueError:
+                next_renewal = None
+
+            if not name:
+                session["subscription_notice"] = (
+                    "Enter a subscription name."
+                )
+                return redirect("/subscriptions")
+
+            if amount <= 0:
+                session["subscription_notice"] = (
+                    "Subscription amount must be greater than ₹0."
+                )
+                return redirect("/subscriptions")
+
+            if billing_cycle not in {"monthly", "yearly"}:
+                session["subscription_notice"] = (
+                    "Choose a valid billing cycle."
+                )
+                return redirect("/subscriptions")
+
+            if category not in categories:
+                category = "Other"
+
+            if not next_renewal:
+                session["subscription_notice"] = (
+                    "Choose a valid renewal date."
+                )
+                return redirect("/subscriptions")
+
+            cursor.execute(
+                """
+                INSERT INTO subscriptions (
+                    user_id,
+                    name,
+                    amount,
+                    billing_cycle,
+                    category,
+                    next_renewal,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session["user_id"],
+                    name,
+                    amount,
+                    billing_cycle,
+                    category,
+                    next_renewal.isoformat(),
+                    "active"
+                )
+            )
+
+            conn.commit()
+
+            session["subscription_notice"] = (
+                f"{name} subscription added."
+            )
+
+            return redirect("/subscriptions")
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                amount,
+                billing_cycle,
+                category,
+                next_renewal,
+                status
+            FROM subscriptions
+            WHERE user_id = ?
+            ORDER BY next_renewal ASC, id DESC
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        rows = cursor.fetchall()
+
+        today = date.today()
+
+        items = []
+
+        monthly_total = 0.0
+        annual_total = 0.0
+        upcoming_count = 0
+        active_count = 0
+
+        for row in rows:
+            subscription_id = row[0]
+            name = row[1]
+            amount = float(row[2] or 0)
+            billing_cycle = row[3] or "monthly"
+            category = row[4] or "Other"
+
+            try:
+                next_renewal = date.fromisoformat(
+                    str(row[5])
+                )
+            except ValueError:
+                next_renewal = today
+
+            status = row[6] or "active"
+
+            days_until = (
+                next_renewal - today
+            ).days
+
+            if billing_cycle == "yearly":
+                monthly_equivalent = amount / 12
+                annual_cost = amount
+            else:
+                monthly_equivalent = amount
+                annual_cost = amount * 12
+
+            is_upcoming = (
+                status == "active"
+                and 0 <= days_until <= 7
+            )
+
+            is_overdue = (
+                status == "active"
+                and days_until < 0
+            )
+
+            if status == "active":
+                monthly_total += monthly_equivalent
+                annual_total += annual_cost
+                active_count += 1
+
+            if is_upcoming:
+                upcoming_count += 1
+
+            items.append({
+                "id": subscription_id,
+                "name": name,
+                "amount": round(amount, 2),
+                "billing_cycle": billing_cycle,
+                "category": category,
+                "next_renewal": next_renewal.isoformat(),
+                "days_until": days_until,
+                "monthly_equivalent": round(
+                    monthly_equivalent,
+                    2
+                ),
+                "annual_cost": round(
+                    annual_cost,
+                    2
+                ),
+                "status": status,
+                "is_upcoming": is_upcoming,
+                "is_overdue": is_overdue
+            })
+
+        notice = session.pop(
+            "subscription_notice",
+            None
+        )
+
+        return render_template(
+            "subscriptions.html",
+            subscriptions=items,
+            categories=categories,
+            monthly_total=round(
+                monthly_total,
+                2
+            ),
+            annual_total=round(
+                annual_total,
+                2
+            ),
+            active_count=active_count,
+            upcoming_count=upcoming_count,
+            notice=notice
+        )
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route(
+    "/subscriptions/<int:subscription_id>/toggle",
+    methods=["POST"]
+)
+def toggle_subscription(subscription_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT status, name
+            FROM subscriptions
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                subscription_id,
+                session["user_id"]
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            session["subscription_notice"] = (
+                "Subscription not found."
+            )
+            return redirect("/subscriptions")
+
+        current_status = row[0]
+        name = row[1]
+
+        new_status = (
+            "paused"
+            if current_status == "active"
+            else "active"
+        )
+
+        cursor.execute(
+            """
+            UPDATE subscriptions
+            SET status = ?
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                new_status,
+                subscription_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+        session["subscription_notice"] = (
+            f"{name} is now {new_status}."
+        )
+
+    finally:
+        conn.close()
+
+    return redirect("/subscriptions")
+
+
+@app.route(
+    "/subscriptions/<int:subscription_id>/delete",
+    methods=["POST"]
+)
+def delete_subscription(subscription_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM subscriptions
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                subscription_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["subscription_notice"] = (
+        "Subscription removed."
+    )
+
+    return redirect("/subscriptions")
+
+
+
+
+
+# =========================================================
+# FINANCIAL REPORTS
+# =========================================================
+
+@app.route("/reports")
+def financial_reports():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    today = date.today()
+
+    selected_month = str(
+        request.args.get("month")
+        or today.strftime("%Y-%m")
+    ).strip()
+
+    try:
+        year, month_number = map(
+            int,
+            selected_month.split("-")
+        )
+
+        month_start = date(
+            year,
+            month_number,
+            1
+        )
+
+    except Exception:
+        selected_month = today.strftime("%Y-%m")
+
+        month_start = date(
+            today.year,
+            today.month,
+            1
+        )
+
+    if month_start.month == 12:
+        next_month = date(
+            month_start.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            month_start.year,
+            month_start.month + 1,
+            1
+        )
+
+    if month_start.month == 1:
+        previous_month_start = date(
+            month_start.year - 1,
+            12,
+            1
+        )
+    else:
+        previous_month_start = date(
+            month_start.year,
+            month_start.month - 1,
+            1
+        )
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        total_income = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        total_expense = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                previous_month_start.isoformat(),
+                month_start.isoformat()
+            )
+        )
+
+        previous_income = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                previous_month_start.isoformat(),
+                month_start.isoformat()
+            )
+        )
+
+        previous_expense = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                category,
+                COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            GROUP BY category
+            ORDER BY SUM(amount) DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        category_rows = cursor.fetchall()
+
+        category_breakdown = [
+            {
+                "category": row[0],
+                "amount": round(
+                    float(row[1] or 0),
+                    2
+                )
+            }
+            for row in category_rows
+        ]
+
+        top_category = (
+            category_breakdown[0]
+            if category_breakdown
+            else None
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                amount,
+                category,
+                description,
+                date
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC, id DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        expense_rows = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                amount,
+                source,
+                date
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC, id DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        income_rows = cursor.fetchall()
+
+        transactions = []
+
+        for row in expense_rows:
+            transactions.append({
+                "id": row[0],
+                "type": "Expense",
+                "amount": round(
+                    float(row[1] or 0),
+                    2
+                ),
+                "label": row[2],
+                "description": row[3] or "",
+                "date": row[4]
+            })
+
+        for row in income_rows:
+            transactions.append({
+                "id": row[0],
+                "type": "Income",
+                "amount": round(
+                    float(row[1] or 0),
+                    2
+                ),
+                "label": row[2],
+                "description": "",
+                "date": row[3]
+            })
+
+        transactions.sort(
+            key=lambda item: (
+                str(item["date"]),
+                item["id"]
+            ),
+            reverse=True
+        )
+
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(SUM(monthly_limit), 0)
+                FROM budgets
+                WHERE user_id = ?
+                  AND month = ?
+                """,
+                (
+                    session["user_id"],
+                    selected_month
+                )
+            )
+
+            total_budget = float(
+                cursor.fetchone()[0] or 0
+            )
+
+        except Exception:
+            total_budget = 0.0
+
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN billing_cycle = 'yearly'
+                                THEN amount / 12.0
+                                ELSE amount
+                            END
+                        ),
+                        0
+                    )
+                FROM subscriptions
+                WHERE user_id = ?
+                  AND status = 'active'
+                """,
+                (
+                    session["user_id"],
+                )
+            )
+
+            subscription_monthly = float(
+                cursor.fetchone()[0] or 0
+            )
+
+        except Exception:
+            subscription_monthly = 0.0
+
+        savings = (
+            total_income - total_expense
+        )
+
+        savings_rate = (
+            (savings / total_income) * 100
+            if total_income > 0
+            else 0
+        )
+
+        budget_usage = (
+            (total_expense / total_budget) * 100
+            if total_budget > 0
+            else 0
+        )
+
+        subscription_burden = (
+            (subscription_monthly / total_income) * 100
+            if total_income > 0
+            else 0
+        )
+
+        def percentage_change(
+            current,
+            previous
+        ):
+            if previous == 0:
+                if current == 0:
+                    return 0
+
+                return 100
+
+            return (
+                (current - previous)
+                / previous
+            ) * 100
+
+        income_change = percentage_change(
+            total_income,
+            previous_income
+        )
+
+        expense_change = percentage_change(
+            total_expense,
+            previous_expense
+        )
+
+        report_health = "good"
+
+        if savings < 0:
+            report_health = "danger"
+
+        elif savings_rate < 10:
+            report_health = "warning"
+
+        return render_template(
+            "reports.html",
+            selected_month=selected_month,
+            total_income=round(
+                total_income,
+                2
+            ),
+            total_expense=round(
+                total_expense,
+                2
+            ),
+            savings=round(
+                savings,
+                2
+            ),
+            savings_rate=round(
+                savings_rate,
+                1
+            ),
+            total_budget=round(
+                total_budget,
+                2
+            ),
+            budget_usage=round(
+                budget_usage,
+                1
+            ),
+            subscription_monthly=round(
+                subscription_monthly,
+                2
+            ),
+            subscription_burden=round(
+                subscription_burden,
+                1
+            ),
+            income_change=round(
+                income_change,
+                1
+            ),
+            expense_change=round(
+                expense_change,
+                1
+            ),
+            category_breakdown=category_breakdown,
+            top_category=top_category,
+            transactions=transactions[:50],
+            report_health=report_health
+        )
+
+    finally:
+        conn.close()
+
+
+@app.route("/reports/export.csv")
+def export_financial_report_csv():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    import csv
+    import io
+    from datetime import date
+    from flask import Response
+
+    selected_month = str(
+        request.args.get("month")
+        or date.today().strftime("%Y-%m")
+    ).strip()
+
+    try:
+        year, month_number = map(
+            int,
+            selected_month.split("-")
+        )
+
+        month_start = date(
+            year,
+            month_number,
+            1
+        )
+
+    except Exception:
+        selected_month = (
+            date.today().strftime("%Y-%m")
+        )
+
+        month_start = date(
+            date.today().year,
+            date.today().month,
+            1
+        )
+
+    if month_start.month == 12:
+        next_month = date(
+            month_start.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            month_start.year,
+            month_start.month + 1,
+            1
+        )
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                date,
+                amount,
+                category,
+                description
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        expenses = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                date,
+                amount,
+                source
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        incomes = cursor.fetchall()
+
+    finally:
+        conn.close()
+
+    output = io.StringIO()
+
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "Date",
+        "Type",
+        "Amount",
+        "Category / Source",
+        "Description"
+    ])
+
+    for row in incomes:
+        writer.writerow([
+            row[0],
+            "Income",
+            row[1],
+            row[2],
+            ""
+        ])
+
+    for row in expenses:
+        writer.writerow([
+            row[0],
+            "Expense",
+            row[1],
+            row[2],
+            row[3] or ""
+        ])
+
+    response = Response(
+        output.getvalue(),
+        mimetype="text/csv"
+    )
+
+    response.headers[
+        "Content-Disposition"
+    ] = (
+        f'attachment; filename="expense-manager-'
+        f'{selected_month}-report.csv"'
+    )
+
+    return response
+
+
+
+
+
+# =========================================================
+# SMART TRANSACTION SEARCH
+# =========================================================
+
+@app.route("/search")
+def transaction_search():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    query = str(
+        request.args.get("q") or ""
+    ).strip()
+
+    transaction_type = str(
+        request.args.get("type") or "all"
+    ).strip().lower()
+
+    category = str(
+        request.args.get("category") or ""
+    ).strip()
+
+    date_from = str(
+        request.args.get("from") or ""
+    ).strip()
+
+    date_to = str(
+        request.args.get("to") or ""
+    ).strip()
+
+    try:
+        min_amount = float(
+            request.args.get("min_amount")
+        ) if request.args.get("min_amount") else None
+    except (TypeError, ValueError):
+        min_amount = None
+
+    try:
+        max_amount = float(
+            request.args.get("max_amount")
+        ) if request.args.get("max_amount") else None
+    except (TypeError, ValueError):
+        max_amount = None
+
+    if transaction_type not in {
+        "all",
+        "expense",
+        "income"
+    }:
+        transaction_type = "all"
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT DISTINCT category
+            FROM expenses
+            WHERE user_id = ?
+              AND category IS NOT NULL
+              AND category != ''
+            ORDER BY category
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        categories = [
+            row[0]
+            for row in cursor.fetchall()
+        ]
+
+        results = []
+
+        if transaction_type in {
+            "all",
+            "expense"
+        }:
+            expense_sql = """
+                SELECT
+                    id,
+                    amount,
+                    category,
+                    description,
+                    date
+                FROM expenses
+                WHERE user_id = ?
+            """
+
+            expense_params = [
+                session["user_id"]
+            ]
+
+            if query:
+                expense_sql += """
+                    AND (
+                        LOWER(COALESCE(category, ''))
+                            LIKE ?
+                        OR
+                        LOWER(COALESCE(description, ''))
+                            LIKE ?
+                    )
+                """
+
+                search_term = (
+                    f"%{query.lower()}%"
+                )
+
+                expense_params.extend([
+                    search_term,
+                    search_term
+                ])
+
+            if category:
+                expense_sql += """
+                    AND category = ?
+                """
+
+                expense_params.append(
+                    category
+                )
+
+            if date_from:
+                expense_sql += """
+                    AND date >= ?
+                """
+
+                expense_params.append(
+                    date_from
+                )
+
+            if date_to:
+                expense_sql += """
+                    AND date <= ?
+                """
+
+                expense_params.append(
+                    date_to
+                )
+
+            if min_amount is not None:
+                expense_sql += """
+                    AND amount >= ?
+                """
+
+                expense_params.append(
+                    min_amount
+                )
+
+            if max_amount is not None:
+                expense_sql += """
+                    AND amount <= ?
+                """
+
+                expense_params.append(
+                    max_amount
+                )
+
+            expense_sql += """
+                ORDER BY date DESC, id DESC
+                LIMIT 200
+            """
+
+            cursor.execute(
+                expense_sql,
+                tuple(expense_params)
+            )
+
+            for row in cursor.fetchall():
+                results.append({
+                    "id": row[0],
+                    "type": "expense",
+                    "amount": round(
+                        float(row[1] or 0),
+                        2
+                    ),
+                    "title": row[2] or "Expense",
+                    "description": row[3] or "",
+                    "date": row[4],
+                    "category": row[2] or "",
+                    "source": ""
+                })
+
+        if transaction_type in {
+            "all",
+            "income"
+        }:
+            income_sql = """
+                SELECT
+                    id,
+                    amount,
+                    source,
+                    date
+                FROM income
+                WHERE user_id = ?
+            """
+
+            income_params = [
+                session["user_id"]
+            ]
+
+            if query:
+                income_sql += """
+                    AND LOWER(
+                        COALESCE(source, '')
+                    ) LIKE ?
+                """
+
+                income_params.append(
+                    f"%{query.lower()}%"
+                )
+
+            if date_from:
+                income_sql += """
+                    AND date >= ?
+                """
+
+                income_params.append(
+                    date_from
+                )
+
+            if date_to:
+                income_sql += """
+                    AND date <= ?
+                """
+
+                income_params.append(
+                    date_to
+                )
+
+            if min_amount is not None:
+                income_sql += """
+                    AND amount >= ?
+                """
+
+                income_params.append(
+                    min_amount
+                )
+
+            if max_amount is not None:
+                income_sql += """
+                    AND amount <= ?
+                """
+
+                income_params.append(
+                    max_amount
+                )
+
+            income_sql += """
+                ORDER BY date DESC, id DESC
+                LIMIT 200
+            """
+
+            cursor.execute(
+                income_sql,
+                tuple(income_params)
+            )
+
+            for row in cursor.fetchall():
+                results.append({
+                    "id": row[0],
+                    "type": "income",
+                    "amount": round(
+                        float(row[1] or 0),
+                        2
+                    ),
+                    "title": row[2] or "Income",
+                    "description": "",
+                    "date": row[3],
+                    "category": "",
+                    "source": row[2] or ""
+                })
+
+        results.sort(
+            key=lambda item: (
+                str(item["date"]),
+                item["id"]
+            ),
+            reverse=True
+        )
+
+        total_income = sum(
+            item["amount"]
+            for item in results
+            if item["type"] == "income"
+        )
+
+        total_expense = sum(
+            item["amount"]
+            for item in results
+            if item["type"] == "expense"
+        )
+
+        net_result = (
+            total_income
+            - total_expense
+        )
+
+        return render_template(
+            "search.html",
+            results=results,
+            categories=categories,
+            query=query,
+            transaction_type=transaction_type,
+            selected_category=category,
+            date_from=date_from,
+            date_to=date_to,
+            min_amount=min_amount,
+            max_amount=max_amount,
+            result_count=len(results),
+            total_income=round(
+                total_income,
+                2
+            ),
+            total_expense=round(
+                total_expense,
+                2
+            ),
+            net_result=round(
+                net_result,
+                2
+            )
+        )
+
+    finally:
+        conn.close()
+
+
+
+
+
+# =========================================================
+# RECURRING TRANSACTIONS
+# =========================================================
+
+def _advance_recurring_date(current_date, frequency):
+    from datetime import date
+    import calendar
+
+    if frequency == "yearly":
+        target_year = current_date.year + 1
+
+        target_day = min(
+            current_date.day,
+            calendar.monthrange(
+                target_year,
+                current_date.month
+            )[1]
+        )
+
+        return date(
+            target_year,
+            current_date.month,
+            target_day
+        )
+
+    target_year = current_date.year
+    target_month = current_date.month + 1
+
+    if target_month == 13:
+        target_month = 1
+        target_year += 1
+
+    target_day = min(
+        current_date.day,
+        calendar.monthrange(
+            target_year,
+            target_month
+        )[1]
+    )
+
+    return date(
+        target_year,
+        target_month,
+        target_day
+    )
+
+
+def process_due_recurring_transactions(user_id):
+    from datetime import date
+
+    today = date.today()
+
+    conn = sqlite3.connect(DB_PATH)
+
+    generated_count = 0
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                transaction_type,
+                amount,
+                category,
+                source,
+                description,
+                frequency,
+                next_run
+            FROM recurring_transactions
+            WHERE user_id = ?
+              AND status = 'active'
+            ORDER BY next_run ASC
+            """,
+            (
+                user_id,
+            )
+        )
+
+        rows = cursor.fetchall()
+
+        for row in rows:
+            recurring_id = row[0]
+            name = row[1]
+            transaction_type = row[2]
+            amount = float(row[3] or 0)
+            category = row[4] or ""
+            source = row[5] or ""
+            description = row[6] or ""
+            frequency = row[7] or "monthly"
+
+            try:
+                next_run = date.fromisoformat(
+                    str(row[8])
+                )
+            except ValueError:
+                continue
+
+            safety_counter = 0
+
+            while (
+                next_run <= today
+                and safety_counter < 36
+            ):
+                if transaction_type == "expense":
+                    cursor.execute(
+                        """
+                        INSERT INTO expenses (
+                            amount,
+                            category,
+                            description,
+                            date,
+                            user_id
+                        )
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            amount,
+                            category,
+                            description or name,
+                            next_run.isoformat(),
+                            user_id
+                        )
+                    )
+
+                elif transaction_type == "income":
+                    cursor.execute(
+                        """
+                        INSERT INTO income (
+                            amount,
+                            source,
+                            date,
+                            user_id
+                        )
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            amount,
+                            source or name,
+                            next_run.isoformat(),
+                            user_id
+                        )
+                    )
+
+                else:
+                    break
+
+                generated_count += 1
+
+                last_generated = next_run
+
+                next_run = _advance_recurring_date(
+                    next_run,
+                    frequency
+                )
+
+                cursor.execute(
+                    """
+                    UPDATE recurring_transactions
+                    SET
+                        next_run = ?,
+                        last_generated_at = ?
+                    WHERE id = ?
+                      AND user_id = ?
+                    """,
+                    (
+                        next_run.isoformat(),
+                        last_generated.isoformat(),
+                        recurring_id,
+                        user_id
+                    )
+                )
+
+                safety_counter += 1
+
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
+
+    return generated_count
+
+
+@app.before_request
+def run_recurring_transactions_once_daily():
+    if "user_id" not in session:
+        return
+
+    if request.endpoint == "static":
+        return
+
+    from datetime import date
+
+    today_key = date.today().isoformat()
+
+    if session.get(
+        "recurring_processed_date"
+    ) == today_key:
+        return
+
+    try:
+        process_due_recurring_transactions(
+            session["user_id"]
+        )
+
+        session[
+            "recurring_processed_date"
+        ] = today_key
+
+    except Exception as exc:
+        print(
+            "Recurring processing error:",
+            type(exc).__name__,
+            str(exc)
+        )
+
+
+@app.route(
+    "/recurring",
+    methods=["GET", "POST"]
+)
+def recurring_transactions():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    categories = [
+        "Food",
+        "Travel",
+        "Shopping",
+        "Bills",
+        "Entertainment",
+        "Education",
+        "Rent",
+        "EMI",
+        "Other"
+    ]
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            name = str(
+                request.form.get("name") or ""
+            ).strip()
+
+            transaction_type = str(
+                request.form.get(
+                    "transaction_type"
+                ) or ""
+            ).strip().lower()
+
+            try:
+                amount = float(
+                    request.form.get("amount") or 0
+                )
+            except (TypeError, ValueError):
+                amount = 0
+
+            category = str(
+                request.form.get("category") or ""
+            ).strip()
+
+            source = str(
+                request.form.get("source") or ""
+            ).strip()
+
+            description = str(
+                request.form.get("description") or ""
+            ).strip()
+
+            frequency = str(
+                request.form.get("frequency")
+                or "monthly"
+            ).strip().lower()
+
+            next_run_text = str(
+                request.form.get("next_run") or ""
+            ).strip()
+
+            try:
+                next_run = date.fromisoformat(
+                    next_run_text
+                )
+            except ValueError:
+                next_run = None
+
+            if not name:
+                session["recurring_notice"] = (
+                    "Enter a schedule name."
+                )
+                return redirect("/recurring")
+
+            if transaction_type not in {
+                "expense",
+                "income"
+            }:
+                session["recurring_notice"] = (
+                    "Choose Income or Expense."
+                )
+                return redirect("/recurring")
+
+            if amount <= 0:
+                session["recurring_notice"] = (
+                    "Amount must be greater than ₹0."
+                )
+                return redirect("/recurring")
+
+            if frequency not in {
+                "monthly",
+                "yearly"
+            }:
+                session["recurring_notice"] = (
+                    "Choose a valid frequency."
+                )
+                return redirect("/recurring")
+
+            if not next_run:
+                session["recurring_notice"] = (
+                    "Choose the first transaction date."
+                )
+                return redirect("/recurring")
+
+            if (
+                transaction_type == "expense"
+                and not category
+            ):
+                session["recurring_notice"] = (
+                    "Choose an expense category."
+                )
+                return redirect("/recurring")
+
+            if (
+                transaction_type == "income"
+                and not source
+            ):
+                session["recurring_notice"] = (
+                    "Enter an income source."
+                )
+                return redirect("/recurring")
+
+            cursor.execute(
+                """
+                INSERT INTO recurring_transactions (
+                    user_id,
+                    name,
+                    transaction_type,
+                    amount,
+                    category,
+                    source,
+                    description,
+                    frequency,
+                    next_run,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session["user_id"],
+                    name,
+                    transaction_type,
+                    amount,
+                    category,
+                    source,
+                    description,
+                    frequency,
+                    next_run.isoformat(),
+                    "active"
+                )
+            )
+
+            conn.commit()
+
+            session["recurring_notice"] = (
+                f"{name} recurring schedule created."
+            )
+
+            session.pop(
+                "recurring_processed_date",
+                None
+            )
+
+            return redirect("/recurring")
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                transaction_type,
+                amount,
+                category,
+                source,
+                description,
+                frequency,
+                next_run,
+                status,
+                last_generated_at
+            FROM recurring_transactions
+            WHERE user_id = ?
+            ORDER BY
+                CASE
+                    WHEN status = 'active'
+                    THEN 0
+                    ELSE 1
+                END,
+                next_run ASC,
+                id DESC
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        rows = cursor.fetchall()
+
+        today = date.today()
+
+        items = []
+
+        monthly_expenses = 0.0
+        monthly_income = 0.0
+        active_count = 0
+        due_count = 0
+
+        for row in rows:
+            amount = float(row[3] or 0)
+
+            frequency = (
+                row[7] or "monthly"
+            )
+
+            monthly_equivalent = (
+                amount / 12
+                if frequency == "yearly"
+                else amount
+            )
+
+            try:
+                next_run = date.fromisoformat(
+                    str(row[8])
+                )
+            except ValueError:
+                next_run = today
+
+            status = row[9] or "active"
+
+            days_until = (
+                next_run - today
+            ).days
+
+            if status == "active":
+                active_count += 1
+
+                if row[2] == "expense":
+                    monthly_expenses += (
+                        monthly_equivalent
+                    )
+                else:
+                    monthly_income += (
+                        monthly_equivalent
+                    )
+
+                if next_run <= today:
+                    due_count += 1
+
+            items.append({
+                "id": row[0],
+                "name": row[1],
+                "transaction_type": row[2],
+                "amount": round(
+                    amount,
+                    2
+                ),
+                "category": row[4] or "",
+                "source": row[5] or "",
+                "description": row[6] or "",
+                "frequency": frequency,
+                "next_run": next_run.isoformat(),
+                "days_until": days_until,
+                "status": status,
+                "last_generated_at": (
+                    row[10] or ""
+                ),
+                "monthly_equivalent": round(
+                    monthly_equivalent,
+                    2
+                )
+            })
+
+        notice = session.pop(
+            "recurring_notice",
+            None
+        )
+
+        return render_template(
+            "recurring.html",
+            recurring_items=items,
+            categories=categories,
+            monthly_expenses=round(
+                monthly_expenses,
+                2
+            ),
+            monthly_income=round(
+                monthly_income,
+                2
+            ),
+            active_count=active_count,
+            due_count=due_count,
+            notice=notice
+        )
+
+    finally:
+        conn.close()
+
+
+@app.route(
+    "/recurring/process",
+    methods=["POST"]
+)
+def process_recurring_now():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    try:
+        generated = (
+            process_due_recurring_transactions(
+                session["user_id"]
+            )
+        )
+
+        session["recurring_notice"] = (
+            f"{generated} transaction"
+            f"{'' if generated == 1 else 's'} generated."
+        )
+
+        from datetime import date
+
+        session[
+            "recurring_processed_date"
+        ] = date.today().isoformat()
+
+    except Exception:
+        session["recurring_notice"] = (
+            "Unable to process recurring transactions."
+        )
+
+    return redirect("/recurring")
+
+
+@app.route(
+    "/recurring/<int:recurring_id>/toggle",
+    methods=["POST"]
+)
+def toggle_recurring_transaction(recurring_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                status,
+                frequency,
+                next_run,
+                name
+            FROM recurring_transactions
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                recurring_id,
+                session["user_id"]
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            session["recurring_notice"] = (
+                "Recurring schedule not found."
+            )
+            return redirect("/recurring")
+
+        status = row[0]
+        frequency = row[1] or "monthly"
+        name = row[3]
+
+        if status == "active":
+            new_status = "paused"
+
+            cursor.execute(
+                """
+                UPDATE recurring_transactions
+                SET status = ?
+                WHERE id = ?
+                  AND user_id = ?
+                """,
+                (
+                    new_status,
+                    recurring_id,
+                    session["user_id"]
+                )
+            )
+
+        else:
+            new_status = "active"
+
+            try:
+                next_run = date.fromisoformat(
+                    str(row[2])
+                )
+            except ValueError:
+                next_run = date.today()
+
+            while next_run < date.today():
+                next_run = _advance_recurring_date(
+                    next_run,
+                    frequency
+                )
+
+            cursor.execute(
+                """
+                UPDATE recurring_transactions
+                SET
+                    status = ?,
+                    next_run = ?
+                WHERE id = ?
+                  AND user_id = ?
+                """,
+                (
+                    new_status,
+                    next_run.isoformat(),
+                    recurring_id,
+                    session["user_id"]
+                )
+            )
+
+        conn.commit()
+
+        session["recurring_notice"] = (
+            f"{name} is now {new_status}."
+        )
+
+    finally:
+        conn.close()
+
+    session.pop(
+        "recurring_processed_date",
+        None
+    )
+
+    return redirect("/recurring")
+
+
+@app.route(
+    "/recurring/<int:recurring_id>/delete",
+    methods=["POST"]
+)
+def delete_recurring_transaction(recurring_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM recurring_transactions
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                recurring_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["recurring_notice"] = (
+        "Recurring schedule deleted."
+    )
+
+    return redirect("/recurring")
+
+
+
+
+
+# =========================================================
+# FINANCIAL HEALTH SCORE
+# =========================================================
+
+@app.route("/api/financial-health")
+def financial_health_api():
+    if "user_id" not in session:
+        return {
+            "error": "Authentication required"
+        }, 401
+
+    from datetime import date
+
+    user_id = session["user_id"]
+    today = date.today()
+
+    month_start = date(
+        today.year,
+        today.month,
+        1
+    )
+
+    if today.month == 12:
+        next_month = date(
+            today.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            today.year,
+            today.month + 1,
+            1
+        )
+
+    selected_month = today.strftime("%Y-%m")
+
+
+    def safe_scalar(sql, params=(), default=0):
+        conn = None
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+
+            cursor.execute(
+                sql,
+                tuple(params)
+            )
+
+            row = cursor.fetchone()
+
+            if not row:
+                return default
+
+            return row[0] if row[0] is not None else default
+
+        except Exception:
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
+            return default
+
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+
+    total_income = float(
+        safe_scalar(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                user_id,
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+        or 0
+    )
+
+
+    total_expense = float(
+        safe_scalar(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                user_id,
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+        or 0
+    )
+
+
+    total_budget = float(
+        safe_scalar(
+            """
+            SELECT COALESCE(SUM(monthly_limit), 0)
+            FROM budgets
+            WHERE user_id = ?
+              AND month = ?
+            """,
+            (
+                user_id,
+                selected_month
+            )
+        )
+        or 0
+    )
+
+
+    subscription_monthly = float(
+        safe_scalar(
+            """
+            SELECT COALESCE(
+                SUM(
+                    CASE
+                        WHEN billing_cycle = 'yearly'
+                        THEN amount / 12.0
+                        ELSE amount
+                    END
+                ),
+                0
+            )
+            FROM subscriptions
+            WHERE user_id = ?
+              AND status = 'active'
+            """,
+            (
+                user_id,
+            )
+        )
+        or 0
+    )
+
+
+    overdue_bills = int(
+        safe_scalar(
+            """
+            SELECT COUNT(*)
+            FROM bills
+            WHERE user_id = ?
+              AND due_date < ?
+              AND LOWER(COALESCE(status, 'pending')) != 'paid'
+            """,
+            (
+                user_id,
+                today.isoformat()
+            )
+        )
+        or 0
+    )
+
+
+    savings = (
+        total_income
+        - total_expense
+    )
+
+
+    savings_rate = (
+        (savings / total_income) * 100
+        if total_income > 0
+        else 0
+    )
+
+
+    budget_usage = (
+        (total_expense / total_budget) * 100
+        if total_budget > 0
+        else 0
+    )
+
+
+    subscription_burden = (
+        (subscription_monthly / total_income) * 100
+        if total_income > 0
+        else (
+            100
+            if subscription_monthly > 0
+            else 0
+        )
+    )
+
+
+    # -------------------------
+    # Savings score: max 40
+    # -------------------------
+
+    if total_income <= 0:
+        savings_score = 10
+
+    elif savings_rate >= 20:
+        savings_score = 40
+
+    elif savings_rate >= 10:
+        savings_score = 32
+
+    elif savings_rate >= 0:
+        savings_score = 22
+
+    else:
+        savings_score = 5
+
+
+    # -------------------------
+    # Budget score: max 25
+    # -------------------------
+
+    if total_budget <= 0:
+        budget_score = 15
+
+    elif budget_usage <= 70:
+        budget_score = 25
+
+    elif budget_usage <= 85:
+        budget_score = 21
+
+    elif budget_usage <= 100:
+        budget_score = 14
+
+    else:
+        budget_score = 4
+
+
+    # -------------------------
+    # Subscription score: 15
+    # -------------------------
+
+    if subscription_burden <= 5:
+        subscription_score = 15
+
+    elif subscription_burden <= 10:
+        subscription_score = 12
+
+    elif subscription_burden <= 20:
+        subscription_score = 8
+
+    else:
+        subscription_score = 3
+
+
+    # -------------------------
+    # Bill score: max 20
+    # -------------------------
+
+    if overdue_bills == 0:
+        bill_score = 20
+
+    elif overdue_bills == 1:
+        bill_score = 12
+
+    elif overdue_bills == 2:
+        bill_score = 7
+
+    else:
+        bill_score = 2
+
+
+    score = round(
+        savings_score
+        + budget_score
+        + subscription_score
+        + bill_score
+    )
+
+
+    score = max(
+        0,
+        min(
+            score,
+            100
+        )
+    )
+
+
+    if score >= 85:
+        label = "Excellent"
+        status = "excellent"
+
+    elif score >= 70:
+        label = "Good"
+        status = "good"
+
+    elif score >= 50:
+        label = "Fair"
+        status = "fair"
+
+    else:
+        label = "Needs attention"
+        status = "poor"
+
+
+    insights = []
+
+
+    if total_income <= 0:
+        insights.append(
+            "Add this month's income for a more accurate score."
+        )
+
+    elif savings_rate < 0:
+        insights.append(
+            "Expenses are currently higher than income."
+        )
+
+    elif savings_rate < 10:
+        insights.append(
+            "Try moving your savings rate above 10%."
+        )
+
+    elif savings_rate >= 20:
+        insights.append(
+            "Your savings rate is strong this month."
+        )
+
+
+    if total_budget <= 0:
+        insights.append(
+            "Set monthly budgets to improve spending control."
+        )
+
+    elif budget_usage > 100:
+        insights.append(
+            "You have exceeded your monthly budget."
+        )
+
+    elif budget_usage >= 85:
+        insights.append(
+            "You are close to your monthly budget limit."
+        )
+
+
+    if subscription_burden > 15:
+        insights.append(
+            "Recurring subscriptions consume a high share of income."
+        )
+
+
+    if overdue_bills > 0:
+        insights.append(
+            f"{overdue_bills} overdue bill"
+            f"{'' if overdue_bills == 1 else 's'} need attention."
+        )
+
+    elif len(insights) < 3:
+        insights.append(
+            "No overdue bills detected."
+        )
+
+
+    return {
+        "score": score,
+        "label": label,
+        "status": status,
+        "metrics": {
+            "income": round(
+                total_income,
+                2
+            ),
+            "expense": round(
+                total_expense,
+                2
+            ),
+            "savings_rate": round(
+                savings_rate,
+                1
+            ),
+            "budget_usage": round(
+                budget_usage,
+                1
+            ),
+            "subscription_burden": round(
+                subscription_burden,
+                1
+            ),
+            "overdue_bills": overdue_bills
+        },
+        "insights": insights[:3]
+    }
+
+
+
+
+
+# =========================================================
+# ABOUT EXPENSE MANAGER
+# =========================================================
+
+@app.route("/about")
+def about_expense_manager():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    return render_template(
+        "about.html"
+    )
 
 
 if __name__ == "__main__":

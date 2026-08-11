@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
     <title>Expense Manager</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -41,9 +71,34 @@
     #receiptFileName    { font-size: 0.9rem; color: #555; word-break: break-all; }
     .receipt-upload-hint { font-size: 0.78rem; color: #999; }
     </style>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0b0b0b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='pro-dashboard.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
 </head>
 
-<body>
+<body class="pro-dashboard-page">
 
 <div class="container">
 
@@ -72,6 +127,9 @@
             <a href="/">Dashboard</a>
             <a href="/groups">Groups</a>
             <a href="/bills">Bills</a>
+
+
+
             <a href="/expenses_bill">Download Exp Bill</a>
 
             <div class="notif-bell-wrap">
@@ -268,12 +326,153 @@
         <p>Manage every rupee with precision.</p>
     </div>
 
+    <section class="pro-control-center">
+
+        <div class="pro-control-top">
+
+            <div class="pro-control-copy">
+                <span class="pro-eyebrow">
+                    Personal Finance
+                </span>
+
+                <h2>
+                    Financial Control Center
+                </h2>
+
+                <p
+                    class="pro-today"
+                    id="pro-today">
+                </p>
+            </div>
+
+            <div
+                class="pro-sync-health"
+                id="pro-sync-health">
+
+                <span class="pro-sync-health-dot"></span>
+
+                <span class="pro-sync-health-label">
+                    Checking sync
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="pro-control-search-row">
+
+            <form
+                action="/search"
+                method="GET"
+                class="pro-search-box">
+
+                <span class="pro-search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Search transactions, category, source...">
+
+                <button type="submit">
+                    Search
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="pro-control-section">
+
+            <div class="pro-control-section-heading">
+                <div>
+                    <span class="pro-eyebrow">
+                        Quick Actions
+                    </span>
+
+                    <h3>
+                        Manage your money
+                    </h3>
+                </div>
+            </div>
+
+            <div class="pro-actions">
+
+                <a
+                    class="pro-action primary"
+                    href="#expense-form">
+                    + Expense
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="#income-section">
+                    + Income
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/bills">
+                    Bills
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/groups">
+                    Split
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/budgets">
+                    Budgets
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/goals">
+                    Goals
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/subscriptions">
+                    Subscriptions
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/reports">
+                    Reports
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/recurring">
+                    Recurring
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="pro-health-zone"
+            id="financial-health-zone">
+        </div>
+
+    </section>
+
     <div class="dashboard">
 
         <div class="stat-card">
             <div>
                 <h3>INCOME</h3>
-                <h2>₹{{ total_income }}</h2>
+                <h2 id="total-income-value" data-value="{{ total_income }}">₹{{ total_income }}</h2>
             </div>
             <div class="icon income-icon">↗</div>
         </div>
@@ -281,7 +480,7 @@
         <div class="stat-card">
             <div>
                 <h3>EXPENSES</h3>
-                <h2>₹{{ total_expense }}</h2>
+                <h2 id="total-expense-value" data-value="{{ total_expense }}">₹{{ total_expense }}</h2>
             </div>
             <div class="icon expense-icon">↘</div>
         </div>
@@ -289,7 +488,7 @@
         <div class="stat-card">
             <div>
                 <h3>BALANCE</h3>
-                <h2>₹{{ balance }}</h2>
+                <h2 id="balance-value" data-value="{{ balance }}">₹{{ balance }}</h2>
             </div>
             <div class="icon balance-icon">💳</div>
         </div>
@@ -440,16 +639,16 @@
 
 </div>
 
-<div class="card">
+<div class="card pro-entry-card" id="income-section">
 
     <h2>Add Income</h2>
 
-    <form action="/add_income" method="POST">
+    <form id="income-entry-form" action="/add_income" method="POST">
 
         <input
             type="number"
             step="0.01"
-            name="amount"
+            name="amount" inputmode="decimal"
             placeholder="Income Amount"
             required>
 
@@ -472,11 +671,11 @@
 
 </div>
 
-<div class="card">
+<div class="card pro-history-card">
 
     <h2>Income History</h2>
 
-    <table>
+    <table id="income-history-table">
 
         <tr>
             <th>Amount</th>
@@ -614,16 +813,16 @@
 
 </div>
 
-<div class="card" id="expense-form">
+<div class="card pro-entry-card" id="expense-form">
 
     <h2>Add Expense</h2>
 
-    <form action="/add" method="POST">
+    <form id="expense-entry-form" action="/add" method="POST">
 
         <input
             type="number"
             step="0.01"
-            name="amount"
+            name="amount" inputmode="decimal"
             placeholder="Expense Amount"
             required>
 
@@ -655,14 +854,47 @@
 
 </div>
 
-<div class="card">
+<div
+    class="card pro-history-card expense-history-section"
+    id="expense-history-section">
 
-    <div class="section-header">
-        <h2>Expense History</h2>
-        <a href="/expenses_bill" class="download-btn">Download Expense Bill</a>
+    <div class="section-header expense-history-header">
+
+        <div class="expense-history-title-wrap">
+
+            <h2>Expense History</h2>
+
+            <span class="expense-history-count">
+                {{ expenses|length }} transactions
+            </span>
+
+        </div>
+
+        <div class="expense-history-actions">
+
+            <button
+                type="button"
+                class="download-btn expense-history-toggle-btn"
+                id="toggle-expense-history"
+                aria-expanded="true">
+
+                Hide Expense History
+
+            </button>
+
+            <a
+                href="/expenses_bill"
+                class="download-btn">
+
+                Download Expense Bill
+
+            </a>
+
+        </div>
+
     </div>
 
-    <table>
+    <table id="expense-history-table">
 
         <tr>
             <th>Amount</th>
@@ -832,6 +1064,298 @@ var trendExpense = [
 })();
 
 </script>
+
+    <script src="/static/js/db.js"></script>
+    <script src="/static/js/sync.js"></script>
+
+<script src="{{ url_for('static', filename='js/offline-forms.js') }}"></script>
+<script src="/static/js/offline.js"></script>
+
+<script src="{{ url_for('static', filename='js/dashboard-live.js') }}"></script>
+
+
+<script src="{{ url_for('static', filename='js/dashboard-pro.js') }}"></script>
+
+
+<script src="{{ url_for('static', filename='js/financial-health.js') }}"></script>
+
+
+<script src="{{ url_for('static', filename='js/expense-history-toggle.js') }}"></script>
+
+
+<script
+    src="{{ url_for('static', filename='js/mobile-sidebar.js') }}"
+    defer>
+</script>
+
+
+
+
+<section class="dashboard-about-section">
+
+    <div>
+
+        <span class="dashboard-about-eyebrow">
+            ABOUT
+        </span>
+
+        <h3>
+            Built by Harsh Raj
+        </h3>
+
+        <p>
+            Expense Manager is a full-stack personal-finance
+            platform built to make money management simpler,
+            smarter and more accessible.
+        </p>
+
+    </div>
+
+    <a
+        href="/about"
+        class="dashboard-about-link">
+
+        Explore the project →
+
+    </a>
+
+</section>
+
+
+<!-- MOBILE SIDEBAR START -->
+
+<button
+    type="button"
+    class="mobile-sidebar-toggle"
+    id="mobile-sidebar-toggle"
+    aria-label="Open navigation"
+    aria-expanded="false">
+
+    <span></span>
+    <span></span>
+    <span></span>
+
+</button>
+
+
+<div
+    class="mobile-sidebar-overlay"
+    id="mobile-sidebar-overlay">
+</div>
+
+
+<aside
+    class="mobile-app-sidebar"
+    id="mobile-app-sidebar"
+    aria-hidden="true">
+
+    <div class="mobile-sidebar-header">
+
+        <div class="mobile-sidebar-brand">
+
+            <div class="mobile-sidebar-brand-mark">
+                ₹
+            </div>
+
+            <div>
+                <strong>
+                    ExpenseX
+                </strong>
+
+                <small>
+                    Personal Finance
+                </small>
+            </div>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="mobile-sidebar-close"
+            id="mobile-sidebar-close"
+            aria-label="Close navigation">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <nav class="mobile-sidebar-nav">
+
+        <a
+            href="/"
+            class="mobile-sidebar-link active">
+
+            <span>⌂</span>
+
+            Dashboard
+
+        </a>
+
+
+        <a
+            href="#expense-form"
+            class="mobile-sidebar-link">
+
+            <span>＋</span>
+
+            Add Expense
+
+        </a>
+
+
+        <a
+            href="#income-section"
+            class="mobile-sidebar-link">
+
+            <span>＋</span>
+
+            Add Income
+
+        </a>
+
+
+        <div class="mobile-sidebar-divider"></div>
+
+
+        <a
+            href="/groups"
+            class="mobile-sidebar-link">
+
+            <span>◎</span>
+
+            Groups
+
+        </a>
+
+
+        <a
+            href="/bills"
+            class="mobile-sidebar-link">
+
+            <span>▣</span>
+
+            Bills
+
+        </a>
+
+
+        <a
+            href="/budgets"
+            class="mobile-sidebar-link">
+
+            <span>▤</span>
+
+            Budgets
+
+        </a>
+
+
+        <a
+            href="/goals"
+            class="mobile-sidebar-link">
+
+            <span>◉</span>
+
+            Goals
+
+        </a>
+
+
+        <a
+            href="/subscriptions"
+            class="mobile-sidebar-link">
+
+            <span>◌</span>
+
+            Subscriptions
+
+        </a>
+
+
+        <a
+            href="/recurring"
+            class="mobile-sidebar-link">
+
+            <span>↻</span>
+
+            Recurring
+
+        </a>
+
+
+        <a
+            href="/reports"
+            class="mobile-sidebar-link">
+
+            <span>▥</span>
+
+            Reports
+
+        </a>
+
+        <a
+            href="/about"
+            class="mobile-sidebar-link">
+
+            <span>i</span>
+
+            About
+
+        </a>
+
+
+
+        <a
+            href="#mobile-expense-history"
+            class="mobile-sidebar-link">
+
+            <span>≡</span>
+
+            Expense History
+
+        </a>
+
+    </nav>
+
+
+    <div class="mobile-sidebar-bottom">
+
+        <div class="mobile-sidebar-status">
+
+            <span class="mobile-sidebar-status-dot"></span>
+
+            <div>
+
+                <strong>
+                    ExpenseX
+                </strong>
+
+                <small>
+                    Smart money control
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="/logout"
+            class="mobile-sidebar-logout">
+
+            Logout
+
+        </a>
+
+    </div>
+
+</aside>
+
+<!-- MOBILE SIDEBAR END -->
 
 </body>
 </html>
