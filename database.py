@@ -471,3 +471,14 @@ def _ensure_performance_indexes():
 
 
 _ensure_performance_indexes()
+
+# ============================================================
+# STARTUP CONNECTION CLEANUP
+# ============================================================
+# database.py only uses its module-level connection while
+# creating/upgrading tables during startup. Return it to the
+# PostgreSQL pool afterwards.
+try:
+    conn.close()
+except Exception:
+    pass

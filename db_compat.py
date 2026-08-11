@@ -33,6 +33,45 @@ SQLITE_PATH = os.path.join(BASE_DIR, "expenses.db")
 _pool = None
 _pool_lock = threading.Lock()
 
+# REQUEST CONNECTION CLEANUP START
+# Track PostgreSQL wrappers checked out by the current thread.
+# Flask releases anything accidentally left open at the end
+# of each request.
+_request_connections = threading.local()
+
+
+def _tracked_connections():
+    connections = getattr(
+        _request_connections,
+        "connections",
+        None,
+    )
+
+    if connections is None:
+        connections = set()
+        _request_connections.connections = connections
+
+    return connections
+
+
+def release_unclosed_connections():
+    """
+    Return every PostgreSQL connection accidentally left checked
+    out by the current request.
+
+    This is a safety net. Normal code should still call conn.close().
+    """
+    connections = list(_tracked_connections())
+
+    for connection in connections:
+        try:
+            connection.close()
+        except Exception:
+            # Cleanup must never turn a successful Flask response
+            # into a 500 response.
+            pass
+# REQUEST CONNECTION CLEANUP END
+
 def get_database_type():
     """Return the active database backend."""
     return "postgresql" if is_postgres() else "sqlite"
@@ -309,6 +348,7 @@ class PostgresConnectionWrapper:
     def __init__(self, pooled_connection, connection_pool):
         self.connection = pooled_connection
         self.pool = connection_pool
+        _tracked_connections().add(self)
 
     def cursor(self):
         return PostgresCursorWrapper(
@@ -322,9 +362,27 @@ class PostgresConnectionWrapper:
         return self.connection.rollback()
 
     def close(self):
-        if self.connection is not None:
-            self.pool.putconn(self.connection)
-            self.connection = None
+        if self.connection is None:
+            _tracked_connections().discard(self)
+            return
+
+        connection = self.connection
+        self.connection = None
+
+        try:
+            self.pool.putconn(connection)
+
+        except Exception:
+            # If returning to the pool itself fails, make sure
+            # the physical DB connection is not leaked.
+            try:
+                connection.close()
+            except Exception:
+                pass
+            raise
+
+        finally:
+            _tracked_connections().discard(self)
 
     def execute(self, sql, params=()):
         cursor = self.cursor()

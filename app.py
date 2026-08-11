@@ -159,6 +159,20 @@ if not SECRET_KEY:
 app.secret_key = SECRET_KEY
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
+# DATABASE REQUEST CLEANUP START
+@app.teardown_appcontext
+def release_request_database_connections(exception=None):
+    """
+    Safety net for PostgreSQL pooling.
+
+    Every normal DB call should still close its own connection,
+    but this guarantees an exception or early return cannot
+    permanently exhaust the connection pool.
+    """
+    sqlite3.release_unclosed_connections()
+# DATABASE REQUEST CLEANUP END
+
+
 # ─────────────────────────────────────────────
 # YOUR UPI ID – change this to your real UPI ID
 # e.g. "harsh@okaxis" or "9876543210@ybl"
@@ -1028,6 +1042,7 @@ def register():
             return redirect("/login")
 
         except sqlite3.IntegrityError:
+            conn.rollback()
             conn.close()
             error = "An account with that email already exists."
 
