@@ -49,7 +49,89 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
+
+
 app = Flask(__name__)
+
+@app.route("/offline")
+def offline():
+    return render_template("offline.html")
+
+
+@app.route("/api/offline-sync", methods=["POST"])
+def offline_sync():
+    if "user_id" not in session:
+        return {"error": "Authentication required"}, 401
+
+    payload = request.get_json(silent=True) or {}
+
+    operation_type = payload.get("type")
+    data = payload.get("data") or {}
+
+    if operation_type not in {"expense", "income"}:
+        return {"error": "Unsupported offline operation"}, 400
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if operation_type == "expense":
+            cursor.execute(
+                """
+                INSERT INTO expenses
+                (amount, category, description, date, user_id)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    data.get("amount"),
+                    data.get("category"),
+                    data.get("description"),
+                    data.get("date"),
+                    session["user_id"]
+                )
+            )
+
+        else:
+            cursor.execute(
+                """
+                INSERT INTO income
+                (amount, source, date, user_id)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    data.get("amount"),
+                    data.get("source"),
+                    data.get("date"),
+                    session["user_id"]
+                )
+            )
+
+        conn.commit()
+
+        return {"success": True}
+
+    except Exception as exc:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        return {
+            "success": False,
+            "error": str(exc)
+        }, 500
+
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
 app.secret_key = os.environ.get("SECRET_KEY", "harsh_secret_key_123")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 

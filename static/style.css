@@ -1998,3 +1998,54 @@ a{
     color: #6b7280;
     font-size: 14px;
 }
+
+/* =========================================================
+   OFFLINE-FIRST UI
+   ========================================================= */
+
+#offline-indicator {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 99999;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 9px 13px;
+    border-radius: 999px;
+
+    background: rgba(15, 15, 15, .92);
+    border: 1px solid rgba(255, 255, 255, .12);
+
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    backdrop-filter: blur(12px);
+}
+
+.offline-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #35d07f;
+}
+
+.offline-dot.offline {
+    background: #ff5252;
+}
+
+.offline-pending {
+    opacity: .6;
+    margin-left: 2px;
+}
+
+@media (max-width: 600px) {
+    #offline-indicator {
+        right: 12px;
+        bottom: 12px;
+    }
+}
