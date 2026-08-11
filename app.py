@@ -1217,58 +1217,139 @@ def _month_bounds(months_ago=0):
     return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
 
 
+
 def build_monthly_trend(user_id, months=12):
     """
-    Returns the last `months` calendar months of income/expense totals
-    for this user, oldest first, ready to feed straight into a Chart.js
-    line chart. Months with no activity show as 0, not missing, so the
-    x-axis stays a continuous, evenly-spaced timeline rather than
-    skipping gaps -- a real trend line needs that continuity to read
-    correctly.
+    Build the monthly income/expense chart efficiently.
 
-    Returns a list of dicts: [{"label": "Jan 2026", "income": 0, "expense": 0}, ...]
+    Old implementation:
+        12 months × 2 SQL queries = 24 database queries.
+
+    New implementation:
+        1 income query
+        1 expense query
+
+    Aggregation is performed in Python.
     """
+
+    months = max(1, int(months))
+
+    first_start, _ = _month_bounds(months - 1)
+    _, final_end = _month_bounds(0)
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    trend = []
-    for months_ago in range(months - 1, -1, -1):
-        start, end = _month_bounds(months_ago)
-
-        cursor.execute(
-            "SELECT SUM(amount) FROM income WHERE user_id=? AND date>=? AND date<?",
-            (user_id, start, end)
+    cursor.execute(
+        """
+        SELECT amount, date
+        FROM income
+        WHERE user_id=?
+          AND date>=?
+          AND date<?
+        """,
+        (
+            user_id,
+            first_start,
+            final_end
         )
-        income = cursor.fetchone()[0] or 0
+    )
 
-        cursor.execute(
-            "SELECT SUM(amount) FROM expenses WHERE user_id=? AND date>=? AND date<?",
-            (user_id, start, end)
+    income_rows = cursor.fetchall()
+
+    cursor.execute(
+        """
+        SELECT amount, date
+        FROM expenses
+        WHERE user_id=?
+          AND date>=?
+          AND date<?
+        """,
+        (
+            user_id,
+            first_start,
+            final_end
         )
-        expense = cursor.fetchone()[0] or 0
+    )
 
-        month_date = datetime.strptime(start, "%Y-%m-%d").date()
-        trend.append({
-            "label": month_date.strftime("%b %Y"),
-            "income": round(income, 2),
-            "expense": round(expense, 2),
-        })
+    expense_rows = cursor.fetchall()
 
     conn.close()
+
+    monthly = {}
+
+    for months_ago in range(
+        months - 1,
+        -1,
+        -1
+    ):
+        start, _ = _month_bounds(
+            months_ago
+        )
+
+        key = start[:7]
+
+        month_date = datetime.strptime(
+            start,
+            "%Y-%m-%d"
+        ).date()
+
+        monthly[key] = {
+            "label":
+                month_date.strftime(
+                    "%b %Y"
+                ),
+            "income": 0.0,
+            "expense": 0.0,
+        }
+
+    for amount, date_value in income_rows:
+        if not date_value:
+            continue
+
+        key = str(date_value)[:7]
+
+        if key in monthly:
+            monthly[key]["income"] += (
+                float(amount or 0)
+            )
+
+    for amount, date_value in expense_rows:
+        if not date_value:
+            continue
+
+        key = str(date_value)[:7]
+
+        if key in monthly:
+            monthly[key]["expense"] += (
+                float(amount or 0)
+            )
+
+    trend = []
+
+    for data in monthly.values():
+        data["income"] = round(
+            data["income"],
+            2
+        )
+
+        data["expense"] = round(
+            data["expense"],
+            2
+        )
+
+        trend.append(data)
+
     return trend
 
 
 def build_ai_insights(user_id):
     """
-    Compares this month's spending to last month's, category by
-    category, and estimates potential savings. Pure arithmetic on the
-    user's own data -- no LLM call, so it's instant and free, and the
-    numbers are always exactly traceable to real rows.
+    Generate dashboard financial insights efficiently.
 
-    Returns a list of short strings ready to render as bullet points
-    on the dashboard, e.g.:
-      "Food spending increased by 15% (₹2,300 -> ₹2,645)"
+    Uses only two database queries.
     """
+
     this_start, this_end = _month_bounds(0)
     last_start, last_end = _month_bounds(1)
 
@@ -1277,78 +1358,174 @@ def build_ai_insights(user_id):
 
     cursor.execute(
         """
-        SELECT category, SUM(amount) FROM expenses
-        WHERE user_id=? AND date>=? AND date<?
+        SELECT
+            category,
+
+            SUM(
+                CASE
+                    WHEN date>=?
+                     AND date<?
+                    THEN amount
+                    ELSE 0
+                END
+            ),
+
+            SUM(
+                CASE
+                    WHEN date>=?
+                     AND date<?
+                    THEN amount
+                    ELSE 0
+                END
+            )
+
+        FROM expenses
+
+        WHERE user_id=?
+          AND date>=?
+          AND date<?
+
         GROUP BY category
         """,
-        (user_id, this_start, this_end)
+        (
+            this_start,
+            this_end,
+
+            last_start,
+            last_end,
+
+            user_id,
+            last_start,
+            this_end
+        )
     )
-    this_month = dict(cursor.fetchall())
+
+    rows = cursor.fetchall()
+
+    this_month = {}
+    last_month = {}
+
+    for row in rows:
+        category = row[0]
+
+        this_month[category] = float(
+            row[1] or 0
+        )
+
+        last_month[category] = float(
+            row[2] or 0
+        )
 
     cursor.execute(
         """
-        SELECT category, SUM(amount) FROM expenses
-        WHERE user_id=? AND date>=? AND date<?
-        GROUP BY category
+        SELECT SUM(amount)
+        FROM income
+        WHERE user_id=?
+          AND date>=?
+          AND date<?
         """,
-        (user_id, last_start, last_end)
+        (
+            user_id,
+            this_start,
+            this_end
+        )
     )
-    last_month = dict(cursor.fetchall())
 
-    cursor.execute(
-        "SELECT SUM(amount) FROM income WHERE user_id=? AND date>=? AND date<?",
-        (user_id, this_start, this_end)
+    income_this_month = (
+        cursor.fetchone()[0]
+        or 0
     )
-    income_this_month = cursor.fetchone()[0] or 0
-
-    cursor.execute(
-        "SELECT SUM(amount) FROM expenses WHERE user_id=? AND date>=? AND date<?",
-        (user_id, this_start, this_end)
-    )
-    expense_this_month = cursor.fetchone()[0] or 0
 
     conn.close()
 
+    income_this_month = float(
+        income_this_month
+    )
+
+    expense_this_month = sum(
+        this_month.values()
+    )
+
     insights = []
 
-    # Category trend: only compare categories that had spending last
-    # month, since "infinite % increase" on a brand-new category isn't
-    # a useful insight.
-    all_categories = set(this_month) | set(last_month)
-    for category in sorted(all_categories):
-        this_amt = this_month.get(category, 0)
-        last_amt = last_month.get(category, 0)
+    all_categories = (
+        set(this_month)
+        | set(last_month)
+    )
+
+    for category in sorted(
+        all_categories
+    ):
+
+        this_amt = this_month.get(
+            category,
+            0
+        )
+
+        last_amt = last_month.get(
+            category,
+            0
+        )
 
         if last_amt <= 0:
             continue
 
-        change_pct = ((this_amt - last_amt) / last_amt) * 100
-        if abs(change_pct) < 5:
-            continue  # ignore noise, only surface meaningful shifts
+        change_pct = (
+            (
+                this_amt
+                - last_amt
+            )
+            / last_amt
+        ) * 100
 
-        direction = "increased" if change_pct > 0 else "decreased"
-        insights.append(
-            f"{category} spending {direction} by {abs(change_pct):.0f}% "
-            f"(₹{last_amt:,.0f} → ₹{this_amt:,.0f})"
+        if abs(change_pct) < 5:
+            continue
+
+        direction = (
+            "increased"
+            if change_pct > 0
+            else "decreased"
         )
 
-    # Potential savings: simple heuristic -- if expenses exceed a
-    # sensible share of income, flag the gap; otherwise show how much
-    # of this month's income is unspent so far.
+        insights.append(
+            f"{category} spending "
+            f"{direction} by "
+            f"{abs(change_pct):.0f}% "
+            f"(₹{last_amt:,.0f} → "
+            f"₹{this_amt:,.0f})"
+        )
+
     if income_this_month > 0:
-        potential_savings = income_this_month - expense_this_month
+
+        potential_savings = (
+            income_this_month
+            - expense_this_month
+        )
+
         if potential_savings > 0:
-            insights.append(f"Potential savings this month: ₹{potential_savings:,.0f}")
-        else:
+
             insights.append(
-                f"Spending has exceeded income this month by ₹{abs(potential_savings):,.0f}"
+                "Potential savings "
+                "this month: "
+                f"₹{potential_savings:,.0f}"
+            )
+
+        else:
+
+            insights.append(
+                "Spending has exceeded "
+                "income this month by "
+                f"₹{abs(potential_savings):,.0f}"
             )
 
     if not insights:
-        insights.append("Not enough data yet -- add a few more expenses to see trends.")
+        insights.append(
+            "Not enough data yet -- "
+            "add a few more expenses "
+            "to see trends."
+        )
 
-    return insights[:5]  # keep the card short
-
+    return insights[:5]
 
 # =========================
 # DASHBOARD

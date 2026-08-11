@@ -813,7 +813,7 @@
 
 </div>
 
-<div class="card pro-entry-card" id="expense-form">
+<div class="card pro-entry-card expense-history-section" id="expense-form">
 
     <h2>Add Expense</h2>
 
@@ -894,7 +894,8 @@
 
     </div>
 
-    <table id="expense-history-table">
+    <div class="expense-history-scroll">
+    <table id="expense-history-table" class="expense-history-table">
 
         <tr>
             <th>Amount</th>
@@ -925,6 +926,7 @@
         {% endfor %}
 
     </table>
+    </div>
 
 </div>
 
@@ -1356,6 +1358,279 @@ var trendExpense = [
 </aside>
 
 <!-- MOBILE SIDEBAR END -->
+
+
+<!-- MOBILE PROFILE POPOVER FIX START -->
+
+<script>
+(function () {
+
+    const profileBtn =
+        document.getElementById(
+            "profileBtn"
+        );
+
+    const profileDropdown =
+        document.getElementById(
+            "profileDropdown"
+        );
+
+    if (
+        !profileBtn
+        || !profileDropdown
+    ) {
+        return;
+    }
+
+
+    const originalParent =
+        profileDropdown.parentNode;
+
+    const originalNextSibling =
+        profileDropdown.nextSibling;
+
+
+    function isMobile() {
+
+        return window.matchMedia(
+            "(max-width: 768px)"
+        ).matches;
+
+    }
+
+
+    function restoreDesktop() {
+
+        if (
+            profileDropdown.parentNode
+            === document.body
+        ) {
+
+            if (
+                originalNextSibling
+                && originalNextSibling.parentNode
+                   === originalParent
+            ) {
+
+                originalParent.insertBefore(
+                    profileDropdown,
+                    originalNextSibling
+                );
+
+            } else {
+
+                originalParent.appendChild(
+                    profileDropdown
+                );
+
+            }
+
+        }
+
+
+        profileDropdown.classList.remove(
+            "mobile-profile-popover"
+        );
+
+        profileDropdown.style.removeProperty(
+            "left"
+        );
+
+        profileDropdown.style.removeProperty(
+            "top"
+        );
+
+    }
+
+
+    function positionMobilePopup() {
+
+        if (!isMobile()) {
+
+            restoreDesktop();
+
+            return;
+
+        }
+
+
+        if (
+            !profileDropdown.classList.contains(
+                "open"
+            )
+        ) {
+            return;
+        }
+
+
+        /*
+           Move popup to body.
+
+           This is the important part:
+           mobile nav/sidebar overflow cannot
+           clip it anymore.
+        */
+        if (
+            profileDropdown.parentNode
+            !== document.body
+        ) {
+
+            document.body.appendChild(
+                profileDropdown
+            );
+
+        }
+
+
+        profileDropdown.classList.add(
+            "mobile-profile-popover"
+        );
+
+
+        const buttonRect =
+            profileBtn.getBoundingClientRect();
+
+
+        const viewportWidth =
+            window.innerWidth;
+
+
+        const popupWidth =
+            Math.min(
+                320,
+                viewportWidth - 24
+            );
+
+
+        let left =
+            buttonRect.left;
+
+
+        left = Math.max(
+            12,
+            Math.min(
+                left,
+                viewportWidth
+                - popupWidth
+                - 12
+            )
+        );
+
+
+        let top =
+            buttonRect.bottom
+            + 8;
+
+
+        profileDropdown.style.left =
+            left + "px";
+
+        profileDropdown.style.top =
+            top + "px";
+
+
+        /*
+           If there isn't enough room underneath
+           the button, show it above the button.
+        */
+        const popupHeight =
+            profileDropdown.offsetHeight;
+
+
+        if (
+            top + popupHeight
+            > window.innerHeight - 12
+        ) {
+
+            top = Math.max(
+                12,
+                buttonRect.top
+                - popupHeight
+                - 8
+            );
+
+
+            profileDropdown.style.top =
+                top + "px";
+
+        }
+
+    }
+
+
+    /*
+       Existing desktop JS still controls
+       open/close.
+
+       We only reposition AFTER it opens.
+    */
+    profileBtn.addEventListener(
+        "click",
+        function () {
+
+            if (!isMobile()) {
+                return;
+            }
+
+
+            requestAnimationFrame(
+                positionMobilePopup
+            );
+
+        }
+    );
+
+
+    window.addEventListener(
+        "resize",
+        function () {
+
+            if (isMobile()) {
+
+                if (
+                    profileDropdown.classList
+                    .contains("open")
+                ) {
+
+                    positionMobilePopup();
+
+                }
+
+            } else {
+
+                restoreDesktop();
+
+            }
+
+        }
+    );
+
+
+    window.addEventListener(
+        "scroll",
+        function () {
+
+            if (
+                isMobile()
+                && profileDropdown.classList
+                    .contains("open")
+            ) {
+
+                positionMobilePopup();
+
+            }
+
+        },
+        {
+            passive: true
+        }
+    );
+
+})();
+</script>
+
+<!-- MOBILE PROFILE POPOVER FIX END -->
+
 
 </body>
 </html>

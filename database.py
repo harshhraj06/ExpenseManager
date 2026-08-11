@@ -403,3 +403,71 @@ def ensure_recurring_transactions_table():
 
 
 ensure_recurring_transactions_table()
+
+
+# ============================================================
+# PERFORMANCE INDEXES
+# ============================================================
+
+def _ensure_performance_indexes():
+    """
+    Index common Expense Manager query patterns.
+
+    CREATE INDEX IF NOT EXISTS is safe to run repeatedly.
+    """
+
+    if DATABASE_URL:
+        perf_conn = sqlite3.connect(
+            DATABASE_URL
+        )
+    else:
+        perf_conn = sqlite3.connect()
+
+    perf_cursor = perf_conn.cursor()
+
+    indexes = [
+        """
+        CREATE INDEX IF NOT EXISTS
+        idx_expenses_user_date
+        ON expenses(user_id, date)
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS
+        idx_income_user_date
+        ON income(user_id, date)
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS
+        idx_bills_user_status_due
+        ON bills(user_id, status, due_date)
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS
+        idx_notifications_user_read
+        ON notifications(user_id, is_read)
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS
+        idx_notifications_user_created
+        ON notifications(user_id, created_at)
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS
+        idx_group_members_user
+        ON group_members(user_id)
+        """
+    ]
+
+    for statement in indexes:
+        perf_cursor.execute(statement)
+
+    perf_conn.commit()
+    perf_conn.close()
+
+
+_ensure_performance_indexes()

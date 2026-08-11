@@ -1851,3 +1851,237 @@ textarea {
     }
 
 }
+
+/* FINAL MOBILE DASHBOARD FIX START */
+
+@media (max-width: 768px) {
+
+    /* =====================================================
+       EXPENSE HISTORY
+       ===================================================== */
+
+    .expense-history-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+
+        box-sizing: border-box !important;
+
+        overflow: hidden !important;
+    }
+
+
+    .expense-history-section .section-header {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+
+        gap: 10px !important;
+
+        box-sizing: border-box !important;
+    }
+
+
+    .expense-history-section
+    .section-header h2 {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        margin: 0 !important;
+    }
+
+
+    .expense-history-section
+    .section-header .download-btn {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        box-sizing: border-box !important;
+
+        text-align: center !important;
+    }
+
+
+    /*
+       Only this container scrolls sideways.
+       The entire page will NOT move sideways.
+    */
+    .expense-history-scroll {
+        display: block !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+
+        -webkit-overflow-scrolling: touch;
+
+        box-sizing: border-box !important;
+
+        padding-bottom: 5px !important;
+    }
+
+
+    #expense-history-table {
+        width: max-content !important;
+
+        min-width: 650px !important;
+        max-width: none !important;
+
+        margin: 0 !important;
+
+        table-layout: auto !important;
+    }
+
+
+    #expense-history-table th,
+    #expense-history-table td {
+        white-space: nowrap !important;
+    }
+
+
+    .expense-history-section *,
+    .expense-history-section *::before,
+    .expense-history-section *::after {
+        box-sizing: border-box !important;
+    }
+
+
+
+    /* =====================================================
+       WELCOME / PROFILE BUTTON
+       ===================================================== */
+
+    .profile-wrap {
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+
+    .profile-btn {
+        max-width: 170px !important;
+
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+
+        position: relative !important;
+
+        cursor: pointer !important;
+    }
+
+
+    /*
+       JS moves this popup into <body> only on mobile.
+
+       Therefore it cannot be clipped by:
+       - navbar
+       - sidebar
+       - overflow:hidden
+       - transformed containers
+    */
+    .profile-dropdown.mobile-profile-popover {
+        position: fixed !important;
+
+        display: none !important;
+
+        width: min(
+            320px,
+            calc(100vw - 24px)
+        ) !important;
+
+        max-width: calc(
+            100vw - 24px
+        ) !important;
+
+        min-width: 0 !important;
+
+        margin: 0 !important;
+
+        padding: 7px 0 !important;
+
+        border-radius: 14px !important;
+
+        background: #1a1a1a !important;
+
+        border:
+            1px solid
+            rgba(255,255,255,.14) !important;
+
+        box-shadow:
+            0 20px 60px
+            rgba(0,0,0,.60) !important;
+
+        box-sizing: border-box !important;
+
+        overflow: hidden !important;
+
+        z-index: 2147483646 !important;
+
+        transform: none !important;
+    }
+
+
+    .profile-dropdown.mobile-profile-popover.open {
+        display: block !important;
+    }
+
+
+    .mobile-profile-popover
+    .profile-row {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        padding: 11px 14px !important;
+
+        box-sizing: border-box !important;
+    }
+
+
+    .mobile-profile-popover
+    .profile-label {
+        display: block !important;
+
+        font-size: .65rem !important;
+
+        margin-bottom: 3px !important;
+    }
+
+
+    .mobile-profile-popover
+    .profile-value {
+        display: block !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+
+        font-size: .84rem !important;
+        line-height: 1.4 !important;
+
+        white-space: normal !important;
+
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+}
+
+
+@media (max-width: 380px) {
+
+    #expense-history-table {
+        min-width: 620px !important;
+    }
+
+    .profile-btn {
+        max-width: 145px !important;
+    }
+}
+
+/* FINAL MOBILE DASHBOARD FIX END */
