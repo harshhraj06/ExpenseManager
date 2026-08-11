@@ -2217,3 +2217,62 @@ a{
         width: 100%;
     }
 }
+
+/* =========================================================
+   OFFLINE TRANSACTION ROWS
+   ========================================================= */
+
+.offline-transaction-row {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(255, 204, 0, .07),
+            transparent
+        );
+}
+
+.offline-transaction-row td {
+    opacity: .9;
+}
+
+.offline-transaction-synced {
+    animation: offline-row-synced .8s ease;
+}
+
+.offline-row-status,
+.offline-local-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 8px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.offline-row-status.pending,
+.offline-local-badge {
+    background: rgba(255, 204, 0, .12);
+    color: #ffcc00;
+    border: 1px solid rgba(255, 204, 0, .18);
+}
+
+.offline-row-status.synced {
+    background: rgba(53, 199, 89, .12);
+    color: #35c759;
+    border: 1px solid rgba(53, 199, 89, .18);
+}
+
+@keyframes offline-row-synced {
+    0% {
+        background: rgba(53, 199, 89, .20);
+    }
+
+    100% {
+        background: transparent;
+    }
+}

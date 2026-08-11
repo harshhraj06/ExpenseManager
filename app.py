@@ -9,7 +9,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from urllib.parse import urlencode
 
-from flask import Flask, render_template, request, redirect, session, send_file, abort
+from flask import Flask, render_template, request, redirect, session, send_file, send_from_directory, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -52,6 +52,20 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 
 app = Flask(__name__)
+
+@app.route("/service-worker.js")
+def service_worker():
+    response = send_from_directory(
+        os.path.join(BASE_DIR, "static"),
+        "service-worker.js",
+        mimetype="application/javascript"
+    )
+
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+
+    return response
+
 
 @app.route("/offline")
 def offline():

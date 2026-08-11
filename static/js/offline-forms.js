@@ -1,6 +1,20 @@
 (() => {
+    function uuid() {
+        if (crypto && typeof crypto.randomUUID === "function") {
+            return crypto.randomUUID();
+        }
+
+        return (
+            Date.now().toString(36) +
+            "-" +
+            Math.random().toString(36).slice(2)
+        );
+    }
+
+
     function showOfflineToast(message, type = "success") {
-        let container = document.getElementById("offline-toast-container");
+        let container =
+            document.getElementById("offline-toast-container");
 
         if (!container) {
             container = document.createElement("div");
@@ -9,15 +23,18 @@
         }
 
         const toast = document.createElement("div");
-        toast.className = `offline-toast offline-toast-${type}`;
 
-        toast.innerHTML = `
-            <span class="offline-toast-icon">
-                ${type === "success" ? "✓" : "!"}
-            </span>
-            <span>${message}</span>
-        `;
+        toast.className =
+            `offline-toast offline-toast-${type}`;
 
+        const icon = document.createElement("span");
+        icon.className = "offline-toast-icon";
+        icon.textContent = type === "success" ? "✓" : "!";
+
+        const text = document.createElement("span");
+        text.textContent = message;
+
+        toast.append(icon, text);
         container.appendChild(toast);
 
         requestAnimationFrame(() => {
@@ -34,17 +51,52 @@
     }
 
 
+    async function queueOperation(type, data) {
+        const operation = {
+            operation_id: uuid(),
+            type,
+            data
+        };
+
+        const id =
+            await ExpenseOfflineDB.add(operation);
+
+        window.dispatchEvent(
+            new CustomEvent("expense-offline-created", {
+                detail: {
+                    id,
+                    ...operation
+                }
+            })
+        );
+
+        if (window.ExpenseSync) {
+            await ExpenseSync.updateStatus();
+        }
+
+        return id;
+    }
+
+
     async function queueExpense(form) {
         const formData = new FormData(form);
 
         const data = {
-            amount: formData.get("amount"),
-            category: formData.get("category"),
-            description: formData.get("description") || "",
-            date: formData.get("date")
+            amount: Number(formData.get("amount")),
+            category:
+                String(formData.get("category") || "").trim(),
+            description:
+                String(formData.get("description") || "").trim(),
+            date:
+                String(formData.get("date") || "").trim()
         };
 
-        if (!data.amount || !data.category || !data.date) {
+        if (
+            !Number.isFinite(data.amount) ||
+            data.amount <= 0 ||
+            !data.category ||
+            !data.date
+        ) {
             showOfflineToast(
                 "Please complete the required expense fields.",
                 "error"
@@ -53,20 +105,13 @@
             return;
         }
 
-        await ExpenseOfflineDB.add({
-            type: "expense",
-            data
-        });
+        await queueOperation("expense", data);
 
         form.reset();
 
         showOfflineToast(
             "Expense saved offline. It will sync automatically."
         );
-
-        if (window.ExpenseSync) {
-            await ExpenseSync.updateStatus();
-        }
     }
 
 
@@ -74,12 +119,19 @@
         const formData = new FormData(form);
 
         const data = {
-            amount: formData.get("amount"),
-            source: formData.get("source"),
-            date: formData.get("date")
+            amount: Number(formData.get("amount")),
+            source:
+                String(formData.get("source") || "").trim(),
+            date:
+                String(formData.get("date") || "").trim()
         };
 
-        if (!data.amount || !data.source || !data.date) {
+        if (
+            !Number.isFinite(data.amount) ||
+            data.amount <= 0 ||
+            !data.source ||
+            !data.date
+        ) {
             showOfflineToast(
                 "Please complete the required income fields.",
                 "error"
@@ -88,37 +140,19 @@
             return;
         }
 
-        await ExpenseOfflineDB.add({
-            type: "income",
-            data
-        });
+        await queueOperation("income", data);
 
         form.reset();
 
         showOfflineToast(
             "Income saved offline. It will sync automatically."
         );
-
-        if (window.ExpenseSync) {
-            await ExpenseSync.updateStatus();
-        }
-    }
-
-
-    function findIncomeForm() {
-        return Array.from(document.forms).find(form => {
-            return (
-                form.querySelector('[name="source"]') &&
-                form.querySelector('[name="amount"]') &&
-                form.querySelector('[name="date"]')
-            );
-        });
     }
 
 
     function bindExpenseForm() {
         const form =
-            document.querySelector('form[action="/add"]');
+            document.getElementById("expense-entry-form");
 
         if (!form || form.dataset.offlineBound === "true") {
             return;
@@ -136,10 +170,7 @@
             try {
                 await queueExpense(form);
             } catch (error) {
-                console.error(
-                    "Failed to save expense offline:",
-                    error
-                );
+                console.error(error);
 
                 showOfflineToast(
                     "Could not save expense offline.",
@@ -151,7 +182,8 @@
 
 
     function bindIncomeForm() {
-        const form = findIncomeForm();
+        const form =
+            document.getElementById("income-entry-form");
 
         if (!form || form.dataset.offlineBound === "true") {
             return;
@@ -169,10 +201,7 @@
             try {
                 await queueIncome(form);
             } catch (error) {
-                console.error(
-                    "Failed to save income offline:",
-                    error
-                );
+                console.error(error);
 
                 showOfflineToast(
                     "Could not save income offline.",

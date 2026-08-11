@@ -275,7 +275,7 @@
         <div class="stat-card">
             <div>
                 <h3>INCOME</h3>
-                <h2>₹{{ total_income }}</h2>
+                <h2 id="total-income-value" data-value="{{ total_income }}">₹{{ total_income }}</h2>
             </div>
             <div class="icon income-icon">↗</div>
         </div>
@@ -283,7 +283,7 @@
         <div class="stat-card">
             <div>
                 <h3>EXPENSES</h3>
-                <h2>₹{{ total_expense }}</h2>
+                <h2 id="total-expense-value" data-value="{{ total_expense }}">₹{{ total_expense }}</h2>
             </div>
             <div class="icon expense-icon">↘</div>
         </div>
@@ -291,7 +291,7 @@
         <div class="stat-card">
             <div>
                 <h3>BALANCE</h3>
-                <h2>₹{{ balance }}</h2>
+                <h2 id="balance-value" data-value="{{ balance }}">₹{{ balance }}</h2>
             </div>
             <div class="icon balance-icon">💳</div>
         </div>
@@ -446,7 +446,7 @@
 
     <h2>Add Income</h2>
 
-    <form action="/add_income" method="POST">
+    <form id="income-entry-form" action="/add_income" method="POST">
 
         <input
             type="number"
@@ -478,7 +478,7 @@
 
     <h2>Income History</h2>
 
-    <table>
+    <table id="income-history-table">
 
         <tr>
             <th>Amount</th>
@@ -620,7 +620,7 @@
 
     <h2>Add Expense</h2>
 
-    <form action="/add" method="POST">
+    <form id="expense-entry-form" action="/add" method="POST">
 
         <input
             type="number"
@@ -664,7 +664,7 @@
         <a href="/expenses_bill" class="download-btn">Download Expense Bill</a>
     </div>
 
-    <table>
+    <table id="expense-history-table">
 
         <tr>
             <th>Amount</th>
@@ -840,5 +840,8 @@ var trendExpense = [
 
 <script src="{{ url_for('static', filename='js/offline-forms.js') }}"></script>
 <script src="/static/js/offline.js"></script>
+
+<script src="{{ url_for('static', filename='js/dashboard-live.js') }}"></script>
+
 </body>
 </html>

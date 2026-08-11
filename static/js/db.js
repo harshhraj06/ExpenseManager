@@ -43,14 +43,14 @@ const ExpenseOfflineDB = (() => {
         return new Promise((resolve, reject) => {
             const tx = db.transaction(OPERATIONS, "readwrite");
 
-            tx.objectStore(OPERATIONS).add({
+            const request = tx.objectStore(OPERATIONS).add({
                 ...operation,
                 created_at: new Date().toISOString(),
                 status: "pending"
             });
 
-            tx.oncomplete = resolve;
-            tx.onerror = () => reject(tx.error);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
         });
     }
 

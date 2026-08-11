@@ -90,7 +90,7 @@
         if ("serviceWorker" in navigator) {
             try {
                 await navigator.serviceWorker.register(
-                    "/static/service-worker.js"
+                    "/service-worker.js"
                 );
             } catch (error) {
                 console.warn(
