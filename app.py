@@ -3073,6 +3073,335 @@ def ask_ai_clear():
     return redirect("/ask_ai")
 
 
+
+
+# =========================================================
+# MONTHLY BUDGETS
+# =========================================================
+
+@app.route("/budgets", methods=["GET", "POST"])
+def budgets():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    categories = [
+        "Food",
+        "Travel",
+        "Shopping",
+        "Bills",
+        "Entertainment",
+        "Education"
+    ]
+
+    today = date.today()
+
+    selected_month = (
+        request.values.get("month")
+        or today.strftime("%Y-%m")
+    ).strip()
+
+    try:
+        year, month_number = map(
+            int,
+            selected_month.split("-")
+        )
+
+        month_start = date(
+            year,
+            month_number,
+            1
+        )
+
+    except Exception:
+        selected_month = today.strftime("%Y-%m")
+
+        month_start = date(
+            today.year,
+            today.month,
+            1
+        )
+
+    if month_start.month == 12:
+        next_month = date(
+            month_start.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            month_start.year,
+            month_start.month + 1,
+            1
+        )
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            category = str(
+                request.form.get("category") or ""
+            ).strip()
+
+            try:
+                monthly_limit = float(
+                    request.form.get(
+                        "monthly_limit"
+                    ) or 0
+                )
+            except (TypeError, ValueError):
+                monthly_limit = 0
+
+            if category not in categories:
+                session["budget_notice"] = (
+                    "Please choose a valid category."
+                )
+
+                return redirect(
+                    f"/budgets?month={selected_month}"
+                )
+
+            if monthly_limit <= 0:
+                session["budget_notice"] = (
+                    "Budget must be greater than ₹0."
+                )
+
+                return redirect(
+                    f"/budgets?month={selected_month}"
+                )
+
+            cursor.execute(
+                """
+                INSERT INTO budgets (
+                    user_id,
+                    category,
+                    monthly_limit,
+                    month
+                )
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (user_id, category, month)
+                DO UPDATE SET
+                    monthly_limit = excluded.monthly_limit
+                """,
+                (
+                    session["user_id"],
+                    category,
+                    monthly_limit,
+                    selected_month
+                )
+            )
+
+            conn.commit()
+
+            session["budget_notice"] = (
+                f"{category} budget saved."
+            )
+
+            return redirect(
+                f"/budgets?month={selected_month}"
+            )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                category,
+                monthly_limit
+            FROM budgets
+            WHERE user_id = ?
+              AND month = ?
+            ORDER BY category
+            """,
+            (
+                session["user_id"],
+                selected_month
+            )
+        )
+
+        budget_rows = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                category,
+                COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            GROUP BY category
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        spent_rows = cursor.fetchall()
+
+        spent_map = {
+            row[0]: float(row[1] or 0)
+            for row in spent_rows
+        }
+
+        budget_items = []
+
+        total_budget = 0.0
+        total_spent = 0.0
+
+        for row in budget_rows:
+            budget_id = row[0]
+            category = row[1]
+            limit_value = float(row[2] or 0)
+
+            spent = spent_map.get(
+                category,
+                0.0
+            )
+
+            percentage = (
+                (spent / limit_value) * 100
+                if limit_value > 0
+                else 0
+            )
+
+            remaining = (
+                limit_value - spent
+            )
+
+            if percentage >= 100:
+                status = "over"
+            elif percentage >= 80:
+                status = "warning"
+            else:
+                status = "good"
+
+            budget_items.append({
+                "id": budget_id,
+                "category": category,
+                "limit": round(
+                    limit_value,
+                    2
+                ),
+                "spent": round(
+                    spent,
+                    2
+                ),
+                "remaining": round(
+                    remaining,
+                    2
+                ),
+                "percentage": round(
+                    percentage,
+                    1
+                ),
+                "bar_percentage": min(
+                    percentage,
+                    100
+                ),
+                "status": status
+            })
+
+            total_budget += limit_value
+            total_spent += spent
+
+        total_remaining = (
+            total_budget - total_spent
+        )
+
+        total_percentage = (
+            (total_spent / total_budget) * 100
+            if total_budget > 0
+            else 0
+        )
+
+        notice = session.pop(
+            "budget_notice",
+            None
+        )
+
+        return render_template(
+            "budgets.html",
+            categories=categories,
+            selected_month=selected_month,
+            budget_items=budget_items,
+            total_budget=round(
+                total_budget,
+                2
+            ),
+            total_spent=round(
+                total_spent,
+                2
+            ),
+            total_remaining=round(
+                total_remaining,
+                2
+            ),
+            total_percentage=round(
+                total_percentage,
+                1
+            ),
+            notice=notice
+        )
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route(
+    "/budgets/delete/<int:budget_id>",
+    methods=["POST"]
+)
+def delete_budget(budget_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    selected_month = (
+        request.form.get("month")
+        or ""
+    ).strip()
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM budgets
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                budget_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["budget_notice"] = (
+        "Budget removed."
+    )
+
+    if selected_month:
+        return redirect(
+            f"/budgets?month={selected_month}"
+        )
+
+    return redirect("/budgets")
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

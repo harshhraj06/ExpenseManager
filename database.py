@@ -261,3 +261,35 @@ conn.commit()
 conn.close()
 
 print("Database created successfully")
+# =========================================================
+# Monthly Budgets
+# =========================================================
+
+def ensure_budgets_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS budgets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                monthly_limit REAL NOT NULL,
+                month TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, category, month)
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_budgets_table()
