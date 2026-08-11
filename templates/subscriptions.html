@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Subscriptions | Expense Manager
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='subscriptions.css') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta
+        name="theme-color"
+        content="#080808">
+</head>
+
+<body class="subscriptions-page">
+
+<div class="subscriptions-shell">
+
+    <header class="subscriptions-header">
+
+        <a
+            href="/"
+            class="subscriptions-back">
+            ← Dashboard
+        </a>
+
+        <span class="subscriptions-eyebrow">
+            Recurring Spending
+        </span>
+
+        <h1>
+            Subscriptions
+        </h1>
+
+        <p>
+            Know exactly what your recurring
+            services cost every month and year.
+        </p>
+
+    </header>
+
+
+    {% if notice %}
+
+    <div class="subscriptions-notice">
+        {{ notice }}
+    </div>
+
+    {% endif %}
+
+
+    <section class="subscriptions-summary">
+
+        <article class="subscription-summary-card">
+
+            <span>
+                Monthly Cost
+            </span>
+
+            <strong>
+                ₹{{ monthly_total }}
+            </strong>
+
+        </article>
+
+
+        <article class="subscription-summary-card">
+
+            <span>
+                Annual Cost
+            </span>
+
+            <strong>
+                ₹{{ annual_total }}
+            </strong>
+
+        </article>
+
+
+        <article class="subscription-summary-card">
+
+            <span>
+                Active
+            </span>
+
+            <strong>
+                {{ active_count }}
+            </strong>
+
+        </article>
+
+
+        <article class="subscription-summary-card">
+
+            <span>
+                Due in 7 Days
+            </span>
+
+            <strong
+                class="{% if upcoming_count > 0 %}warning{% endif %}">
+                {{ upcoming_count }}
+            </strong>
+
+        </article>
+
+    </section>
+
+
+    <section class="subscriptions-layout">
+
+        <div class="subscriptions-panel">
+
+            <div class="subscriptions-panel-heading">
+
+                <div>
+
+                    <span class="subscriptions-eyebrow">
+                        Add Service
+                    </span>
+
+                    <h2>
+                        New subscription
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <form
+                action="/subscriptions"
+                method="POST"
+                class="subscription-form">
+
+                <div class="subscription-field">
+
+                    <label>
+                        Service name
+                    </label>
+
+                    <input
+                        type="text"
+                        name="name"
+                        maxlength="80"
+                        placeholder="Netflix, Spotify, Adobe..."
+                        required>
+
+                </div>
+
+
+                <div class="subscription-field">
+
+                    <label>
+                        Amount
+                    </label>
+
+                    <div class="subscription-money-input">
+
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            name="amount"
+                            min="1"
+                            step="0.01"
+                            placeholder="499"
+                            required>
+
+                    </div>
+
+                </div>
+
+
+                <div class="subscription-field">
+
+                    <label>
+                        Billing cycle
+                    </label>
+
+                    <select
+                        name="billing_cycle"
+                        required>
+
+                        <option value="monthly">
+                            Monthly
+                        </option>
+
+                        <option value="yearly">
+                            Yearly
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="subscription-field">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select
+                        name="category"
+                        required>
+
+                        {% for category in categories %}
+
+                        <option
+                            value="{{ category }}">
+                            {{ category }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="subscription-field">
+
+                    <label>
+                        Next renewal
+                    </label>
+
+                    <input
+                        type="date"
+                        name="next_renewal"
+                        required>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="subscription-save-button">
+
+                    Add Subscription
+
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="subscriptions-panel">
+
+            <div class="subscriptions-panel-heading">
+
+                <div>
+
+                    <span class="subscriptions-eyebrow">
+                        Recurring Costs
+                    </span>
+
+                    <h2>
+                        Your subscriptions
+                    </h2>
+
+                </div>
+
+                <span class="subscription-count">
+                    {{ subscriptions|length }}
+                </span>
+
+            </div>
+
+
+            {% if subscriptions %}
+
+            <div class="subscriptions-list">
+
+                {% for item in subscriptions %}
+
+                <article
+                    class="
+                        subscription-item
+                        {% if item.status != 'active' %}
+                            subscription-paused
+                        {% elif item.is_overdue %}
+                            subscription-overdue
+                        {% elif item.is_upcoming %}
+                            subscription-upcoming
+                        {% endif %}
+                    ">
+
+                    <div class="subscription-item-top">
+
+                        <div>
+
+                            <div class="subscription-title-row">
+
+                                <h3>
+                                    {{ item.name }}
+                                </h3>
+
+                                <span class="subscription-category">
+                                    {{ item.category }}
+                                </span>
+
+                            </div>
+
+                            <p>
+                                ₹{{ item.amount }}
+                                /
+                                {{ item.billing_cycle }}
+                            </p>
+
+                        </div>
+
+
+                        <strong>
+                            ₹{{ item.monthly_equivalent }}
+                            <small>/mo</small>
+                        </strong>
+
+                    </div>
+
+
+                    <div class="subscription-cost-grid">
+
+                        <div>
+
+                            <span>
+                                Annual Cost
+                            </span>
+
+                            <strong>
+                                ₹{{ item.annual_cost }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Next Renewal
+                            </span>
+
+                            <strong>
+                                {{ item.next_renewal }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="subscription-status-row">
+
+                        {% if item.status != "active" %}
+
+                        <span class="subscription-status paused">
+                            Paused
+                        </span>
+
+                        {% elif item.is_overdue %}
+
+                        <span class="subscription-status overdue">
+                            Renewal date passed
+                        </span>
+
+                        {% elif item.is_upcoming %}
+
+                        <span class="subscription-status upcoming">
+                            Renews in {{ item.days_until }} day{% if item.days_until != 1 %}s{% endif %}
+                        </span>
+
+                        {% else %}
+
+                        <span class="subscription-status active">
+                            Active
+                        </span>
+
+                        {% endif %}
+
+
+                        <div class="subscription-actions">
+
+                            <form
+                                action="/subscriptions/{{ item.id }}/toggle"
+                                method="POST">
+
+                                <button
+                                    type="submit"
+                                    class="subscription-toggle">
+
+                                    {% if item.status == "active" %}
+                                        Pause
+                                    {% else %}
+                                        Resume
+                                    {% endif %}
+
+                                </button>
+
+                            </form>
+
+
+                            <form
+                                action="/subscriptions/{{ item.id }}/delete"
+                                method="POST">
+
+                                <button
+                                    type="submit"
+                                    class="subscription-delete"
+                                    onclick="return confirm('Delete this subscription?')">
+
+                                    Delete
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="subscriptions-empty">
+
+                <div>
+                    ◎
+                </div>
+
+                <h3>
+                    No subscriptions yet
+                </h3>
+
+                <p>
+                    Add your recurring services to
+                    see their real monthly and annual cost.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script
+    src="{{ url_for('static', filename='js/db.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/sync.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/offline.js') }}">
+</script>
+
+</body>
+</html>

@@ -327,3 +327,39 @@ def ensure_savings_goals_table():
 
 
 ensure_savings_goals_table()
+
+
+# =========================================================
+# Subscriptions
+# =========================================================
+
+def ensure_subscriptions_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                billing_cycle TEXT NOT NULL DEFAULT 'monthly',
+                category TEXT NOT NULL DEFAULT 'Other',
+                next_renewal TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_subscriptions_table()

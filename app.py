@@ -3803,6 +3803,356 @@ def delete_savings_goal(goal_id):
 
 
 
+
+
+# =========================================================
+# SUBSCRIPTIONS
+# =========================================================
+
+@app.route("/subscriptions", methods=["GET", "POST"])
+def subscriptions():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    categories = [
+        "Entertainment",
+        "Music",
+        "Software",
+        "Cloud",
+        "Education",
+        "Fitness",
+        "News",
+        "Other"
+    ]
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            name = str(
+                request.form.get("name") or ""
+            ).strip()
+
+            try:
+                amount = float(
+                    request.form.get("amount") or 0
+                )
+            except (TypeError, ValueError):
+                amount = 0
+
+            billing_cycle = str(
+                request.form.get("billing_cycle") or "monthly"
+            ).strip().lower()
+
+            category = str(
+                request.form.get("category") or "Other"
+            ).strip()
+
+            next_renewal_text = str(
+                request.form.get("next_renewal") or ""
+            ).strip()
+
+            try:
+                next_renewal = date.fromisoformat(
+                    next_renewal_text
+                )
+            except ValueError:
+                next_renewal = None
+
+            if not name:
+                session["subscription_notice"] = (
+                    "Enter a subscription name."
+                )
+                return redirect("/subscriptions")
+
+            if amount <= 0:
+                session["subscription_notice"] = (
+                    "Subscription amount must be greater than ₹0."
+                )
+                return redirect("/subscriptions")
+
+            if billing_cycle not in {"monthly", "yearly"}:
+                session["subscription_notice"] = (
+                    "Choose a valid billing cycle."
+                )
+                return redirect("/subscriptions")
+
+            if category not in categories:
+                category = "Other"
+
+            if not next_renewal:
+                session["subscription_notice"] = (
+                    "Choose a valid renewal date."
+                )
+                return redirect("/subscriptions")
+
+            cursor.execute(
+                """
+                INSERT INTO subscriptions (
+                    user_id,
+                    name,
+                    amount,
+                    billing_cycle,
+                    category,
+                    next_renewal,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session["user_id"],
+                    name,
+                    amount,
+                    billing_cycle,
+                    category,
+                    next_renewal.isoformat(),
+                    "active"
+                )
+            )
+
+            conn.commit()
+
+            session["subscription_notice"] = (
+                f"{name} subscription added."
+            )
+
+            return redirect("/subscriptions")
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                amount,
+                billing_cycle,
+                category,
+                next_renewal,
+                status
+            FROM subscriptions
+            WHERE user_id = ?
+            ORDER BY next_renewal ASC, id DESC
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        rows = cursor.fetchall()
+
+        today = date.today()
+
+        items = []
+
+        monthly_total = 0.0
+        annual_total = 0.0
+        upcoming_count = 0
+        active_count = 0
+
+        for row in rows:
+            subscription_id = row[0]
+            name = row[1]
+            amount = float(row[2] or 0)
+            billing_cycle = row[3] or "monthly"
+            category = row[4] or "Other"
+
+            try:
+                next_renewal = date.fromisoformat(
+                    str(row[5])
+                )
+            except ValueError:
+                next_renewal = today
+
+            status = row[6] or "active"
+
+            days_until = (
+                next_renewal - today
+            ).days
+
+            if billing_cycle == "yearly":
+                monthly_equivalent = amount / 12
+                annual_cost = amount
+            else:
+                monthly_equivalent = amount
+                annual_cost = amount * 12
+
+            is_upcoming = (
+                status == "active"
+                and 0 <= days_until <= 7
+            )
+
+            is_overdue = (
+                status == "active"
+                and days_until < 0
+            )
+
+            if status == "active":
+                monthly_total += monthly_equivalent
+                annual_total += annual_cost
+                active_count += 1
+
+            if is_upcoming:
+                upcoming_count += 1
+
+            items.append({
+                "id": subscription_id,
+                "name": name,
+                "amount": round(amount, 2),
+                "billing_cycle": billing_cycle,
+                "category": category,
+                "next_renewal": next_renewal.isoformat(),
+                "days_until": days_until,
+                "monthly_equivalent": round(
+                    monthly_equivalent,
+                    2
+                ),
+                "annual_cost": round(
+                    annual_cost,
+                    2
+                ),
+                "status": status,
+                "is_upcoming": is_upcoming,
+                "is_overdue": is_overdue
+            })
+
+        notice = session.pop(
+            "subscription_notice",
+            None
+        )
+
+        return render_template(
+            "subscriptions.html",
+            subscriptions=items,
+            categories=categories,
+            monthly_total=round(
+                monthly_total,
+                2
+            ),
+            annual_total=round(
+                annual_total,
+                2
+            ),
+            active_count=active_count,
+            upcoming_count=upcoming_count,
+            notice=notice
+        )
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route(
+    "/subscriptions/<int:subscription_id>/toggle",
+    methods=["POST"]
+)
+def toggle_subscription(subscription_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT status, name
+            FROM subscriptions
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                subscription_id,
+                session["user_id"]
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            session["subscription_notice"] = (
+                "Subscription not found."
+            )
+            return redirect("/subscriptions")
+
+        current_status = row[0]
+        name = row[1]
+
+        new_status = (
+            "paused"
+            if current_status == "active"
+            else "active"
+        )
+
+        cursor.execute(
+            """
+            UPDATE subscriptions
+            SET status = ?
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                new_status,
+                subscription_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+        session["subscription_notice"] = (
+            f"{name} is now {new_status}."
+        )
+
+    finally:
+        conn.close()
+
+    return redirect("/subscriptions")
+
+
+@app.route(
+    "/subscriptions/<int:subscription_id>/delete",
+    methods=["POST"]
+)
+def delete_subscription(subscription_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM subscriptions
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                subscription_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["subscription_notice"] = (
+        "Subscription removed."
+    )
+
+    return redirect("/subscriptions")
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
