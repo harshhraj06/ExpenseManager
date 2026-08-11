@@ -76,7 +76,7 @@ def column_exists(table, column):
             )
             return cur.fetchone() is not None
         finally:
-            release_connection(conn)
+            conn.close()
     else:
         conn = connect()
         try:
