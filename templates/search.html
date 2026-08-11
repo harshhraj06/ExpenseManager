@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Search Transactions | Expense Manager
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='search.css') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta
+        name="theme-color"
+        content="#080808">
+</head>
+
+<body class="search-page">
+
+<div class="search-shell">
+
+    <header class="search-header">
+
+        <a
+            href="/"
+            class="search-back">
+            ← Dashboard
+        </a>
+
+        <span class="search-eyebrow">
+            Transaction Intelligence
+        </span>
+
+        <h1>
+            Search
+        </h1>
+
+        <p>
+            Find any income or expense
+            without scrolling through months of history.
+        </p>
+
+    </header>
+
+
+    <section class="search-panel">
+
+        <form
+            action="/search"
+            method="GET"
+            class="smart-search-form">
+
+            <div class="search-main-field">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Search food, travel, salary, shopping...">
+
+                <button type="submit">
+                    Search
+                </button>
+
+            </div>
+
+
+            <div class="search-filters">
+
+                <div class="search-field">
+
+                    <label>
+                        Type
+                    </label>
+
+                    <select name="type">
+
+                        <option
+                            value="all"
+                            {% if transaction_type == 'all' %}selected{% endif %}>
+                            All Transactions
+                        </option>
+
+                        <option
+                            value="expense"
+                            {% if transaction_type == 'expense' %}selected{% endif %}>
+                            Expenses
+                        </option>
+
+                        <option
+                            value="income"
+                            {% if transaction_type == 'income' %}selected{% endif %}>
+                            Income
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="search-field">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select name="category">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in categories %}
+
+                        <option
+                            value="{{ category }}"
+                            {% if selected_category == category %}selected{% endif %}>
+                            {{ category }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="search-field">
+
+                    <label>
+                        From
+                    </label>
+
+                    <input
+                        type="date"
+                        name="from"
+                        value="{{ date_from }}">
+
+                </div>
+
+
+                <div class="search-field">
+
+                    <label>
+                        To
+                    </label>
+
+                    <input
+                        type="date"
+                        name="to"
+                        value="{{ date_to }}">
+
+                </div>
+
+
+                <div class="search-field">
+
+                    <label>
+                        Min ₹
+                    </label>
+
+                    <input
+                        type="number"
+                        name="min_amount"
+                        min="0"
+                        step="0.01"
+                        value="{% if min_amount is not none %}{{ min_amount }}{% endif %}"
+                        placeholder="0">
+
+                </div>
+
+
+                <div class="search-field">
+
+                    <label>
+                        Max ₹
+                    </label>
+
+                    <input
+                        type="number"
+                        name="max_amount"
+                        min="0"
+                        step="0.01"
+                        value="{% if max_amount is not none %}{{ max_amount }}{% endif %}"
+                        placeholder="Any">
+
+                </div>
+
+            </div>
+
+
+            <div class="search-filter-actions">
+
+                <button
+                    type="submit"
+                    class="apply-filter-button">
+                    Apply Filters
+                </button>
+
+                <a
+                    href="/search"
+                    class="clear-filter-button">
+                    Clear
+                </a>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <section class="search-summary">
+
+        <article>
+
+            <span>
+                Results
+            </span>
+
+            <strong>
+                {{ result_count }}
+            </strong>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Income
+            </span>
+
+            <strong class="search-income">
+                ₹{{ total_income }}
+            </strong>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Expenses
+            </span>
+
+            <strong>
+                ₹{{ total_expense }}
+            </strong>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Net
+            </span>
+
+            <strong
+                class="{% if net_result < 0 %}search-negative{% endif %}">
+                ₹{{ net_result }}
+            </strong>
+
+        </article>
+
+    </section>
+
+
+    <section class="search-results-panel">
+
+        <div class="search-results-heading">
+
+            <div>
+
+                <span class="search-eyebrow">
+                    Matching Activity
+                </span>
+
+                <h2>
+                    Transactions
+                </h2>
+
+            </div>
+
+            <span class="search-result-count">
+                {{ result_count }}
+            </span>
+
+        </div>
+
+
+        {% if results %}
+
+        <div class="search-results-list">
+
+            {% for item in results %}
+
+            <article class="search-result-item">
+
+                <div class="search-result-main">
+
+                    <span
+                        class="
+                            search-result-type
+                            {{ item.type }}
+                        ">
+
+                        {{ item.type }}
+
+                    </span>
+
+                    <div>
+
+                        <h3>
+                            {{ item.title }}
+                        </h3>
+
+                        <p>
+                            {{ item.date }}
+
+                            {% if item.description %}
+                                · {{ item.description }}
+                            {% endif %}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <strong
+                    class="
+                        search-result-amount
+                        {{ item.type }}
+                    ">
+
+                    {% if item.type == "income" %}
+                        +
+                    {% else %}
+                        -
+                    {% endif %}
+
+                    ₹{{ item.amount }}
+
+                </strong>
+
+            </article>
+
+            {% endfor %}
+
+        </div>
+
+        {% else %}
+
+        <div class="search-empty">
+
+            <div>
+                ⌕
+            </div>
+
+            <h3>
+                No matching transactions
+            </h3>
+
+            <p>
+                Try another keyword,
+                date range or amount filter.
+            </p>
+
+        </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+
+<script
+    src="{{ url_for('static', filename='js/db.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/sync.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/offline.js') }}">
+</script>
+
+</body>
+</html>

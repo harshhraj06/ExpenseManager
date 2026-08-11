@@ -4728,6 +4728,339 @@ def export_financial_report_csv():
 
 
 
+
+
+# =========================================================
+# SMART TRANSACTION SEARCH
+# =========================================================
+
+@app.route("/search")
+def transaction_search():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    query = str(
+        request.args.get("q") or ""
+    ).strip()
+
+    transaction_type = str(
+        request.args.get("type") or "all"
+    ).strip().lower()
+
+    category = str(
+        request.args.get("category") or ""
+    ).strip()
+
+    date_from = str(
+        request.args.get("from") or ""
+    ).strip()
+
+    date_to = str(
+        request.args.get("to") or ""
+    ).strip()
+
+    try:
+        min_amount = float(
+            request.args.get("min_amount")
+        ) if request.args.get("min_amount") else None
+    except (TypeError, ValueError):
+        min_amount = None
+
+    try:
+        max_amount = float(
+            request.args.get("max_amount")
+        ) if request.args.get("max_amount") else None
+    except (TypeError, ValueError):
+        max_amount = None
+
+    if transaction_type not in {
+        "all",
+        "expense",
+        "income"
+    }:
+        transaction_type = "all"
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT DISTINCT category
+            FROM expenses
+            WHERE user_id = ?
+              AND category IS NOT NULL
+              AND category != ''
+            ORDER BY category
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        categories = [
+            row[0]
+            for row in cursor.fetchall()
+        ]
+
+        results = []
+
+        if transaction_type in {
+            "all",
+            "expense"
+        }:
+            expense_sql = """
+                SELECT
+                    id,
+                    amount,
+                    category,
+                    description,
+                    date
+                FROM expenses
+                WHERE user_id = ?
+            """
+
+            expense_params = [
+                session["user_id"]
+            ]
+
+            if query:
+                expense_sql += """
+                    AND (
+                        LOWER(COALESCE(category, ''))
+                            LIKE ?
+                        OR
+                        LOWER(COALESCE(description, ''))
+                            LIKE ?
+                    )
+                """
+
+                search_term = (
+                    f"%{query.lower()}%"
+                )
+
+                expense_params.extend([
+                    search_term,
+                    search_term
+                ])
+
+            if category:
+                expense_sql += """
+                    AND category = ?
+                """
+
+                expense_params.append(
+                    category
+                )
+
+            if date_from:
+                expense_sql += """
+                    AND date >= ?
+                """
+
+                expense_params.append(
+                    date_from
+                )
+
+            if date_to:
+                expense_sql += """
+                    AND date <= ?
+                """
+
+                expense_params.append(
+                    date_to
+                )
+
+            if min_amount is not None:
+                expense_sql += """
+                    AND amount >= ?
+                """
+
+                expense_params.append(
+                    min_amount
+                )
+
+            if max_amount is not None:
+                expense_sql += """
+                    AND amount <= ?
+                """
+
+                expense_params.append(
+                    max_amount
+                )
+
+            expense_sql += """
+                ORDER BY date DESC, id DESC
+                LIMIT 200
+            """
+
+            cursor.execute(
+                expense_sql,
+                tuple(expense_params)
+            )
+
+            for row in cursor.fetchall():
+                results.append({
+                    "id": row[0],
+                    "type": "expense",
+                    "amount": round(
+                        float(row[1] or 0),
+                        2
+                    ),
+                    "title": row[2] or "Expense",
+                    "description": row[3] or "",
+                    "date": row[4],
+                    "category": row[2] or "",
+                    "source": ""
+                })
+
+        if transaction_type in {
+            "all",
+            "income"
+        }:
+            income_sql = """
+                SELECT
+                    id,
+                    amount,
+                    source,
+                    date
+                FROM income
+                WHERE user_id = ?
+            """
+
+            income_params = [
+                session["user_id"]
+            ]
+
+            if query:
+                income_sql += """
+                    AND LOWER(
+                        COALESCE(source, '')
+                    ) LIKE ?
+                """
+
+                income_params.append(
+                    f"%{query.lower()}%"
+                )
+
+            if date_from:
+                income_sql += """
+                    AND date >= ?
+                """
+
+                income_params.append(
+                    date_from
+                )
+
+            if date_to:
+                income_sql += """
+                    AND date <= ?
+                """
+
+                income_params.append(
+                    date_to
+                )
+
+            if min_amount is not None:
+                income_sql += """
+                    AND amount >= ?
+                """
+
+                income_params.append(
+                    min_amount
+                )
+
+            if max_amount is not None:
+                income_sql += """
+                    AND amount <= ?
+                """
+
+                income_params.append(
+                    max_amount
+                )
+
+            income_sql += """
+                ORDER BY date DESC, id DESC
+                LIMIT 200
+            """
+
+            cursor.execute(
+                income_sql,
+                tuple(income_params)
+            )
+
+            for row in cursor.fetchall():
+                results.append({
+                    "id": row[0],
+                    "type": "income",
+                    "amount": round(
+                        float(row[1] or 0),
+                        2
+                    ),
+                    "title": row[2] or "Income",
+                    "description": "",
+                    "date": row[3],
+                    "category": "",
+                    "source": row[2] or ""
+                })
+
+        results.sort(
+            key=lambda item: (
+                str(item["date"]),
+                item["id"]
+            ),
+            reverse=True
+        )
+
+        total_income = sum(
+            item["amount"]
+            for item in results
+            if item["type"] == "income"
+        )
+
+        total_expense = sum(
+            item["amount"]
+            for item in results
+            if item["type"] == "expense"
+        )
+
+        net_result = (
+            total_income
+            - total_expense
+        )
+
+        return render_template(
+            "search.html",
+            results=results,
+            categories=categories,
+            query=query,
+            transaction_type=transaction_type,
+            selected_category=category,
+            date_from=date_from,
+            date_to=date_to,
+            min_amount=min_amount,
+            max_amount=max_amount,
+            result_count=len(results),
+            total_income=round(
+                total_income,
+                2
+            ),
+            total_expense=round(
+                total_expense,
+                2
+            ),
+            net_result=round(
+                net_result,
+                2
+            )
+        )
+
+    finally:
+        conn.close()
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

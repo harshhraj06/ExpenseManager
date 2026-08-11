@@ -530,3 +530,87 @@ body.pro-dashboard-page .ai-banner {
         border-radius: 17px;
     }
 }
+
+/* =========================================================
+   FINANCIAL CONTROL CENTER SEARCH
+   ========================================================= */
+
+.pro-search-box {
+    flex: 1;
+
+    min-width: 230px;
+    max-width: 340px;
+
+    display: flex;
+    align-items: center;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    border-radius: 11px;
+
+    background:
+        rgba(255,255,255,.03);
+
+    overflow: hidden;
+}
+
+.pro-search-box > span {
+    padding-left: 11px;
+
+    color: #777;
+
+    font-size: 1rem;
+}
+
+.pro-search-box input {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 10px 8px;
+
+    border: 0 !important;
+
+    outline: 0 !important;
+
+    background: transparent !important;
+
+    color: #fff;
+
+    font-size: .72rem;
+}
+
+.pro-search-box button {
+    min-height: 32px;
+
+    margin-right: 4px;
+
+    padding: 0 10px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background:
+        rgba(255,255,255,.09);
+
+    color: #ddd;
+
+    font-size: .65rem;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.pro-search-box button:hover {
+    background:
+        rgba(255,255,255,.14);
+}
+
+@media (max-width: 900px) {
+    .pro-search-box {
+        width: 100%;
+        max-width: none;
+    }
+}
