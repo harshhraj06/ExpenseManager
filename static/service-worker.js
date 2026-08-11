@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-manager-v9";
+const CACHE_NAME = "expense-manager-v12";
 
 const STATIC_ASSETS = [
     "/offline",
@@ -12,7 +12,11 @@ const STATIC_ASSETS = [
     "/static/js/offline-forms.js",
     "/static/js/dashboard-live.js",
     "/static/js/dashboard-pro.js",
+    "/static/js/expense-history-toggle.js",
+    "/static/js/financial-health.js",
     "/static/pro-dashboard.css",
+    "/static/js/recurring.js",
+    "/static/recurring.css",
     "/static/budgets.css",
     "/static/goals.css",
     "/static/subscriptions.css",

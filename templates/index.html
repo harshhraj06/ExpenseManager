@@ -333,10 +333,27 @@
                 Reports
             </a>
 
+            <a class="pro-action" href="/recurring">
+                Recurring
+            </a>
+
+            <button
+                type="button"
+                class="pro-action"
+                id="toggle-expense-history">
+                Expense History
+            </button>
+
             <a class="pro-action" href="/groups">
                 Split
             </a>
         </div>
+
+        <div
+            class="pro-health-zone"
+            id="financial-health-zone">
+        </div>
+
     </section>
 
     <div class="dashboard">
@@ -726,7 +743,9 @@
 
 </div>
 
-<div class="card pro-history-card">
+<div
+    class="card pro-history-card expense-history-section"
+    id="expense-history-section">
 
     <div class="section-header">
         <h2>Expense History</h2>
@@ -914,6 +933,12 @@ var trendExpense = [
 
 
 <script src="{{ url_for('static', filename='js/dashboard-pro.js') }}"></script>
+
+
+<script src="{{ url_for('static', filename='js/financial-health.js') }}"></script>
+
+
+<script src="{{ url_for('static', filename='js/expense-history-toggle.js') }}"></script>
 
 </body>
 </html>
