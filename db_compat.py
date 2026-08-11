@@ -234,6 +234,53 @@ def _create_postgres_pool():
     return _pool
 
 
+class PostgresCursorWrapper:
+    """
+    Cursor wrapper that allows the application to continue
+    using SQLite-style ? placeholders with PostgreSQL.
+
+    Example:
+        WHERE user_id=? AND status=?
+    becomes:
+        WHERE user_id=%s AND status=%s
+    """
+
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    @staticmethod
+    def _convert_sql(sql):
+        if not isinstance(sql, str):
+            return sql
+
+        return sql.replace("?", "%s")
+
+    def execute(self, sql, params=()):
+        sql = self._convert_sql(sql)
+        return self.cursor.execute(sql, params)
+
+    def executemany(self, sql, params):
+        sql = self._convert_sql(sql)
+        return self.cursor.executemany(sql, params)
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+    def fetchmany(self, size=None):
+        if size is None:
+            return self.cursor.fetchmany()
+        return self.cursor.fetchmany(size)
+
+    def __iter__(self):
+        return iter(self.cursor)
+
+    def __getattr__(self, name):
+        return getattr(self.cursor, name)
+
+
 class PostgresConnectionWrapper:
     """
     PostgreSQL pooled connection wrapper.
@@ -244,7 +291,9 @@ class PostgresConnectionWrapper:
         self.pool = connection_pool
 
     def cursor(self):
-        return self.connection.cursor()
+        return PostgresCursorWrapper(
+            self.connection.cursor()
+        )
 
     def commit(self):
         return self.connection.commit()
