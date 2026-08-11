@@ -1082,5 +1082,280 @@ var trendExpense = [
 
 <script src="{{ url_for('static', filename='js/expense-history-toggle.js') }}"></script>
 
+
+<script
+    src="{{ url_for('static', filename='js/mobile-sidebar.js') }}"
+    defer>
+</script>
+
+
+
+
+<section class="dashboard-about-section">
+
+    <div>
+
+        <span class="dashboard-about-eyebrow">
+            ABOUT
+        </span>
+
+        <h3>
+            Built by Harsh Raj
+        </h3>
+
+        <p>
+            Expense Manager is a full-stack personal-finance
+            platform built to make money management simpler,
+            smarter and more accessible.
+        </p>
+
+    </div>
+
+    <a
+        href="/about"
+        class="dashboard-about-link">
+
+        Explore the project →
+
+    </a>
+
+</section>
+
+
+<!-- MOBILE SIDEBAR START -->
+
+<button
+    type="button"
+    class="mobile-sidebar-toggle"
+    id="mobile-sidebar-toggle"
+    aria-label="Open navigation"
+    aria-expanded="false">
+
+    <span></span>
+    <span></span>
+    <span></span>
+
+</button>
+
+
+<div
+    class="mobile-sidebar-overlay"
+    id="mobile-sidebar-overlay">
+</div>
+
+
+<aside
+    class="mobile-app-sidebar"
+    id="mobile-app-sidebar"
+    aria-hidden="true">
+
+    <div class="mobile-sidebar-header">
+
+        <div class="mobile-sidebar-brand">
+
+            <div class="mobile-sidebar-brand-mark">
+                ₹
+            </div>
+
+            <div>
+                <strong>
+                    ExpenseX
+                </strong>
+
+                <small>
+                    Personal Finance
+                </small>
+            </div>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="mobile-sidebar-close"
+            id="mobile-sidebar-close"
+            aria-label="Close navigation">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <nav class="mobile-sidebar-nav">
+
+        <a
+            href="/"
+            class="mobile-sidebar-link active">
+
+            <span>⌂</span>
+
+            Dashboard
+
+        </a>
+
+
+        <a
+            href="#expense-form"
+            class="mobile-sidebar-link">
+
+            <span>＋</span>
+
+            Add Expense
+
+        </a>
+
+
+        <a
+            href="#income-section"
+            class="mobile-sidebar-link">
+
+            <span>＋</span>
+
+            Add Income
+
+        </a>
+
+
+        <div class="mobile-sidebar-divider"></div>
+
+
+        <a
+            href="/groups"
+            class="mobile-sidebar-link">
+
+            <span>◎</span>
+
+            Groups
+
+        </a>
+
+
+        <a
+            href="/bills"
+            class="mobile-sidebar-link">
+
+            <span>▣</span>
+
+            Bills
+
+        </a>
+
+
+        <a
+            href="/budgets"
+            class="mobile-sidebar-link">
+
+            <span>▤</span>
+
+            Budgets
+
+        </a>
+
+
+        <a
+            href="/goals"
+            class="mobile-sidebar-link">
+
+            <span>◉</span>
+
+            Goals
+
+        </a>
+
+
+        <a
+            href="/subscriptions"
+            class="mobile-sidebar-link">
+
+            <span>◌</span>
+
+            Subscriptions
+
+        </a>
+
+
+        <a
+            href="/recurring"
+            class="mobile-sidebar-link">
+
+            <span>↻</span>
+
+            Recurring
+
+        </a>
+
+
+        <a
+            href="/reports"
+            class="mobile-sidebar-link">
+
+            <span>▥</span>
+
+            Reports
+
+        </a>
+
+        <a
+            href="/about"
+            class="mobile-sidebar-link">
+
+            <span>i</span>
+
+            About
+
+        </a>
+
+
+
+        <a
+            href="#mobile-expense-history"
+            class="mobile-sidebar-link">
+
+            <span>≡</span>
+
+            Expense History
+
+        </a>
+
+    </nav>
+
+
+    <div class="mobile-sidebar-bottom">
+
+        <div class="mobile-sidebar-status">
+
+            <span class="mobile-sidebar-status-dot"></span>
+
+            <div>
+
+                <strong>
+                    ExpenseX
+                </strong>
+
+                <small>
+                    Smart money control
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="/logout"
+            class="mobile-sidebar-logout">
+
+            Logout
+
+        </a>
+
+    </div>
+
+</aside>
+
+<!-- MOBILE SIDEBAR END -->
+
 </body>
 </html>

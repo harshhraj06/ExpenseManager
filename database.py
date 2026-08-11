@@ -363,3 +363,43 @@ def ensure_subscriptions_table():
 
 
 ensure_subscriptions_table()
+
+
+# =========================================================
+# Recurring Transactions
+# =========================================================
+
+def ensure_recurring_transactions_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS recurring_transactions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                transaction_type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                category TEXT,
+                source TEXT,
+                description TEXT,
+                frequency TEXT NOT NULL DEFAULT 'monthly',
+                next_run TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                last_generated_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_recurring_transactions_table()
