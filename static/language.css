@@ -1,0 +1,306 @@
+/* =========================================================
+   LANGUAGE SWITCHER
+   ========================================================= */
+
+.language-switcher {
+    position: fixed;
+
+    right: 22px;
+    bottom: 140px;
+
+    z-index: 10020;
+}
+
+.language-toggle {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border:
+        1px solid
+        rgba(255,255,255,.13);
+
+    border-radius: 50%;
+
+    background:
+        rgba(18,18,18,.92);
+
+    color: #ffffff;
+
+    box-shadow:
+        0 10px 30px
+        rgba(0,0,0,.25);
+
+    backdrop-filter:
+        blur(16px);
+
+    -webkit-backdrop-filter:
+        blur(16px);
+
+    font-size: .68rem;
+    font-weight: 850;
+
+    cursor: pointer;
+
+    transition:
+        transform .18s ease,
+        background .18s ease;
+}
+
+.language-toggle:hover {
+    transform:
+        translateY(-2px)
+        scale(1.03);
+
+    background:
+        #202020;
+}
+
+
+/* =========================================================
+   MENU
+   ========================================================= */
+
+.language-menu {
+    position: absolute;
+
+    right: 0;
+    bottom: 56px;
+
+    width: 150px;
+
+    padding: 6px;
+
+    display: grid;
+
+    gap: 4px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.09);
+
+    border-radius: 13px;
+
+    background:
+        rgba(18,18,18,.96);
+
+    box-shadow:
+        0 16px 45px
+        rgba(0,0,0,.30);
+
+    backdrop-filter:
+        blur(20px);
+
+    -webkit-backdrop-filter:
+        blur(20px);
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    transform:
+        translateY(7px)
+        scale(.97);
+
+    transform-origin:
+        bottom right;
+
+    transition:
+        opacity .16s ease,
+        visibility .16s ease,
+        transform .16s ease;
+}
+
+.language-menu.open {
+    opacity: 1;
+
+    visibility: visible;
+
+    transform:
+        translateY(0)
+        scale(1);
+}
+
+
+/* =========================================================
+   LANGUAGE OPTIONS
+   ========================================================= */
+
+.language-option {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        30px 1fr;
+
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 9px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #bcbcbc;
+
+    font-family: inherit;
+    font-size: .68rem;
+    font-weight: 700;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        background .15s ease,
+        color .15s ease;
+}
+
+.language-option span {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 24px;
+
+    border-radius: 6px;
+
+    background:
+        rgba(255,255,255,.055);
+
+    color: #e6e6e6;
+
+    font-size: .62rem;
+}
+
+.language-option:hover {
+    background:
+        rgba(255,255,255,.055);
+
+    color: #ffffff;
+}
+
+.language-option.active {
+    background:
+        rgba(255,255,255,.08);
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   LIGHT MODE
+   ========================================================= */
+
+html[data-theme="light"]
+.language-toggle {
+    background:
+        #d9dde1;
+
+    border-color:
+        rgba(30,38,48,.14);
+
+    color:
+        #111317;
+
+    box-shadow:
+        0 8px 24px
+        rgba(30,38,48,.14);
+}
+
+html[data-theme="light"]
+.language-toggle:hover {
+    background:
+        #cfd4d9;
+}
+
+html[data-theme="light"]
+.language-menu {
+    background:
+        rgba(235,238,241,.98);
+
+    border-color:
+        rgba(30,38,48,.12);
+
+    box-shadow:
+        0 14px 40px
+        rgba(30,38,48,.14);
+}
+
+html[data-theme="light"]
+.language-option {
+    color:
+        #33383e;
+}
+
+html[data-theme="light"]
+.language-option span {
+    background:
+        #dce0e4;
+
+    color:
+        #111317;
+}
+
+html[data-theme="light"]
+.language-option:hover,
+
+html[data-theme="light"]
+.language-option.active {
+    background:
+        #d9dde1;
+
+    color:
+        #050505;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+    .language-switcher {
+        right: 14px;
+
+        bottom: 126px;
+    }
+
+    .language-toggle {
+        width: 43px;
+        height: 43px;
+    }
+}
+
+/* =========================================================
+   FLOATING CONTROL STACK
+   ========================================================= */
+
+.language-switcher {
+    bottom: 140px !important;
+}
+
+.theme-toggle {
+    bottom: 82px !important;
+}
+
+@media (max-width: 600px) {
+    .language-switcher {
+        bottom: 126px !important;
+    }
+
+    .theme-toggle {
+        bottom: 72px !important;
+    }
+}

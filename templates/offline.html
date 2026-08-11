@@ -1,8 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Offline — Expense Manager</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
@@ -50,6 +78,28 @@
   </style>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0b0b0b">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
 </head>
 <body>
   <main class="offline-page">

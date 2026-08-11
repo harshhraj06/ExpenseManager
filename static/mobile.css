@@ -1,0 +1,902 @@
+/* =========================================================
+   EXPENSE MANAGER — MOBILE RESPONSIVE SYSTEM
+   ========================================================= */
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    -webkit-tap-highlight-color: transparent;
+}
+
+
+/* =========================================================
+   TABLET + MOBILE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    body {
+        min-width: 0 !important;
+    }
+
+    .container,
+    .dashboard,
+    .dashboard-container,
+    .main-container,
+    main {
+        box-sizing: border-box;
+
+        width: 100% !important;
+        max-width: 100% !important;
+
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+
+    /* =====================================================
+       NAVBAR
+       ===================================================== */
+
+    .navbar {
+        box-sizing: border-box;
+
+        width: calc(100% - 20px) !important;
+        max-width: none !important;
+
+        min-height: 58px;
+
+        margin: 10px auto !important;
+        padding: 9px 11px !important;
+
+        display: flex !important;
+
+        align-items: center;
+
+        gap: 10px;
+
+        overflow: hidden;
+    }
+
+    .navbar .logo,
+    .navbar .brand,
+    .navbar-brand {
+        flex-shrink: 0;
+
+        max-width: 130px;
+
+        overflow: hidden;
+
+        text-overflow: ellipsis;
+
+        white-space: nowrap;
+
+        font-size: .85rem !important;
+    }
+
+    .nav-links {
+        flex: 1;
+
+        min-width: 0;
+
+        display: flex !important;
+
+        align-items: center;
+
+        gap: 7px !important;
+
+        overflow-x: auto;
+
+        overflow-y: hidden;
+
+        padding-bottom: 2px;
+
+        scrollbar-width: none;
+
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-links::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-links a {
+        flex-shrink: 0;
+
+        white-space: nowrap;
+
+        font-size: .68rem !important;
+
+        padding: 7px 8px !important;
+    }
+
+    .nav-links .add-btn {
+        margin-left: 0 !important;
+    }
+
+
+    /* =====================================================
+       DASHBOARD HEADER / HERO
+       ===================================================== */
+
+    .hero,
+    .dashboard-header,
+    .welcome-section {
+        box-sizing: border-box;
+
+        width: 100%;
+
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .hero h1,
+    .dashboard-header h1,
+    .welcome-section h1 {
+        font-size: clamp(
+            1.8rem,
+            8vw,
+            2.7rem
+        ) !important;
+
+        line-height: 1.02 !important;
+
+        word-break: break-word;
+    }
+
+    .quote,
+    .dashboard-quote,
+    .tagline {
+        max-width: 100% !important;
+
+        font-size: .78rem !important;
+
+        line-height: 1.55 !important;
+    }
+
+
+    /* =====================================================
+       DASHBOARD CARDS
+       ===================================================== */
+
+    .dashboard-grid,
+    .stats-grid,
+    .summary-grid,
+    .cards-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            ) !important;
+
+        gap: 10px !important;
+    }
+
+    .card {
+        box-sizing: border-box;
+
+        min-width: 0;
+
+        padding: 16px !important;
+
+        border-radius: 16px !important;
+    }
+
+    .card h2,
+    .card h3 {
+        word-break: break-word;
+    }
+
+
+    /* =====================================================
+       FINANCIAL CONTROL CENTER
+       ===================================================== */
+
+    .pro-control-center {
+        box-sizing: border-box;
+
+        width: calc(100% - 20px) !important;
+        max-width: none !important;
+
+        margin:
+            14px auto
+            20px !important;
+
+        padding: 18px !important;
+
+        border-radius: 18px !important;
+
+        overflow: hidden !important;
+    }
+
+    .pro-control-top {
+        display: flex !important;
+
+        align-items: flex-start !important;
+
+        flex-direction: column !important;
+
+        gap: 12px !important;
+    }
+
+    .pro-control-copy {
+        width: 100%;
+    }
+
+    .pro-control-copy h2 {
+        max-width: 100% !important;
+
+        font-size: 1.35rem !important;
+    }
+
+    .pro-sync-health {
+        width: auto !important;
+
+        min-height: 32px !important;
+
+        align-self: flex-start;
+    }
+
+
+    /* =====================================================
+       SEARCH
+       ===================================================== */
+
+    .pro-control-search-row {
+        padding:
+            16px 0 !important;
+    }
+
+    .pro-search-box {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        grid-template-columns:
+            auto minmax(0,1fr) auto !important;
+
+        min-height: 46px;
+    }
+
+    .pro-search-box input {
+        min-width: 0;
+
+        font-size: 16px !important;
+    }
+
+    .pro-search-box button {
+        display: block !important;
+
+        padding:
+            0 12px !important;
+    }
+
+
+    /* =====================================================
+       QUICK ACTIONS
+       ===================================================== */
+
+    .pro-actions {
+        width: 100% !important;
+
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            ) !important;
+
+        gap: 8px !important;
+    }
+
+    .pro-action {
+        width: 100% !important;
+
+        min-width: 0 !important;
+        min-height: 44px !important;
+
+        padding:
+            0 8px !important;
+
+        font-size: .67rem !important;
+
+        white-space: normal !important;
+
+        text-align: center;
+
+        line-height: 1.2;
+    }
+
+
+    /* =====================================================
+       FINANCIAL HEALTH
+       ===================================================== */
+
+    .financial-health-card {
+        width: 100% !important;
+
+        grid-template-columns:
+            auto minmax(0,1fr)
+            !important;
+
+        gap: 14px !important;
+
+        padding:
+            15px !important;
+    }
+
+    .financial-health-ring {
+        width: 58px !important;
+        height: 58px !important;
+    }
+
+    .financial-health-content {
+        min-width: 0;
+    }
+
+    .financial-health-metrics {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            ) !important;
+
+        gap: 6px !important;
+    }
+
+    .financial-health-metrics span {
+        min-width: 0;
+
+        overflow: hidden;
+    }
+
+    .financial-health-metrics strong {
+        overflow: hidden;
+
+        text-overflow: ellipsis;
+
+        white-space: nowrap;
+    }
+
+
+    /* =====================================================
+       FORMS
+       ===================================================== */
+
+    form {
+        max-width: 100%;
+    }
+
+    input,
+    select,
+    textarea {
+        box-sizing: border-box;
+
+        max-width: 100%;
+
+        font-size: 16px !important;
+    }
+
+    .form-row,
+    .form-grid,
+    .expense-form-row,
+    .income-form-row {
+        display: grid !important;
+
+        grid-template-columns:
+            1fr !important;
+
+        gap: 10px !important;
+    }
+
+    form button,
+    form input[type="submit"] {
+        min-height: 44px;
+    }
+
+
+    /* =====================================================
+       EXPENSE HISTORY
+       ===================================================== */
+
+    .expense-history-section {
+        box-sizing: border-box;
+
+        width: 100% !important;
+        max-width: 100% !important;
+
+        padding:
+            16px !important;
+
+        overflow: hidden !important;
+    }
+
+    .expense-history-header {
+        display: flex !important;
+
+        flex-direction: column !important;
+
+        align-items: stretch !important;
+
+        gap: 12px !important;
+    }
+
+    .expense-history-title-wrap {
+        width: 100%;
+    }
+
+    .expense-history-actions {
+        width: 100%;
+
+        display: grid !important;
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+
+        gap: 8px !important;
+    }
+
+    .expense-history-actions > * {
+        box-sizing: border-box;
+
+        width: 100% !important;
+
+        min-height: 42px;
+
+        display: flex;
+
+        align-items: center;
+        justify-content: center;
+
+        padding:
+            8px 10px !important;
+
+        white-space: normal;
+
+        text-align: center;
+
+        font-size: .68rem !important;
+    }
+
+
+    /* =====================================================
+       TABLES
+       ===================================================== */
+
+    #expense-history-table,
+    table {
+        display: block;
+
+        width: 100% !important;
+        max-width: 100% !important;
+
+        overflow-x: auto;
+
+        white-space: nowrap;
+
+        -webkit-overflow-scrolling: touch;
+
+        scrollbar-width: thin;
+    }
+
+    #expense-history-table.is-hidden {
+        display: none !important;
+    }
+
+    table th,
+    table td {
+        min-width: 110px;
+
+        padding:
+            12px !important;
+
+        font-size: .72rem !important;
+    }
+
+    table th:first-child,
+    table td:first-child {
+        min-width: 90px;
+    }
+
+
+    /* =====================================================
+       RECURRING / BUDGET / GOALS / SUBSCRIPTIONS / REPORTS
+       ===================================================== */
+
+    .recurring-shell,
+    .budget-shell,
+    .goals-shell,
+    .subscription-shell,
+    .reports-shell,
+    .search-shell {
+        box-sizing: border-box;
+
+        width:
+            calc(100% - 20px) !important;
+
+        max-width: none !important;
+
+        margin:
+            auto !important;
+
+        padding:
+            24px 0
+            80px !important;
+    }
+
+    .recurring-header,
+    .budget-header,
+    .goals-header,
+    .subscription-header,
+    .reports-header {
+        flex-direction:
+            column !important;
+
+        align-items:
+            flex-start !important;
+
+        gap:
+            16px !important;
+    }
+
+    .recurring-layout,
+    .budget-layout,
+    .goals-layout,
+    .subscription-layout,
+    .reports-layout {
+        grid-template-columns:
+            1fr !important;
+    }
+
+    .recurring-summary,
+    .budget-summary,
+    .goals-summary,
+    .subscription-summary,
+    .reports-summary {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            ) !important;
+
+        gap:
+            9px !important;
+    }
+
+
+    /* =====================================================
+       BUTTON TOUCH TARGETS
+       ===================================================== */
+
+    button,
+    .btn,
+    .download-btn,
+    .add-btn {
+        min-height:
+            42px;
+    }
+}
+
+
+/* =========================================================
+   PHONE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    body {
+        padding-bottom:
+            calc(
+                90px
+                + env(
+                    safe-area-inset-bottom
+                )
+            ) !important;
+    }
+
+
+    /* -----------------------------------------------------
+       NAV
+       ----------------------------------------------------- */
+
+    .navbar {
+        width:
+            calc(
+                100% - 14px
+            ) !important;
+
+        margin:
+            7px auto !important;
+
+        border-radius:
+            14px !important;
+    }
+
+    .navbar .logo,
+    .navbar .brand,
+    .navbar-brand {
+        max-width:
+            105px;
+
+        font-size:
+            .75rem !important;
+    }
+
+    .nav-links a {
+        font-size:
+            .63rem !important;
+    }
+
+
+    /* -----------------------------------------------------
+       DASHBOARD CARDS
+       ----------------------------------------------------- */
+
+    .dashboard-grid,
+    .stats-grid,
+    .summary-grid,
+    .cards-grid {
+        grid-template-columns:
+            1fr !important;
+    }
+
+
+    /* -----------------------------------------------------
+       FINANCIAL CONTROL
+       ----------------------------------------------------- */
+
+    .pro-control-center {
+        width:
+            calc(
+                100% - 14px
+            ) !important;
+
+        padding:
+            15px !important;
+
+        border-radius:
+            16px !important;
+    }
+
+    .pro-control-copy h2 {
+        font-size:
+            1.2rem !important;
+    }
+
+    .pro-control-section-heading h3 {
+        font-size:
+            .82rem !important;
+    }
+
+    .pro-actions {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            ) !important;
+    }
+
+    .pro-action {
+        min-height:
+            46px !important;
+    }
+
+
+    /* -----------------------------------------------------
+       FINANCIAL HEALTH
+       ----------------------------------------------------- */
+
+    .financial-health-card {
+        grid-template-columns:
+            1fr !important;
+
+        padding:
+            14px !important;
+    }
+
+    .financial-health-ring {
+        width:
+            56px !important;
+
+        height:
+            56px !important;
+    }
+
+
+    /* -----------------------------------------------------
+       SEARCH
+       ----------------------------------------------------- */
+
+    .pro-search-box {
+        grid-template-columns:
+            auto minmax(0,1fr)
+            !important;
+    }
+
+    .pro-search-box button {
+        display:
+            none !important;
+    }
+
+
+    /* -----------------------------------------------------
+       EXPENSE HISTORY
+       ----------------------------------------------------- */
+
+    .expense-history-actions {
+        grid-template-columns:
+            1fr !important;
+    }
+
+    .expense-history-count {
+        margin-top:
+            5px;
+    }
+
+
+    /* -----------------------------------------------------
+       SUMMARY CARDS
+       ----------------------------------------------------- */
+
+    .recurring-summary,
+    .budget-summary,
+    .goals-summary,
+    .subscription-summary,
+    .reports-summary {
+        grid-template-columns:
+            1fr !important;
+    }
+
+
+    /* -----------------------------------------------------
+       FLOATING CONTROLS
+       ----------------------------------------------------- */
+
+    .theme-toggle {
+        right:
+            12px !important;
+
+        bottom:
+            calc(
+                72px
+                + env(
+                    safe-area-inset-bottom
+                )
+            ) !important;
+
+        width:
+            44px !important;
+
+        height:
+            44px !important;
+    }
+
+    .language-switcher {
+        right:
+            12px !important;
+
+        bottom:
+            calc(
+                124px
+                + env(
+                    safe-area-inset-bottom
+                )
+            ) !important;
+    }
+
+    .language-toggle {
+        width:
+            44px !important;
+
+        height:
+            44px !important;
+    }
+
+    .language-menu {
+        right:
+            0;
+
+        bottom:
+            52px;
+
+        width:
+            145px;
+    }
+
+    #offline-indicator,
+    .offline-indicator,
+    #connection-status,
+    .connection-status,
+    .online-status,
+    .offline-status {
+        right:
+            12px !important;
+
+        bottom:
+            calc(
+                14px
+                + env(
+                    safe-area-inset-bottom
+                )
+            ) !important;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 390px) {
+
+    .pro-actions {
+        grid-template-columns:
+            1fr 1fr !important;
+
+        gap:
+            6px !important;
+    }
+
+    .pro-action {
+        padding:
+            7px 5px !important;
+
+        font-size:
+            .62rem !important;
+    }
+
+    .financial-health-metrics {
+        grid-template-columns:
+            1fr 1fr !important;
+    }
+
+    .card {
+        padding:
+            13px !important;
+    }
+
+    .navbar {
+        padding:
+            8px !important;
+    }
+}
+
+
+/* =========================================================
+   IOS SAFE AREA
+   ========================================================= */
+
+@supports (
+    padding:
+    max(
+        0px
+    )
+) {
+
+    body {
+        padding-left:
+            env(
+                safe-area-inset-left
+            );
+
+        padding-right:
+            env(
+                safe-area-inset-right
+            );
+    }
+}

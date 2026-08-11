@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: light)"
+                        ).matches
+                            ? "light"
+                            : "dark"
+                    );
+
+            document.documentElement.setAttribute(
+                "data-theme",
+                theme
+            );
+        })();
+    </script>
+
     <title>Expense Manager</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -44,6 +74,28 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0b0b0b">
     <link rel="stylesheet" href="{{ url_for('static', filename='pro-dashboard.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/theme.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <script
+        src="{{ url_for('static', filename='js/language.js') }}"
+        defer>
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
 </head>
 
 <body class="pro-dashboard-page">
@@ -275,79 +327,138 @@
     </div>
 
     <section class="pro-control-center">
-        <div class="pro-control-copy">
-            <span class="pro-eyebrow">Personal Finance</span>
-            <h2>Financial control center</h2>
-            <p class="pro-today" id="pro-today"></p>
-        </div>
 
-        <form
-            action="/search"
-            method="GET"
-            class="pro-search-box">
+        <div class="pro-control-top">
 
-            <span>⌕</span>
+            <div class="pro-control-copy">
+                <span class="pro-eyebrow">
+                    Personal Finance
+                </span>
 
-            <input
-                type="search"
-                name="q"
-                placeholder="Search transactions...">
+                <h2>
+                    Financial Control Center
+                </h2>
 
-            <button type="submit">
-                Search
-            </button>
-
-        </form>
-
-        <div class="pro-actions">
-            <div class="pro-sync-health" id="pro-sync-health">
-                <span class="pro-sync-health-dot"></span>
-                <span class="pro-sync-health-label">Checking sync</span>
+                <p
+                    class="pro-today"
+                    id="pro-today">
+                </p>
             </div>
 
-            <a class="pro-action primary" href="#expense-form">
-                + Expense
-            </a>
+            <div
+                class="pro-sync-health"
+                id="pro-sync-health">
 
-            <a class="pro-action" href="#income-section">
-                + Income
-            </a>
+                <span class="pro-sync-health-dot"></span>
 
-            <a class="pro-action" href="/bills">
-                Bills
-            </a>
+                <span class="pro-sync-health-label">
+                    Checking sync
+                </span>
 
-            <a class="pro-action" href="/budgets">
-                Budgets
-            </a>
+            </div>
 
-            <a class="pro-action" href="/goals">
-                Goals
-            </a>
-
-            <a class="pro-action" href="/subscriptions">
-                Subscriptions
-            </a>
-
-            <a class="pro-action" href="/reports">
-                Reports
-            </a>
-
-            <a class="pro-action" href="/recurring">
-                Recurring
-            </a>
-
-            <button
-                type="button"
-                class="pro-action"
-                id="toggle-expense-history">
-                Expense History
-            </button>
-
-            <a class="pro-action" href="/groups">
-                Split
-            </a>
         </div>
+
+
+        <div class="pro-control-search-row">
+
+            <form
+                action="/search"
+                method="GET"
+                class="pro-search-box">
+
+                <span class="pro-search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Search transactions, category, source...">
+
+                <button type="submit">
+                    Search
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="pro-control-section">
+
+            <div class="pro-control-section-heading">
+                <div>
+                    <span class="pro-eyebrow">
+                        Quick Actions
+                    </span>
+
+                    <h3>
+                        Manage your money
+                    </h3>
+                </div>
+            </div>
+
+            <div class="pro-actions">
+
+                <a
+                    class="pro-action primary"
+                    href="#expense-form">
+                    + Expense
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="#income-section">
+                    + Income
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/bills">
+                    Bills
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/groups">
+                    Split
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/budgets">
+                    Budgets
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/goals">
+                    Goals
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/subscriptions">
+                    Subscriptions
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/reports">
+                    Reports
+                </a>
+
+                <a
+                    class="pro-action"
+                    href="/recurring">
+                    Recurring
+                </a>
+
+            </div>
+
+        </div>
+
 
         <div
             class="pro-health-zone"
@@ -537,7 +648,7 @@
         <input
             type="number"
             step="0.01"
-            name="amount"
+            name="amount" inputmode="decimal"
             placeholder="Income Amount"
             required>
 
@@ -711,7 +822,7 @@
         <input
             type="number"
             step="0.01"
-            name="amount"
+            name="amount" inputmode="decimal"
             placeholder="Expense Amount"
             required>
 
@@ -747,9 +858,40 @@
     class="card pro-history-card expense-history-section"
     id="expense-history-section">
 
-    <div class="section-header">
-        <h2>Expense History</h2>
-        <a href="/expenses_bill" class="download-btn">Download Expense Bill</a>
+    <div class="section-header expense-history-header">
+
+        <div class="expense-history-title-wrap">
+
+            <h2>Expense History</h2>
+
+            <span class="expense-history-count">
+                {{ expenses|length }} transactions
+            </span>
+
+        </div>
+
+        <div class="expense-history-actions">
+
+            <button
+                type="button"
+                class="download-btn expense-history-toggle-btn"
+                id="toggle-expense-history"
+                aria-expanded="true">
+
+                Hide Expense History
+
+            </button>
+
+            <a
+                href="/expenses_bill"
+                class="download-btn">
+
+                Download Expense Bill
+
+            </a>
+
+        </div>
+
     </div>
 
     <table id="expense-history-table">

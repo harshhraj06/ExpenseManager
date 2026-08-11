@@ -1526,3 +1526,567 @@ body.pro-dashboard-page .ai-banner {
 .expense-history-section {
     display: block !important;
 }
+
+/* =========================================================
+   FINANCIAL CONTROL CENTER V3
+   FINAL PROFESSIONAL LAYOUT
+   ========================================================= */
+
+.pro-control-center {
+    box-sizing: border-box;
+
+    width: min(1180px, calc(100% - 32px));
+    max-width: 1180px;
+
+    margin: 0 auto 24px !important;
+    padding: 26px !important;
+
+    display: block !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.085) !important;
+
+    border-radius: 22px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.050),
+            rgba(255,255,255,.015)
+        ) !important;
+
+    box-shadow:
+        0 24px 60px
+        rgba(0,0,0,.22);
+
+    overflow: hidden;
+}
+
+
+/* -------------------------
+   TOP
+   ------------------------- */
+
+.pro-control-top {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 24px;
+
+    padding-bottom: 20px;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.055);
+}
+
+.pro-control-copy {
+    min-width: 0;
+}
+
+.pro-control-copy .pro-eyebrow {
+    margin-bottom: 8px;
+}
+
+.pro-control-copy h2 {
+    max-width: none !important;
+
+    margin: 0 !important;
+
+    font-size: 1.55rem !important;
+    line-height: 1.05 !important;
+
+    letter-spacing: -.035em !important;
+}
+
+.pro-control-copy .pro-today {
+    margin: 8px 0 0;
+
+    color: #777;
+
+    font-size: .72rem;
+}
+
+
+/* -------------------------
+   SYNC STATUS
+   ------------------------- */
+
+.pro-sync-health {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 34px !important;
+
+    padding: 0 11px !important;
+
+    display: inline-flex !important;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    border-radius: 999px !important;
+
+    background:
+        rgba(255,255,255,.025);
+
+    color: #8b8b8b;
+
+    font-size: .65rem !important;
+
+    white-space: nowrap;
+}
+
+
+/* -------------------------
+   SEARCH
+   ------------------------- */
+
+.pro-control-search-row {
+    padding: 20px 0;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.055);
+}
+
+.pro-search-box {
+    box-sizing: border-box;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    height: 46px !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+        auto minmax(0,1fr) auto;
+
+    align-items: center;
+
+    margin: 0 !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.085) !important;
+
+    border-radius: 12px !important;
+
+    background:
+        rgba(255,255,255,.025) !important;
+
+    overflow: hidden;
+}
+
+.pro-search-icon {
+    padding-left: 14px;
+
+    color: #626262;
+
+    font-size: 1rem;
+}
+
+.pro-search-box input {
+    box-sizing: border-box;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 0 11px !important;
+
+    border: 0 !important;
+    outline: 0 !important;
+
+    background: transparent !important;
+
+    color: #eee !important;
+
+    font-size: .72rem !important;
+}
+
+.pro-search-box input::placeholder {
+    color: #5f5f5f;
+}
+
+.pro-search-box button {
+    height: 36px !important;
+
+    margin: 0 5px 0 0 !important;
+    padding: 0 15px !important;
+
+    border: 0 !important;
+    border-radius: 9px !important;
+
+    background:
+        rgba(255,255,255,.075) !important;
+
+    color: #ddd !important;
+
+    font-size: .66rem !important;
+    font-weight: 800 !important;
+
+    cursor: pointer;
+}
+
+.pro-search-box button:hover {
+    background:
+        rgba(255,255,255,.12) !important;
+}
+
+
+/* -------------------------
+   QUICK ACTION SECTION
+   ------------------------- */
+
+.pro-control-section {
+    padding: 20px 0 0;
+}
+
+.pro-control-section-heading {
+    margin-bottom: 13px;
+}
+
+.pro-control-section-heading h3 {
+    margin: 0;
+
+    color: #d9d9d9;
+
+    font-size: .93rem;
+
+    letter-spacing: -.02em;
+}
+
+.pro-control-section-heading .pro-eyebrow {
+    margin-bottom: 5px;
+}
+
+
+/* -------------------------
+   ACTION BUTTONS
+   ------------------------- */
+
+.pro-actions {
+    width: 100% !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+        repeat(5, minmax(0,1fr)) !important;
+
+    gap: 8px !important;
+}
+
+.pro-action {
+    box-sizing: border-box;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 10px !important;
+
+    display: flex !important;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075) !important;
+
+    border-radius: 10px !important;
+
+    background:
+        rgba(255,255,255,.025) !important;
+
+    color: #bcbcbc !important;
+
+    text-decoration: none !important;
+
+    font-family: inherit;
+
+    font-size: .68rem !important;
+    font-weight: 750 !important;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        transform .16s ease,
+        border-color .16s ease,
+        background .16s ease,
+        color .16s ease;
+}
+
+.pro-action:hover {
+    transform: translateY(-1px);
+
+    border-color:
+        rgba(255,255,255,.15) !important;
+
+    background:
+        rgba(255,255,255,.065) !important;
+
+    color: #fff !important;
+}
+
+.pro-action.primary {
+    border-color:
+        #f3f3f3 !important;
+
+    background:
+        #f3f3f3 !important;
+
+    color:
+        #080808 !important;
+}
+
+.pro-action.primary:hover {
+    background: #fff !important;
+    color: #000 !important;
+}
+
+
+/* -------------------------
+   HEALTH ZONE
+   ------------------------- */
+
+.pro-health-zone {
+    width: 100%;
+
+    margin-top: 20px;
+    padding-top: 20px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.055);
+}
+
+.pro-health-zone:empty {
+    display: none;
+}
+
+
+/* -------------------------
+   FINANCIAL HEALTH CARD
+   ------------------------- */
+
+.pro-health-zone
+.financial-health-card {
+    box-sizing: border-box;
+
+    width: 100%;
+
+    margin: 0 !important;
+    padding: 17px 18px !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+        auto minmax(0,1fr);
+
+    gap: 18px;
+
+    align-items: center;
+
+    border-radius: 14px !important;
+
+    background:
+        rgba(255,255,255,.018) !important;
+}
+
+.pro-health-zone
+.financial-health-ring {
+    width: 62px;
+    height: 62px;
+}
+
+.pro-health-zone
+.financial-health-title-row h3 {
+    font-size: .9rem;
+}
+
+.pro-health-zone
+.financial-health-content > p {
+    margin:
+        5px 0 10px;
+
+    max-width: 760px;
+
+    color: #777;
+
+    font-size: .66rem;
+
+    line-height: 1.45;
+}
+
+.pro-health-zone
+.financial-health-metrics {
+    display: grid !important;
+
+    grid-template-columns:
+        repeat(4, minmax(0,1fr)) !important;
+
+    gap: 7px !important;
+}
+
+.pro-health-zone
+.financial-health-metrics span {
+    min-width: 0;
+
+    padding: 7px 9px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(255,255,255,.02);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 950px) {
+    .pro-actions {
+        grid-template-columns:
+            repeat(3, minmax(0,1fr)) !important;
+    }
+}
+
+
+@media (max-width: 700px) {
+    .pro-control-center {
+        width:
+            min(
+                calc(100% - 20px),
+                1180px
+            );
+
+        padding: 19px !important;
+
+        border-radius: 18px !important;
+    }
+
+    .pro-control-top {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+    .pro-actions {
+        grid-template-columns:
+            repeat(2, minmax(0,1fr)) !important;
+    }
+
+    .pro-health-zone
+    .financial-health-card {
+        grid-template-columns: 1fr !important;
+    }
+
+    .pro-health-zone
+    .financial-health-metrics {
+        grid-template-columns:
+            repeat(2, minmax(0,1fr)) !important;
+    }
+}
+
+
+@media (max-width: 430px) {
+    .pro-actions {
+        grid-template-columns: 1fr !important;
+    }
+
+    .pro-search-box {
+        grid-template-columns:
+            auto minmax(0,1fr);
+    }
+
+    .pro-search-box button {
+        display: none;
+    }
+}
+
+/* =========================================================
+   EXPENSE HISTORY FINAL POSITION + VISIBILITY
+   ========================================================= */
+
+.expense-history-section {
+    display: block !important;
+}
+
+.expense-history-header {
+    display: flex !important;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    margin-bottom: 18px;
+}
+
+.expense-history-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+#expense-history-table {
+    display: table !important;
+
+    width: 100% !important;
+}
+
+#expense-history-table.is-hidden {
+    display: none !important;
+}
+
+.expense-history-toggle-btn {
+    appearance: none;
+    -webkit-appearance: none;
+
+    font-family: inherit;
+
+    cursor: pointer;
+}
+
+@media (max-width: 650px) {
+
+    .expense-history-header {
+        align-items: flex-start !important;
+
+        flex-direction: column;
+    }
+
+    .expense-history-actions {
+        width: 100%;
+
+        flex-direction: column;
+    }
+
+    .expense-history-actions > * {
+        box-sizing: border-box;
+
+        width: 100%;
+
+        justify-content: center;
+        text-align: center;
+    }
+}
