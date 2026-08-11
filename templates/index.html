@@ -43,9 +43,10 @@
     </style>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0b0b0b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='pro-dashboard.css') }}">
 </head>
 
-<body>
+<body class="pro-dashboard-page">
 
 <div class="container">
 
@@ -270,6 +271,37 @@
         <p>Manage every rupee with precision.</p>
     </div>
 
+    <section class="pro-control-center">
+        <div class="pro-control-copy">
+            <span class="pro-eyebrow">Personal Finance</span>
+            <h2>Financial control center</h2>
+            <p class="pro-today" id="pro-today"></p>
+        </div>
+
+        <div class="pro-actions">
+            <div class="pro-sync-health" id="pro-sync-health">
+                <span class="pro-sync-health-dot"></span>
+                <span class="pro-sync-health-label">Checking sync</span>
+            </div>
+
+            <a class="pro-action primary" href="#expense-form">
+                + Expense
+            </a>
+
+            <a class="pro-action" href="#income-section">
+                + Income
+            </a>
+
+            <a class="pro-action" href="/bills">
+                Bills
+            </a>
+
+            <a class="pro-action" href="/groups">
+                Split
+            </a>
+        </div>
+    </section>
+
     <div class="dashboard">
 
         <div class="stat-card">
@@ -442,7 +474,7 @@
 
 </div>
 
-<div class="card">
+<div class="card pro-entry-card" id="income-section">
 
     <h2>Add Income</h2>
 
@@ -474,7 +506,7 @@
 
 </div>
 
-<div class="card">
+<div class="card pro-history-card">
 
     <h2>Income History</h2>
 
@@ -616,7 +648,7 @@
 
 </div>
 
-<div class="card" id="expense-form">
+<div class="card pro-entry-card" id="expense-form">
 
     <h2>Add Expense</h2>
 
@@ -657,7 +689,7 @@
 
 </div>
 
-<div class="card">
+<div class="card pro-history-card">
 
     <div class="section-header">
         <h2>Expense History</h2>
@@ -842,6 +874,9 @@ var trendExpense = [
 <script src="/static/js/offline.js"></script>
 
 <script src="{{ url_for('static', filename='js/dashboard-live.js') }}"></script>
+
+
+<script src="{{ url_for('static', filename='js/dashboard-pro.js') }}"></script>
 
 </body>
 </html>

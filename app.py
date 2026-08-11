@@ -174,7 +174,7 @@ UPI_ID = "yourname@upi"
 # crashing the app.
 # ─────────────────────────────────────────────
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-print("RESEND_API_KEY:", RESEND_API_KEY)
+print("Resend email service configured:", bool(RESEND_API_KEY))
 RESEND_FROM_ADDRESS = os.environ.get("RESEND_FROM_ADDRESS", "onboarding@resend.dev")
 RESEND_API_URL = "https://api.resend.com/emails"
 
