@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Savings Goals | Expense Manager
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='goals.css') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta
+        name="theme-color"
+        content="#080808">
+
+</head>
+
+<body class="goals-page">
+
+<div class="goals-shell">
+
+    <header class="goals-header">
+
+        <div>
+
+            <a
+                href="/"
+                class="goals-back">
+                ← Dashboard
+            </a>
+
+            <span class="goals-eyebrow">
+                Wealth Building
+            </span>
+
+            <h1>
+                Savings Goals
+            </h1>
+
+            <p>
+                Turn future purchases into
+                measurable monthly targets.
+            </p>
+
+        </div>
+
+    </header>
+
+
+    {% if notice %}
+
+    <div class="goals-notice">
+        {{ notice }}
+    </div>
+
+    {% endif %}
+
+
+    <section class="goals-summary">
+
+        <article class="goal-summary-card">
+
+            <span>
+                Target
+            </span>
+
+            <strong>
+                ₹{{ total_target }}
+            </strong>
+
+        </article>
+
+
+        <article class="goal-summary-card">
+
+            <span>
+                Saved
+            </span>
+
+            <strong>
+                ₹{{ total_saved }}
+            </strong>
+
+        </article>
+
+
+        <article class="goal-summary-card">
+
+            <span>
+                Remaining
+            </span>
+
+            <strong>
+                ₹{{ total_remaining }}
+            </strong>
+
+        </article>
+
+
+        <article class="goal-summary-card">
+
+            <span>
+                Progress
+            </span>
+
+            <strong>
+                {{ overall_progress }}%
+            </strong>
+
+        </article>
+
+    </section>
+
+
+    <section class="goals-layout">
+
+        <div class="goals-panel goal-create-panel">
+
+            <div class="goals-panel-heading">
+
+                <div>
+
+                    <span class="goals-eyebrow">
+                        New Target
+                    </span>
+
+                    <h2>
+                        Create a savings goal
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <form
+                action="/goals"
+                method="POST"
+                class="goal-create-form">
+
+                <div class="goal-field">
+
+                    <label>
+                        Goal name
+                    </label>
+
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="MacBook, Trip, Emergency Fund..."
+                        maxlength="80"
+                        required>
+
+                </div>
+
+
+                <div class="goal-field">
+
+                    <label>
+                        Target amount
+                    </label>
+
+                    <div class="goal-money-input">
+
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            name="target_amount"
+                            min="1"
+                            step="0.01"
+                            placeholder="120000"
+                            required>
+
+                    </div>
+
+                </div>
+
+
+                <div class="goal-field">
+
+                    <label>
+                        Already saved
+                    </label>
+
+                    <div class="goal-money-input">
+
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            name="saved_amount"
+                            min="0"
+                            step="0.01"
+                            value="0">
+
+                    </div>
+
+                </div>
+
+
+                <div class="goal-field">
+
+                    <label>
+                        Target date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="target_date"
+                        required>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="goal-create-button">
+
+                    Create Goal
+
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="goals-panel">
+
+            <div class="goals-panel-heading">
+
+                <div>
+
+                    <span class="goals-eyebrow">
+                        Active Goals
+                    </span>
+
+                    <h2>
+                        Your progress
+                    </h2>
+
+                </div>
+
+
+                <span class="goal-count">
+                    {{ goals|length }}
+                </span>
+
+            </div>
+
+
+            {% if goals %}
+
+            <div class="goals-list">
+
+                {% for goal in goals %}
+
+                <article
+                    class="goal-item goal-{{ goal.status }}">
+
+                    <div class="goal-item-header">
+
+                        <div>
+
+                            <h3>
+                                {{ goal.name }}
+                            </h3>
+
+                            <p>
+                                Target:
+                                {{ goal.target_date }}
+                            </p>
+
+                        </div>
+
+
+                        <strong class="goal-percent">
+                            {{ goal.progress }}%
+                        </strong>
+
+                    </div>
+
+
+                    <div class="goal-money-row">
+
+                        <div>
+
+                            <span>
+                                Saved
+                            </span>
+
+                            <strong>
+                                ₹{{ goal.saved_amount }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Remaining
+                            </span>
+
+                            <strong>
+                                ₹{{ goal.remaining }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="goal-progress">
+
+                        <div
+                            class="goal-progress-fill"
+                            style="width: {{ goal.bar_progress }}%">
+                        </div>
+
+                    </div>
+
+
+                    <div class="goal-insight">
+
+                        {% if goal.status == "complete" %}
+
+                        <span class="goal-complete-text">
+                            Goal completed 🎉
+                        </span>
+
+                        {% elif goal.status == "overdue" %}
+
+                        <span class="goal-overdue-text">
+                            Target date passed.
+                            ₹{{ goal.remaining }} still needed.
+                        </span>
+
+                        {% else %}
+
+                        <span>
+                            Save about
+                            <strong>
+                                ₹{{ goal.monthly_required }}
+                            </strong>
+                            per month
+                        </span>
+
+                        <span>
+                            {{ goal.days_remaining }}
+                            days left
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    {% if goal.status != "complete" %}
+
+                    <form
+                        action="/goals/{{ goal.id }}/contribute"
+                        method="POST"
+                        class="goal-contribution">
+
+                        <div class="goal-money-input">
+
+                            <span>₹</span>
+
+                            <input
+                                type="number"
+                                name="amount"
+                                min="1"
+                                step="0.01"
+                                placeholder="Add savings"
+                                required>
+
+                        </div>
+
+                        <button type="submit">
+                            Add
+                        </button>
+
+                    </form>
+
+                    {% endif %}
+
+
+                    <form
+                        action="/goals/{{ goal.id }}/delete"
+                        method="POST"
+                        class="goal-delete-form">
+
+                        <button
+                            type="submit"
+                            onclick="return confirm('Delete this savings goal?')">
+
+                            Delete Goal
+
+                        </button>
+
+                    </form>
+
+                </article>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="goals-empty">
+
+                <div class="goals-empty-icon">
+                    ◎
+                </div>
+
+                <h3>
+                    No savings goals yet
+                </h3>
+
+                <p>
+                    Create a goal and Expense Manager
+                    will calculate the monthly amount
+                    you should save.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script
+    src="{{ url_for('static', filename='js/db.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/sync.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/offline.js') }}">
+</script>
+
+</body>
+
+</html>

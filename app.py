@@ -3402,6 +3402,407 @@ def delete_budget(budget_id):
 
 
 
+
+
+# =========================================================
+# SAVINGS GOALS
+# =========================================================
+
+@app.route("/goals", methods=["GET", "POST"])
+def savings_goals():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    conn = None
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        if request.method == "POST":
+            name = str(
+                request.form.get("name") or ""
+            ).strip()
+
+            try:
+                target_amount = float(
+                    request.form.get("target_amount") or 0
+                )
+            except (TypeError, ValueError):
+                target_amount = 0
+
+            try:
+                saved_amount = float(
+                    request.form.get("saved_amount") or 0
+                )
+            except (TypeError, ValueError):
+                saved_amount = 0
+
+            target_date_text = str(
+                request.form.get("target_date") or ""
+            ).strip()
+
+            try:
+                target_date = date.fromisoformat(
+                    target_date_text
+                )
+            except ValueError:
+                target_date = None
+
+            if not name:
+                session["goal_notice"] = (
+                    "Enter a goal name."
+                )
+                return redirect("/goals")
+
+            if target_amount <= 0:
+                session["goal_notice"] = (
+                    "Target amount must be greater than ₹0."
+                )
+                return redirect("/goals")
+
+            if saved_amount < 0:
+                session["goal_notice"] = (
+                    "Saved amount cannot be negative."
+                )
+                return redirect("/goals")
+
+            if saved_amount > target_amount:
+                saved_amount = target_amount
+
+            if not target_date:
+                session["goal_notice"] = (
+                    "Choose a valid target date."
+                )
+                return redirect("/goals")
+
+            cursor.execute(
+                """
+                INSERT INTO savings_goals (
+                    user_id,
+                    name,
+                    target_amount,
+                    saved_amount,
+                    target_date
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    session["user_id"],
+                    name,
+                    target_amount,
+                    saved_amount,
+                    target_date.isoformat()
+                )
+            )
+
+            conn.commit()
+
+            session["goal_notice"] = (
+                f"{name} goal created."
+            )
+
+            return redirect("/goals")
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                name,
+                target_amount,
+                saved_amount,
+                target_date
+            FROM savings_goals
+            WHERE user_id = ?
+            ORDER BY target_date ASC, id DESC
+            """,
+            (
+                session["user_id"],
+            )
+        )
+
+        rows = cursor.fetchall()
+
+        today = date.today()
+
+        goals = []
+
+        total_target = 0.0
+        total_saved = 0.0
+
+        for row in rows:
+            goal_id = row[0]
+            name = row[1]
+            target_amount = float(row[2] or 0)
+            saved_amount = float(row[3] or 0)
+
+            try:
+                target_date = date.fromisoformat(
+                    str(row[4])
+                )
+            except ValueError:
+                target_date = today
+
+            remaining = max(
+                target_amount - saved_amount,
+                0
+            )
+
+            progress = (
+                (saved_amount / target_amount) * 100
+                if target_amount > 0
+                else 0
+            )
+
+            days_remaining = (
+                target_date - today
+            ).days
+
+            month_difference = (
+                (target_date.year - today.year) * 12
+                + target_date.month
+                - today.month
+            )
+
+            if (
+                target_date.day > today.day
+                and days_remaining > 0
+            ):
+                month_difference += 1
+
+            months_remaining = max(
+                month_difference,
+                1
+            )
+
+            if remaining <= 0:
+                monthly_required = 0
+                status = "complete"
+
+            elif days_remaining < 0:
+                monthly_required = remaining
+                status = "overdue"
+
+            else:
+                monthly_required = (
+                    remaining / months_remaining
+                )
+
+                if progress >= 75:
+                    status = "strong"
+                elif progress >= 35:
+                    status = "progress"
+                else:
+                    status = "starting"
+
+            goals.append({
+                "id": goal_id,
+                "name": name,
+                "target_amount": round(
+                    target_amount,
+                    2
+                ),
+                "saved_amount": round(
+                    saved_amount,
+                    2
+                ),
+                "remaining": round(
+                    remaining,
+                    2
+                ),
+                "progress": round(
+                    progress,
+                    1
+                ),
+                "bar_progress": min(
+                    progress,
+                    100
+                ),
+                "target_date": target_date.isoformat(),
+                "days_remaining": days_remaining,
+                "monthly_required": round(
+                    monthly_required,
+                    2
+                ),
+                "status": status
+            })
+
+            total_target += target_amount
+            total_saved += saved_amount
+
+        total_remaining = max(
+            total_target - total_saved,
+            0
+        )
+
+        overall_progress = (
+            (total_saved / total_target) * 100
+            if total_target > 0
+            else 0
+        )
+
+        notice = session.pop(
+            "goal_notice",
+            None
+        )
+
+        return render_template(
+            "goals.html",
+            goals=goals,
+            total_target=round(
+                total_target,
+                2
+            ),
+            total_saved=round(
+                total_saved,
+                2
+            ),
+            total_remaining=round(
+                total_remaining,
+                2
+            ),
+            overall_progress=round(
+                overall_progress,
+                1
+            ),
+            notice=notice
+        )
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route(
+    "/goals/<int:goal_id>/contribute",
+    methods=["POST"]
+)
+def contribute_to_goal(goal_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    try:
+        amount = float(
+            request.form.get("amount") or 0
+        )
+    except (TypeError, ValueError):
+        amount = 0
+
+    if amount <= 0:
+        session["goal_notice"] = (
+            "Contribution must be greater than ₹0."
+        )
+        return redirect("/goals")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                target_amount,
+                saved_amount,
+                name
+            FROM savings_goals
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                goal_id,
+                session["user_id"]
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            session["goal_notice"] = (
+                "Savings goal not found."
+            )
+            return redirect("/goals")
+
+        target_amount = float(row[0] or 0)
+        saved_amount = float(row[1] or 0)
+        goal_name = row[2]
+
+        new_saved_amount = min(
+            target_amount,
+            saved_amount + amount
+        )
+
+        cursor.execute(
+            """
+            UPDATE savings_goals
+            SET saved_amount = ?
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                new_saved_amount,
+                goal_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+        if new_saved_amount >= target_amount:
+            session["goal_notice"] = (
+                f"{goal_name} completed 🎉"
+            )
+        else:
+            session["goal_notice"] = (
+                f"₹{amount:.2f} added to {goal_name}."
+            )
+
+    finally:
+        conn.close()
+
+    return redirect("/goals")
+
+
+@app.route(
+    "/goals/<int:goal_id>/delete",
+    methods=["POST"]
+)
+def delete_savings_goal(goal_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM savings_goals
+            WHERE id = ?
+              AND user_id = ?
+            """,
+            (
+                goal_id,
+                session["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    session["goal_notice"] = (
+        "Savings goal removed."
+    )
+
+    return redirect("/goals")
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

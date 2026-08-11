@@ -293,3 +293,37 @@ def ensure_budgets_table():
 
 
 ensure_budgets_table()
+
+
+# =========================================================
+# Savings Goals
+# =========================================================
+
+def ensure_savings_goals_table():
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS savings_goals (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                target_amount REAL NOT NULL,
+                saved_amount REAL NOT NULL DEFAULT 0,
+                target_date TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_savings_goals_table()
