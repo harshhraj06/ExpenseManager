@@ -4153,6 +4153,581 @@ def delete_subscription(subscription_id):
 
 
 
+
+
+# =========================================================
+# FINANCIAL REPORTS
+# =========================================================
+
+@app.route("/reports")
+def financial_reports():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    from datetime import date
+
+    today = date.today()
+
+    selected_month = str(
+        request.args.get("month")
+        or today.strftime("%Y-%m")
+    ).strip()
+
+    try:
+        year, month_number = map(
+            int,
+            selected_month.split("-")
+        )
+
+        month_start = date(
+            year,
+            month_number,
+            1
+        )
+
+    except Exception:
+        selected_month = today.strftime("%Y-%m")
+
+        month_start = date(
+            today.year,
+            today.month,
+            1
+        )
+
+    if month_start.month == 12:
+        next_month = date(
+            month_start.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            month_start.year,
+            month_start.month + 1,
+            1
+        )
+
+    if month_start.month == 1:
+        previous_month_start = date(
+            month_start.year - 1,
+            12,
+            1
+        )
+    else:
+        previous_month_start = date(
+            month_start.year,
+            month_start.month - 1,
+            1
+        )
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        total_income = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        total_expense = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                previous_month_start.isoformat(),
+                month_start.isoformat()
+            )
+        )
+
+        previous_income = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            """,
+            (
+                session["user_id"],
+                previous_month_start.isoformat(),
+                month_start.isoformat()
+            )
+        )
+
+        previous_expense = float(
+            cursor.fetchone()[0] or 0
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                category,
+                COALESCE(SUM(amount), 0)
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            GROUP BY category
+            ORDER BY SUM(amount) DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        category_rows = cursor.fetchall()
+
+        category_breakdown = [
+            {
+                "category": row[0],
+                "amount": round(
+                    float(row[1] or 0),
+                    2
+                )
+            }
+            for row in category_rows
+        ]
+
+        top_category = (
+            category_breakdown[0]
+            if category_breakdown
+            else None
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                amount,
+                category,
+                description,
+                date
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC, id DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        expense_rows = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                amount,
+                source,
+                date
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC, id DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        income_rows = cursor.fetchall()
+
+        transactions = []
+
+        for row in expense_rows:
+            transactions.append({
+                "id": row[0],
+                "type": "Expense",
+                "amount": round(
+                    float(row[1] or 0),
+                    2
+                ),
+                "label": row[2],
+                "description": row[3] or "",
+                "date": row[4]
+            })
+
+        for row in income_rows:
+            transactions.append({
+                "id": row[0],
+                "type": "Income",
+                "amount": round(
+                    float(row[1] or 0),
+                    2
+                ),
+                "label": row[2],
+                "description": "",
+                "date": row[3]
+            })
+
+        transactions.sort(
+            key=lambda item: (
+                str(item["date"]),
+                item["id"]
+            ),
+            reverse=True
+        )
+
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(SUM(monthly_limit), 0)
+                FROM budgets
+                WHERE user_id = ?
+                  AND month = ?
+                """,
+                (
+                    session["user_id"],
+                    selected_month
+                )
+            )
+
+            total_budget = float(
+                cursor.fetchone()[0] or 0
+            )
+
+        except Exception:
+            total_budget = 0.0
+
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN billing_cycle = 'yearly'
+                                THEN amount / 12.0
+                                ELSE amount
+                            END
+                        ),
+                        0
+                    )
+                FROM subscriptions
+                WHERE user_id = ?
+                  AND status = 'active'
+                """,
+                (
+                    session["user_id"],
+                )
+            )
+
+            subscription_monthly = float(
+                cursor.fetchone()[0] or 0
+            )
+
+        except Exception:
+            subscription_monthly = 0.0
+
+        savings = (
+            total_income - total_expense
+        )
+
+        savings_rate = (
+            (savings / total_income) * 100
+            if total_income > 0
+            else 0
+        )
+
+        budget_usage = (
+            (total_expense / total_budget) * 100
+            if total_budget > 0
+            else 0
+        )
+
+        subscription_burden = (
+            (subscription_monthly / total_income) * 100
+            if total_income > 0
+            else 0
+        )
+
+        def percentage_change(
+            current,
+            previous
+        ):
+            if previous == 0:
+                if current == 0:
+                    return 0
+
+                return 100
+
+            return (
+                (current - previous)
+                / previous
+            ) * 100
+
+        income_change = percentage_change(
+            total_income,
+            previous_income
+        )
+
+        expense_change = percentage_change(
+            total_expense,
+            previous_expense
+        )
+
+        report_health = "good"
+
+        if savings < 0:
+            report_health = "danger"
+
+        elif savings_rate < 10:
+            report_health = "warning"
+
+        return render_template(
+            "reports.html",
+            selected_month=selected_month,
+            total_income=round(
+                total_income,
+                2
+            ),
+            total_expense=round(
+                total_expense,
+                2
+            ),
+            savings=round(
+                savings,
+                2
+            ),
+            savings_rate=round(
+                savings_rate,
+                1
+            ),
+            total_budget=round(
+                total_budget,
+                2
+            ),
+            budget_usage=round(
+                budget_usage,
+                1
+            ),
+            subscription_monthly=round(
+                subscription_monthly,
+                2
+            ),
+            subscription_burden=round(
+                subscription_burden,
+                1
+            ),
+            income_change=round(
+                income_change,
+                1
+            ),
+            expense_change=round(
+                expense_change,
+                1
+            ),
+            category_breakdown=category_breakdown,
+            top_category=top_category,
+            transactions=transactions[:50],
+            report_health=report_health
+        )
+
+    finally:
+        conn.close()
+
+
+@app.route("/reports/export.csv")
+def export_financial_report_csv():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    import csv
+    import io
+    from datetime import date
+    from flask import Response
+
+    selected_month = str(
+        request.args.get("month")
+        or date.today().strftime("%Y-%m")
+    ).strip()
+
+    try:
+        year, month_number = map(
+            int,
+            selected_month.split("-")
+        )
+
+        month_start = date(
+            year,
+            month_number,
+            1
+        )
+
+    except Exception:
+        selected_month = (
+            date.today().strftime("%Y-%m")
+        )
+
+        month_start = date(
+            date.today().year,
+            date.today().month,
+            1
+        )
+
+    if month_start.month == 12:
+        next_month = date(
+            month_start.year + 1,
+            1,
+            1
+        )
+    else:
+        next_month = date(
+            month_start.year,
+            month_start.month + 1,
+            1
+        )
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                date,
+                amount,
+                category,
+                description
+            FROM expenses
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        expenses = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                date,
+                amount,
+                source
+            FROM income
+            WHERE user_id = ?
+              AND date >= ?
+              AND date < ?
+            ORDER BY date DESC
+            """,
+            (
+                session["user_id"],
+                month_start.isoformat(),
+                next_month.isoformat()
+            )
+        )
+
+        incomes = cursor.fetchall()
+
+    finally:
+        conn.close()
+
+    output = io.StringIO()
+
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "Date",
+        "Type",
+        "Amount",
+        "Category / Source",
+        "Description"
+    ])
+
+    for row in incomes:
+        writer.writerow([
+            row[0],
+            "Income",
+            row[1],
+            row[2],
+            ""
+        ])
+
+    for row in expenses:
+        writer.writerow([
+            row[0],
+            "Expense",
+            row[1],
+            row[2],
+            row[3] or ""
+        ])
+
+    response = Response(
+        output.getvalue(),
+        mimetype="text/csv"
+    )
+
+    response.headers[
+        "Content-Disposition"
+    ] = (
+        f'attachment; filename="expense-manager-'
+        f'{selected_month}-report.csv"'
+    )
+
+    return response
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

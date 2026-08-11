@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Financial Reports | Expense Manager
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='reports.css') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta
+        name="theme-color"
+        content="#080808">
+</head>
+
+<body class="reports-page">
+
+<div class="reports-shell">
+
+    <header class="reports-header">
+
+        <div>
+
+            <a
+                href="/"
+                class="reports-back">
+                ← Dashboard
+            </a>
+
+            <span class="reports-eyebrow">
+                Financial Intelligence
+            </span>
+
+            <h1>
+                Monthly Report
+            </h1>
+
+            <p>
+                A focused view of your income,
+                spending and financial health.
+            </p>
+
+        </div>
+
+
+        <div class="reports-header-actions">
+
+            <form
+                action="/reports"
+                method="GET"
+                class="reports-month-form">
+
+                <label>
+                    Month
+                </label>
+
+                <input
+                    type="month"
+                    name="month"
+                    value="{{ selected_month }}"
+                    onchange="this.form.submit()">
+
+            </form>
+
+
+            <a
+                href="/reports/export.csv?month={{ selected_month }}"
+                class="reports-export-button">
+
+                Export CSV
+
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <section class="reports-summary">
+
+        <article class="report-stat">
+
+            <span>
+                Income
+            </span>
+
+            <strong>
+                ₹{{ total_income }}
+            </strong>
+
+            <small
+                class="{% if income_change >= 0 %}positive{% else %}negative{% endif %}">
+
+                {% if income_change >= 0 %}
+                    +
+                {% endif %}
+
+                {{ income_change }}%
+                vs previous month
+
+            </small>
+
+        </article>
+
+
+        <article class="report-stat">
+
+            <span>
+                Expenses
+            </span>
+
+            <strong>
+                ₹{{ total_expense }}
+            </strong>
+
+            <small
+                class="{% if expense_change <= 0 %}positive{% else %}negative{% endif %}">
+
+                {% if expense_change >= 0 %}
+                    +
+                {% endif %}
+
+                {{ expense_change }}%
+                vs previous month
+
+            </small>
+
+        </article>
+
+
+        <article class="report-stat">
+
+            <span>
+                Net Savings
+            </span>
+
+            <strong
+                class="{% if savings < 0 %}negative-value{% endif %}">
+
+                ₹{{ savings }}
+
+            </strong>
+
+            <small>
+                {{ savings_rate }}%
+                savings rate
+            </small>
+
+        </article>
+
+
+        <article class="report-stat">
+
+            <span>
+                Financial Health
+            </span>
+
+            <strong
+                class="health-{{ report_health }}">
+
+                {% if report_health == "good" %}
+                    Healthy
+                {% elif report_health == "warning" %}
+                    Watch
+                {% else %}
+                    Negative
+                {% endif %}
+
+            </strong>
+
+            <small>
+                Based on monthly cash flow
+            </small>
+
+        </article>
+
+    </section>
+
+
+    <section class="reports-insights">
+
+        <article class="report-insight-card">
+
+            <span class="reports-eyebrow">
+                Budget
+            </span>
+
+            <h2>
+                {{ budget_usage }}%
+            </h2>
+
+            <p>
+                of ₹{{ total_budget }}
+                monthly budget used
+            </p>
+
+            <div class="report-progress">
+
+                <div
+                    class="
+                        report-progress-fill
+                        {% if budget_usage >= 100 %}
+                            danger
+                        {% elif budget_usage >= 80 %}
+                            warning
+                        {% endif %}
+                    "
+                    style="width: {{ [budget_usage, 100]|min }}%">
+                </div>
+
+            </div>
+
+        </article>
+
+
+        <article class="report-insight-card">
+
+            <span class="reports-eyebrow">
+                Subscriptions
+            </span>
+
+            <h2>
+                ₹{{ subscription_monthly }}
+            </h2>
+
+            <p>
+                recurring monthly cost
+            </p>
+
+            <div class="report-metric-footer">
+                {{ subscription_burden }}%
+                of monthly income
+            </div>
+
+        </article>
+
+
+        <article class="report-insight-card">
+
+            <span class="reports-eyebrow">
+                Top Spending
+            </span>
+
+            {% if top_category %}
+
+            <h2>
+                {{ top_category.category }}
+            </h2>
+
+            <p>
+                ₹{{ top_category.amount }}
+                spent this month
+            </p>
+
+            {% else %}
+
+            <h2>
+                —
+            </h2>
+
+            <p>
+                No expenses this month
+            </p>
+
+            {% endif %}
+
+        </article>
+
+    </section>
+
+
+    <section class="reports-grid">
+
+        <div class="reports-panel">
+
+            <div class="reports-panel-heading">
+
+                <div>
+
+                    <span class="reports-eyebrow">
+                        Breakdown
+                    </span>
+
+                    <h2>
+                        Spending by category
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            {% if category_breakdown %}
+
+            <div class="category-report-list">
+
+                {% for item in category_breakdown %}
+
+                <div class="category-report-row">
+
+                    <span>
+                        {{ item.category }}
+                    </span>
+
+                    <strong>
+                        ₹{{ item.amount }}
+                    </strong>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="reports-empty">
+                No category spending for this month.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="reports-panel">
+
+            <div class="reports-panel-heading">
+
+                <div>
+
+                    <span class="reports-eyebrow">
+                        Activity
+                    </span>
+
+                    <h2>
+                        Recent transactions
+                    </h2>
+
+                </div>
+
+                <span class="report-count">
+                    {{ transactions|length }}
+                </span>
+
+            </div>
+
+
+            {% if transactions %}
+
+            <div class="report-transactions">
+
+                {% for item in transactions %}
+
+                <div class="report-transaction">
+
+                    <div>
+
+                        <span
+                            class="
+                                report-transaction-type
+                                {% if item.type == 'Income' %}
+                                    income
+                                {% else %}
+                                    expense
+                                {% endif %}
+                            ">
+
+                            {{ item.type }}
+
+                        </span>
+
+                        <h3>
+                            {{ item.label }}
+                        </h3>
+
+                        <p>
+                            {{ item.date }}
+
+                            {% if item.description %}
+                                · {{ item.description }}
+                            {% endif %}
+                        </p>
+
+                    </div>
+
+
+                    <strong
+                        class="
+                            {% if item.type == 'Income' %}
+                                amount-income
+                            {% else %}
+                                amount-expense
+                            {% endif %}
+                        ">
+
+                        {% if item.type == 'Income' %}
+                            +
+                        {% else %}
+                            -
+                        {% endif %}
+
+                        ₹{{ item.amount }}
+
+                    </strong>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="reports-empty">
+                No transactions for this month.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script
+    src="{{ url_for('static', filename='js/db.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/sync.js') }}">
+</script>
+
+<script
+    src="{{ url_for('static', filename='js/offline.js') }}">
+</script>
+
+</body>
+</html>

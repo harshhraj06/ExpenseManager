@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-manager-v7";
+const CACHE_NAME = "expense-manager-v8";
 
 const STATIC_ASSETS = [
     "/offline",
@@ -15,7 +15,8 @@ const STATIC_ASSETS = [
     "/static/pro-dashboard.css",
     "/static/budgets.css",
     "/static/goals.css",
-    "/static/subscriptions.css"
+    "/static/subscriptions.css",
+    "/static/reports.css"
 ];
 
 
