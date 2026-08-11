@@ -222,13 +222,13 @@
 
 
 
-                    <div class="auth-pro-field register-password-field">
+                    <div class="auth-pro-field">
 
                         <label for="register-password">
                             Password
                         </label>
 
-                        <div class="register-password-wrap">
+                        <div class="auth-password-wrap">
 
                             <input
                                 id="register-password"
@@ -239,38 +239,16 @@
                                 minlength="6"
                                 required>
 
-                            <button
-                                type="button"
-                                id="register-password-eye"
-                                class="register-password-eye"
-                                aria-label="Show password"
-                                aria-pressed="false">
 
-                                <svg
-                                    class="register-eye-open"
-                                    viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path
-                                        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
-                                    <circle
-                                        cx="12"
-                                        cy="12"
-                                        r="2.7"/>
-                                </svg>
+<button
+    type="button"
+    class="auth-password-toggle"
+    id="register-password-toggle"
+    aria-label="Show password"
+    aria-pressed="false">
+    Login
+</button>
 
-                                <svg
-                                    class="register-eye-closed"
-                                    viewBox="0 0 24 24"
-                                    aria-hidden="true">
-                                    <path
-                                        d="M3 3l18 18"/>
-                                    <path
-                                        d="M10.6 6.2A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15.4 15.4 0 0 1-3.1 3.7"/>
-                                    <path
-                                        d="M6.1 6.1C3.8 7.7 2.5 12 2.5 12s3.5 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/>
-                                </svg>
-
-                            </button>
 
                         </div>
 
@@ -342,7 +320,51 @@
     </main>
 
 
+    <script>
+        document
+            .querySelectorAll(
+                "[data-password-target]"
+            )
+            .forEach(function (button) {
 
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        const input =
+                            document.getElementById(
+                                button.dataset.passwordTarget
+                            );
+
+                        if (!input) {
+                            return;
+                        }
+
+                        const showing =
+                            input.type === "text";
+
+                        input.type =
+                            showing
+                                ? "password"
+                                : "text";
+
+                        button.textContent =
+                            showing
+                                ? "Show"
+                                : "Hide";
+
+                        button.setAttribute(
+                            "aria-label",
+                            showing
+                                ? "Show password"
+                                : "Hide password"
+                        );
+
+                    }
+                );
+
+            });
+    </script>
 
 
     <script
@@ -352,52 +374,57 @@
 
 
 
-
-
-
-<!-- REGISTER PASSWORD TOGGLE -->
+<!-- REGISTER PASSWORD EYE -->
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-    const password =
-        document.getElementById("register-password");
+        const password =
+            document.getElementById(
+                "register-password"
+            );
 
-    const eye =
-        document.getElementById("register-password-eye");
+        const toggle =
+            document.getElementById(
+                "register-password-toggle"
+            );
 
-    if (!password || !eye) {
-        return;
+        if (!password || !toggle) {
+            return;
+        }
+
+        toggle.addEventListener(
+            "click",
+            function () {
+
+                const isVisible =
+                    password.type === "text";
+
+                password.type =
+                    isVisible
+                        ? "password"
+                        : "text";
+
+                toggle.setAttribute(
+                    "aria-label",
+                    isVisible
+                        ? "Show password"
+                        : "Hide password"
+                );
+
+                toggle.setAttribute(
+                    "aria-pressed",
+                    isVisible
+                        ? "false"
+                        : "true"
+                );
+
+            }
+        );
+
     }
-
-    eye.addEventListener("click", function () {
-
-        const hidden =
-            password.type === "password";
-
-        password.type =
-            hidden ? "text" : "password";
-
-        eye.classList.toggle(
-            "password-visible",
-            hidden
-        );
-
-        eye.setAttribute(
-            "aria-pressed",
-            hidden ? "true" : "false"
-        );
-
-        eye.setAttribute(
-            "aria-label",
-            hidden
-                ? "Hide password"
-                : "Show password"
-        );
-
-        password.focus();
-    });
-
-});
+);
 </script>
 
 </body>

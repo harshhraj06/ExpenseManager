@@ -1133,7 +1133,19 @@ def reset_password(token):
         return render_template("reset_password.html", token=token, error="This reset link is invalid.", expired=True)
 
     reset_id, user_id, expires_at, used = reset_row
-    is_expired = datetime.now() > datetime.strptime(expires_at, "%Y-%m-%d %H:%M:%S")
+
+    # PostgreSQL TIMESTAMP columns return datetime objects,
+    # while local SQLite may return strings.
+    if isinstance(expires_at, str):
+        try:
+            expires_at = datetime.fromisoformat(expires_at)
+        except ValueError:
+            expires_at = datetime.strptime(
+                expires_at,
+                "%Y-%m-%d %H:%M:%S"
+            )
+
+    is_expired = datetime.now() > expires_at
 
     if used or is_expired:
         conn.close()

@@ -341,3 +341,1318 @@ button:hover{
     font-size: 14px;
     margin: 8px 0;
 }
+/* =========================================================
+   LOGIN PAGE — PERMANENT DARK MODE
+   ========================================================= */
+
+body .theme-toggle,
+body #global-theme-toggle {
+    display: none !important;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+    color-scheme: dark;
+}
+
+/* =========================================================
+   LOGIN — PROFESSIONAL ONLINE / OFFLINE STATUS
+   ========================================================= */
+
+.login-page #offline-indicator,
+.login-page .offline-indicator,
+.login-page #connection-status,
+.login-page .connection-status,
+.login-page .online-status,
+.login-page .offline-status {
+    position: fixed !important;
+
+    top: auto !important;
+    left: auto !important;
+
+    right: 20px !important;
+    bottom: 20px !important;
+
+    z-index: 9999 !important;
+
+    width: auto !important;
+    min-width: auto !important;
+    height: auto !important;
+
+    margin: 0 !important;
+
+    padding: 8px 12px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 7px !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.09) !important;
+
+    border-radius: 999px !important;
+
+    background:
+        rgba(15,15,17,.88) !important;
+
+    color: #a8aaaF !important;
+
+    box-shadow:
+        0 8px 30px
+        rgba(0,0,0,.28) !important;
+
+    backdrop-filter:
+        blur(16px) !important;
+
+    -webkit-backdrop-filter:
+        blur(16px) !important;
+
+    font-size: .65rem !important;
+    font-weight: 700 !important;
+
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+
+    transform: none !important;
+}
+
+
+/* Online state */
+
+.login-page .online-status,
+.login-page #offline-indicator.online,
+.login-page .offline-indicator.online,
+.login-page #connection-status.online,
+.login-page .connection-status.online {
+    color: #8edba3 !important;
+
+    border-color:
+        rgba(52,199,89,.16) !important;
+
+    background:
+        rgba(52,199,89,.07) !important;
+}
+
+
+/* Offline state */
+
+.login-page .offline-status,
+.login-page #offline-indicator.offline,
+.login-page .offline-indicator.offline,
+.login-page #connection-status.offline,
+.login-page .connection-status.offline {
+    color: #ff8982 !important;
+
+    border-color:
+        rgba(255,69,58,.16) !important;
+
+    background:
+        rgba(255,69,58,.07) !important;
+}
+
+
+/* Small status dot */
+
+.login-page #offline-indicator::before,
+.login-page .offline-indicator::before,
+.login-page #connection-status::before,
+.login-page .connection-status::before,
+.login-page .online-status::before,
+.login-page .offline-status::before {
+    content: "";
+
+    width: 7px;
+    height: 7px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #34c759;
+
+    box-shadow:
+        0 0 9px
+        rgba(52,199,89,.45);
+}
+
+
+/* Red dot when offline */
+
+.login-page #offline-indicator.offline::before,
+.login-page .offline-indicator.offline::before,
+.login-page #connection-status.offline::before,
+.login-page .connection-status.offline::before,
+.login-page .offline-status::before {
+    background: #ff453a;
+
+    box-shadow:
+        0 0 9px
+        rgba(255,69,58,.42);
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+
+    .login-page #offline-indicator,
+    .login-page .offline-indicator,
+    .login-page #connection-status,
+    .login-page .connection-status,
+    .login-page .online-status,
+    .login-page .offline-status {
+        right:
+            calc(
+                14px
+                + env(safe-area-inset-right)
+            ) !important;
+
+        bottom:
+            calc(
+                14px
+                + env(safe-area-inset-bottom)
+            ) !important;
+
+        padding:
+            7px 10px !important;
+
+        font-size:
+            .61rem !important;
+    }
+}
+
+/* =========================================================
+   AUTH INPUTS — DARK AUTOFILL / FOCUS FIX
+   ========================================================= */
+
+.login-page input,
+.register-page input,
+.auth-page input {
+    box-sizing: border-box !important;
+
+    width: 100%;
+
+    background: #111216 !important;
+
+    color: #f5f5f5 !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.10) !important;
+
+    outline: none !important;
+
+    caret-color: #ffffff !important;
+
+    border-radius: 12px;
+
+    transition:
+        border-color .18s ease,
+        background .18s ease,
+        box-shadow .18s ease !important;
+}
+
+
+.login-page input::placeholder,
+.register-page input::placeholder,
+.auth-page input::placeholder {
+    color: #686b72 !important;
+
+    opacity: 1;
+}
+
+
+.login-page input:focus,
+.register-page input:focus,
+.auth-page input:focus {
+    background: #15161a !important;
+
+    color: #ffffff !important;
+
+    border-color:
+        rgba(255,255,255,.26) !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(255,255,255,.035) !important;
+}
+
+
+/* Chrome / Safari autofill */
+
+.login-page input:-webkit-autofill,
+.login-page input:-webkit-autofill:hover,
+.login-page input:-webkit-autofill:focus,
+.login-page input:-webkit-autofill:active,
+
+.register-page input:-webkit-autofill,
+.register-page input:-webkit-autofill:hover,
+.register-page input:-webkit-autofill:focus,
+.register-page input:-webkit-autofill:active,
+
+.auth-page input:-webkit-autofill,
+.auth-page input:-webkit-autofill:hover,
+.auth-page input:-webkit-autofill:focus,
+.auth-page input:-webkit-autofill:active {
+    -webkit-text-fill-color:
+        #ffffff !important;
+
+    caret-color:
+        #ffffff !important;
+
+    -webkit-box-shadow:
+        0 0 0 1000px
+        #111216 inset !important;
+
+    box-shadow:
+        0 0 0 1000px
+        #111216 inset !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.13) !important;
+
+    transition:
+        background-color
+        9999s ease-in-out
+        0s !important;
+}
+
+
+/* Firefox filled fields */
+
+.login-page input:autofill,
+.register-page input:autofill,
+.auth-page input:autofill {
+    background:
+        #111216 !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* Selection remains readable */
+
+.login-page input::selection,
+.register-page input::selection,
+.auth-page input::selection {
+    background:
+        rgba(255,255,255,.22);
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   PROFESSIONAL AUTH REGISTER
+   ========================================================= */
+
+.auth-page {
+    min-height: 100dvh;
+
+    margin: 0;
+
+    background:
+        radial-gradient(
+            circle at 12% 10%,
+            rgba(255,255,255,.055),
+            transparent 26rem
+        ),
+        radial-gradient(
+            circle at 90% 90%,
+            rgba(255,255,255,.025),
+            transparent 30rem
+        ),
+        #080808 !important;
+
+    color: #f5f5f5;
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+
+.auth-pro-shell {
+    box-sizing: border-box;
+
+    width:
+        min(
+            1180px,
+            calc(100% - 38px)
+        );
+
+    min-height: 100dvh;
+
+    margin: auto;
+
+    padding:
+        26px 0
+        20px;
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+
+.auth-pro-header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.auth-pro-brand {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    color: #f5f5f5;
+
+    text-decoration: none;
+
+    font-size: .73rem;
+    font-weight: 850;
+}
+
+
+.auth-pro-brand-mark {
+    width: 31px;
+    height: 31px;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(255,255,255,.12);
+
+    border-radius: 9px;
+
+    background:
+        rgba(255,255,255,.055);
+
+    color: #ffffff;
+
+    font-size: .76rem;
+}
+
+
+.auth-pro-secure {
+    padding:
+        6px 9px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    border-radius: 999px;
+
+    color: #666a70;
+
+    font-size: .57rem;
+    font-weight: 750;
+
+    text-transform: uppercase;
+
+    letter-spacing: .07em;
+}
+
+
+.auth-pro-layout {
+    flex: 1;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0,1.2fr)
+        minmax(330px,.65fr);
+
+    align-items: center;
+
+    gap:
+        clamp(
+            55px,
+            9vw,
+            130px
+        );
+
+    padding:
+        55px 0;
+}
+
+
+/* LEFT */
+
+.auth-pro-eyebrow {
+    display: block;
+
+    margin-bottom: 10px;
+
+    color: #5c6066;
+
+    font-size: .58rem;
+    font-weight: 850;
+
+    letter-spacing: .14em;
+}
+
+
+.auth-pro-hero h1 {
+    max-width: 680px;
+
+    margin: 0;
+
+    color: #f5f5f5;
+
+    font-size:
+        clamp(
+            3.8rem,
+            7vw,
+            6.8rem
+        );
+
+    line-height: .88;
+
+    letter-spacing: -.065em;
+}
+
+
+.auth-pro-hero h1 span {
+    display: block;
+
+    color: #55585e;
+}
+
+
+.auth-pro-hero > p {
+    max-width: 510px;
+
+    margin:
+        24px 0 0;
+
+    color: #70747b;
+
+    font-size: .75rem;
+
+    line-height: 1.7;
+}
+
+
+.auth-pro-feature-list {
+    max-width: 570px;
+
+    margin-top: 45px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.07);
+}
+
+
+.auth-pro-feature-list > div {
+    display: grid;
+
+    grid-template-columns:
+        35px 1fr;
+
+    gap: 13px;
+
+    padding:
+        13px 0;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.055);
+}
+
+
+.auth-pro-feature-list > div > span {
+    color: #45484e;
+
+    font-size: .52rem;
+}
+
+
+.auth-pro-feature-list strong {
+    display: block;
+
+    color: #b8bbc0;
+
+    font-size: .67rem;
+}
+
+
+.auth-pro-feature-list small {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #5f6268;
+
+    font-size: .57rem;
+}
+
+
+/* PANEL */
+
+.auth-pro-panel {
+    box-sizing: border-box;
+
+    width: 100%;
+
+    padding: 27px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.085);
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.045),
+            rgba(255,255,255,.012)
+        );
+
+    box-shadow:
+        0 25px 70px
+        rgba(0,0,0,.24);
+}
+
+
+.auth-pro-panel-heading {
+    margin-bottom: 24px;
+}
+
+
+.auth-pro-panel-heading h2 {
+    margin: 0;
+
+    color: #f5f5f5;
+
+    font-size: 1.55rem;
+
+    letter-spacing: -.04em;
+}
+
+
+.auth-pro-panel-heading p {
+    margin:
+        6px 0 0;
+
+    color: #686c72;
+
+    font-size: .65rem;
+}
+
+
+.auth-pro-error {
+    margin-bottom: 15px;
+
+    padding:
+        10px 12px;
+
+    border:
+        1px solid
+        rgba(255,69,58,.15);
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,69,58,.06);
+
+    color: #ff847d;
+
+    font-size: .64rem;
+
+    line-height: 1.4;
+}
+
+
+.auth-pro-form {
+    display: grid;
+
+    gap: 15px;
+}
+
+
+.auth-pro-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #7b7f86;
+
+    font-size: .61rem;
+    font-weight: 700;
+}
+
+
+.auth-pro-field input {
+    min-height: 46px;
+
+    padding:
+        0 13px;
+
+    font-family: inherit;
+
+    font-size: .72rem;
+}
+
+
+.auth-password-wrap {
+    position: relative;
+}
+
+
+.auth-password-wrap input {
+    padding-right:
+        62px !important;
+}
+
+
+.auth-password-toggle {
+    position: absolute;
+
+    top: 50%;
+    right: 7px;
+
+    transform:
+        translateY(-50%);
+
+    min-height: 32px;
+
+    padding:
+        0 9px;
+
+    border: 0;
+
+    border-radius: 8px;
+
+    background:
+        rgba(255,255,255,.045);
+
+    color: #777b82;
+
+    font-family: inherit;
+
+    font-size: .58rem;
+    font-weight: 750;
+
+    cursor: pointer;
+}
+
+
+.auth-password-toggle:hover {
+    background:
+        rgba(255,255,255,.08);
+
+    color: #ffffff;
+}
+
+
+.auth-pro-submit {
+    min-height: 47px;
+
+    margin-top: 3px;
+
+    padding:
+        0 15px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    border: 0;
+
+    border-radius: 11px;
+
+    background: #f3f3f3;
+
+    color: #080808;
+
+    font-family: inherit;
+
+    font-size: .7rem;
+    font-weight: 850;
+
+    cursor: pointer;
+
+    transition:
+        transform .16s ease,
+        background .16s ease;
+}
+
+
+.auth-pro-submit:hover {
+    transform:
+        translateY(-1px);
+
+    background: #ffffff;
+}
+
+
+.auth-pro-divider {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin:
+        21px 0 13px;
+
+    color: #51545a;
+
+    font-size: .56rem;
+}
+
+
+.auth-pro-divider::before,
+.auth-pro-divider::after {
+    content: "";
+
+    flex: 1;
+
+    height: 1px;
+
+    background:
+        rgba(255,255,255,.06);
+}
+
+
+.auth-pro-secondary {
+    min-height: 43px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    border-radius: 11px;
+
+    background:
+        rgba(255,255,255,.02);
+
+    color: #aaaeb4;
+
+    text-decoration: none;
+
+    font-size: .65rem;
+    font-weight: 750;
+}
+
+
+.auth-pro-secondary:hover {
+    background:
+        rgba(255,255,255,.05);
+
+    color: #ffffff;
+}
+
+
+.auth-pro-terms {
+    margin:
+        15px 0 0;
+
+    color: #505359;
+
+    font-size: .53rem;
+
+    line-height: 1.5;
+
+    text-align: center;
+}
+
+
+/* FOOTER */
+
+.auth-pro-footer {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-top: 16px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.055);
+
+    color: #474a4f;
+
+    font-size: .53rem;
+}
+
+
+/* No light theme controls on authentication */
+
+.login-page .theme-toggle,
+.register-page .theme-toggle,
+
+.login-page #global-theme-toggle,
+.register-page #global-theme-toggle,
+
+.login-page .language-switcher,
+.register-page .language-switcher {
+    display: none !important;
+}
+
+
+/* =========================================================
+   REGISTER MOBILE
+   ========================================================= */
+
+@media (max-width: 760px) {
+
+    .auth-pro-shell {
+        width:
+            calc(
+                100% - 24px
+            );
+
+        padding-top:
+            14px;
+    }
+
+
+    .auth-pro-layout {
+        grid-template-columns:
+            1fr;
+
+        gap: 35px;
+
+        padding:
+            45px 0;
+    }
+
+
+    .auth-pro-hero h1 {
+        font-size:
+            clamp(
+                3rem,
+                14vw,
+                4.6rem
+            );
+    }
+
+
+    .auth-pro-feature-list {
+        display: none;
+    }
+
+
+    .auth-pro-panel {
+        padding:
+            20px;
+
+        border-radius:
+            17px;
+    }
+
+
+    .auth-pro-footer {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+        gap: 6px;
+    }
+
+}
+
+/* =========================================================
+   REGISTER PAGE — ONLINE / OFFLINE STATUS ONLY
+   ========================================================= */
+
+.register-page #offline-indicator,
+.register-page .offline-indicator,
+.register-page #connection-status,
+.register-page .connection-status,
+.register-page .online-status,
+.register-page .offline-status {
+    position: fixed !important;
+
+    top: auto !important;
+    left: auto !important;
+
+    right: 20px !important;
+    bottom: 20px !important;
+
+    z-index: 9999 !important;
+
+    width: auto !important;
+    min-width: auto !important;
+    height: auto !important;
+
+    margin: 0 !important;
+
+    padding: 8px 12px !important;
+
+    display: inline-flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 7px !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.09) !important;
+
+    border-radius: 999px !important;
+
+    background:
+        rgba(15,15,17,.90) !important;
+
+    color: #a8aaaf !important;
+
+    box-shadow:
+        0 8px 30px
+        rgba(0,0,0,.28) !important;
+
+    backdrop-filter:
+        blur(16px) !important;
+
+    -webkit-backdrop-filter:
+        blur(16px) !important;
+
+    font-size: .65rem !important;
+    font-weight: 700 !important;
+
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+
+    transform: none !important;
+}
+
+
+/* ONLINE */
+
+.register-page .online-status,
+.register-page #offline-indicator.online,
+.register-page .offline-indicator.online,
+.register-page #connection-status.online,
+.register-page .connection-status.online {
+    color: #8edba3 !important;
+
+    border-color:
+        rgba(52,199,89,.16) !important;
+
+    background:
+        rgba(52,199,89,.07) !important;
+}
+
+
+/* OFFLINE */
+
+.register-page .offline-status,
+.register-page #offline-indicator.offline,
+.register-page .offline-indicator.offline,
+.register-page #connection-status.offline,
+.register-page .connection-status.offline {
+    color: #ff8982 !important;
+
+    border-color:
+        rgba(255,69,58,.16) !important;
+
+    background:
+        rgba(255,69,58,.07) !important;
+}
+
+
+/* STATUS DOT */
+
+.register-page #offline-indicator::before,
+.register-page .offline-indicator::before,
+.register-page #connection-status::before,
+.register-page .connection-status::before,
+.register-page .online-status::before,
+.register-page .offline-status::before {
+    content: "";
+
+    width: 7px;
+    height: 7px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #34c759;
+
+    box-shadow:
+        0 0 9px
+        rgba(52,199,89,.45);
+}
+
+
+/* OFFLINE DOT */
+
+.register-page #offline-indicator.offline::before,
+.register-page .offline-indicator.offline::before,
+.register-page #connection-status.offline::before,
+.register-page .connection-status.offline::before,
+.register-page .offline-status::before {
+    background: #ff453a;
+
+    box-shadow:
+        0 0 9px
+        rgba(255,69,58,.42);
+}
+
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+    .register-page #offline-indicator,
+    .register-page .offline-indicator,
+    .register-page #connection-status,
+    .register-page .connection-status,
+    .register-page .online-status,
+    .register-page .offline-status {
+        right: 14px !important;
+
+        bottom:
+            calc(
+                14px
+                + env(
+                    safe-area-inset-bottom
+                )
+            ) !important;
+
+        padding:
+            7px 10px !important;
+
+        font-size:
+            .61rem !important;
+    }
+
+}
+
+
+/* =========================================================
+   REGISTER PASSWORD EYE — FINAL FIX
+   ========================================================= */
+
+.register-page .register-password-wrap {
+    position: relative !important;
+
+    width: 100% !important;
+
+    display: block !important;
+}
+
+
+.register-page
+.register-password-wrap
+#register-password {
+    width: 100% !important;
+
+    padding-right:
+        54px !important;
+}
+
+
+.register-page .register-password-eye {
+    position: absolute !important;
+
+    top: 50% !important;
+    right: 8px !important;
+
+    transform:
+        translateY(-50%) !important;
+
+    width: 38px !important;
+    height: 38px !important;
+
+    min-width: 38px !important;
+    min-height: 38px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    border:
+        1px solid
+        transparent !important;
+
+    border-radius:
+        9px !important;
+
+    background:
+        transparent !important;
+
+    color:
+        #73777e !important;
+
+    box-shadow:
+        none !important;
+
+    opacity: 1 !important;
+
+    visibility:
+        visible !important;
+
+    cursor: pointer !important;
+
+    z-index: 10 !important;
+
+    appearance: none !important;
+
+    -webkit-appearance:
+        none !important;
+}
+
+
+.register-page
+.register-password-eye:hover {
+    background:
+        rgba(255,255,255,.055) !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+.register-page
+.register-password-eye:focus-visible {
+    outline:
+        1px solid
+        rgba(255,255,255,.3) !important;
+
+    outline-offset:
+        1px !important;
+}
+
+
+.register-page
+.register-password-eye svg {
+    width: 18px !important;
+    height: 18px !important;
+
+    display: block;
+
+    fill: none;
+
+    stroke:
+        currentColor;
+
+    stroke-width:
+        1.7;
+
+    stroke-linecap:
+        round;
+
+    stroke-linejoin:
+        round;
+
+    pointer-events:
+        none;
+}
+
+
+.register-page
+.register-eye-closed {
+    display:
+        none !important;
+}
+
+
+.register-page
+.register-password-eye.password-visible
+.register-eye-open {
+    display:
+        none !important;
+}
+
+
+.register-page
+.register-password-eye.password-visible
+.register-eye-closed {
+    display:
+        block !important;
+}
+
+
+/*
+Remove any old register password controls
+that might still be produced by old CSS.
+*/
+
+.register-page
+.register-password-field
+.auth-password-toggle,
+
+.register-page
+.register-password-field
+#register-password-toggle,
+
+.register-page
+.register-password-field
+[data-password-target] {
+    display:
+        none !important;
+}
+
+
+/*
+Make sure submit/login links cannot float over
+the password field.
+*/
+
+.register-page
+.auth-pro-submit,
+
+.register-page
+.auth-pro-secondary {
+    position:
+        relative !important;
+
+    top:
+        auto !important;
+
+    right:
+        auto !important;
+
+    bottom:
+        auto !important;
+
+    left:
+        auto !important;
+
+    transform:
+        none !important;
+}
