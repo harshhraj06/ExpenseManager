@@ -1,185 +1,362 @@
 """
-db_compat.py
-============
-A thin compatibility layer that lets the rest of the app keep using
-sqlite3-style code (connect(), cursor.execute() with "?" placeholders,
-cursor.fetchone()/fetchall(), cursor.lastrowid, conn.commit()) while
-actually talking to a Postgres database under the hood.
+Database compatibility layer for Expense Manager.
 
-Why this exists: Render's free web-service plan has no persistent disk,
-so a local SQLite file (expenses.db) gets wiped on every deploy/restart.
-Render's free PostgreSQL database, on the other hand, is a separate
-managed service whose data persists independently of the web service's
-filesystem. Swapping to Postgres fixes data loss permanently, for free
--- but Postgres uses different placeholder syntax ("%s" instead of "?"),
-different autoincrement syntax, and a different way of getting the ID
-of a just-inserted row. This file absorbs all of those differences in
-one place, so app.py's ~50 call sites don't each need individual edits.
+Supports:
 
-Usage (drop-in replacement for sqlite3 in app.py):
-    import db_compat as sqlite3
-    conn = sqlite3.connect(DATABASE_URL)
+1. SQLite
+   - Used automatically when DATABASE_URL is not set.
+   - Perfect for offline/local usage.
+
+2. PostgreSQL
+   - Used automatically when DATABASE_URL is set.
+   - Used by Render/Supabase in production.
+
+The rest of the application can continue using:
+
+    conn = db_compat.connect(DB_URL)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-    row = cursor.fetchone()
+    cursor.execute(...)
 """
 
-import re
-import psycopg2
-import psycopg2.extensions
+import os
+import sqlite3
+import threading
+from urllib.parse import urlparse
 
 
-class Cursor:
-    """Wraps a psycopg2 cursor to accept sqlite3-style "?" placeholders
-    and to expose .lastrowid the way sqlite3 cursors do."""
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-    def __init__(self, pg_cursor):
-        self._cursor = pg_cursor
-        self.lastrowid = None
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SQLITE_PATH = os.path.join(BASE_DIR, "expenses.db")
 
-    @staticmethod
-    def _convert_query(query):
-        """Convert sqlite3 "?" placeholders to Postgres "%s" placeholders.
-        Does a simple left-to-right scan so "?" inside quoted string
-        literals is not touched (none of this app's queries embed "?"
-        inside a string literal, but this keeps it safe regardless)."""
-        out = []
-        in_single = False
-        in_double = False
-        for ch in query:
-            if ch == "'" and not in_double:
-                in_single = not in_single
-                out.append(ch)
-            elif ch == '"' and not in_single:
-                in_double = not in_double
-                out.append(ch)
-            elif ch == "?" and not in_single and not in_double:
-                out.append("%s")
-            else:
-                out.append(ch)
-        return "".join(out)
 
-    @staticmethod
-    def _convert_insert_or_ignore(query):
-        """sqlite3's "INSERT OR IGNORE INTO" has no direct Postgres
-        equivalent as a prefix -- Postgres instead uses "ON CONFLICT DO
-        NOTHING" as a suffix. This rewrites the common case used in this
-        app: "INSERT OR IGNORE INTO table (...) VALUES (...)" with no
-        existing ON CONFLICT clause."""
-        match = re.match(
-            r"^\s*INSERT\s+OR\s+IGNORE\s+INTO\s+(.*)$",
-            query,
-            re.IGNORECASE | re.DOTALL,
-        )
-        if not match:
-            return query
-        rest = match.group(1)
-        return f"INSERT INTO {rest.rstrip()} ON CONFLICT DO NOTHING"
+_pool = None
+_pool_lock = threading.Lock()
 
-    def execute(self, query, params=None):
-        query = self._convert_insert_or_ignore(query)
-        query = self._convert_query(query)
+def get_database_type():
+    """Return the active database backend."""
+    return "postgresql" if is_postgres() else "sqlite"
 
-        is_insert = bool(re.match(r"^\s*INSERT\s", query, re.IGNORECASE))
-        if is_insert and "RETURNING" not in query.upper():
-            query = query.rstrip().rstrip(";") + " RETURNING id"
 
+def column_exists(table, column):
+    """
+    Check whether a column exists in the active database.
+
+    SQLite:
+        Uses PRAGMA table_info().
+
+    PostgreSQL:
+        Uses information_schema.columns.
+    """
+    if not table or not column:
+        return False
+
+    # Only allow simple SQL identifiers here.
+    # This prevents accidental SQL injection through schema helpers.
+    if not table.replace("_", "").isalnum():
+        raise ValueError(f"Invalid table name: {table}")
+
+    if not column.replace("_", "").isalnum():
+        raise ValueError(f"Invalid column name: {column}")
+
+    if is_postgres():
+        conn = connect()
         try:
-            if params is None:
-                self._cursor.execute(query)
-            else:
-                self._cursor.execute(query, tuple(params))
-        except psycopg2.errors.UndefinedColumn:
-            # Some INSERTs target tables/views with no "id" column (e.g.
-            # none in this app currently, but this keeps it safe) --
-            # retry without forcing RETURNING id.
-            self._cursor.connection.rollback()
-            raise
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = %s
+                  AND column_name = %s
+                LIMIT 1
+                """,
+                (table, column),
+            )
+            return cur.fetchone() is not None
+        finally:
+            release_connection(conn)
+    else:
+        conn = connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(f"PRAGMA table_info({table})")
+            columns = cur.fetchall()
+            return any(row[1] == column for row in columns)
+        finally:
+            conn.close()
 
-        if is_insert:
-            try:
-                row = self._cursor.fetchone()
-                self.lastrowid = row[0] if row else None
-            except psycopg2.ProgrammingError:
-                # No results to fetch (e.g. INSERT ... ON CONFLICT DO
-                # NOTHING with no row actually inserted).
-                self.lastrowid = None
-        return self
 
-    def executemany(self, query, seq_of_params):
-        query = self._convert_insert_or_ignore(query)
-        query = self._convert_query(query)
-        self._cursor.executemany(query, [tuple(p) for p in seq_of_params])
-        return self
+
+def is_postgres():
+    """Return True when DATABASE_URL points to PostgreSQL."""
+    if not DATABASE_URL:
+        return False
+
+    return DATABASE_URL.startswith(
+        ("postgres://", "postgresql://")
+    )
+
+
+class SQLiteCursorWrapper:
+    """
+    Makes SQLite behave closer to PostgreSQL for the SQL used by this app.
+    """
+
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, sql, params=()):
+        sql = self._convert_sql(sql)
+        return self.cursor.execute(sql, params)
+
+    def executemany(self, sql, params):
+        sql = self._convert_sql(sql)
+        return self.cursor.executemany(sql, params)
 
     def fetchone(self):
-        return self._cursor.fetchone()
+        return self.cursor.fetchone()
 
     def fetchall(self):
-        return self._cursor.fetchall()
-
-    def fetchmany(self, size=None):
-        if size is None:
-            return self._cursor.fetchmany()
-        return self._cursor.fetchmany(size)
-
-    @property
-    def rowcount(self):
-        return self._cursor.rowcount
-
-    @property
-    def description(self):
-        return self._cursor.description
-
-    def close(self):
-        self._cursor.close()
+        return self.cursor.fetchall()
 
     def __iter__(self):
-        return iter(self._cursor)
+        return iter(self.cursor)
+
+    @staticmethod
+    def _convert_sql(sql):
+        """
+        Convert a small set of PostgreSQL syntax into SQLite syntax.
+        """
+
+        # PostgreSQL placeholders -> SQLite placeholders
+        sql = sql.replace("%s", "?")
+
+        # PostgreSQL SERIAL
+        sql = sql.replace(
+            "SERIAL PRIMARY KEY",
+            "INTEGER PRIMARY KEY AUTOINCREMENT"
+        )
+
+        # PostgreSQL boolean-ish integer defaults
+        sql = sql.replace(
+            "INTEGER DEFAULT 0",
+            "INTEGER DEFAULT 0"
+        )
+
+        # PostgreSQL CURRENT_TIMESTAMP is supported by SQLite,
+        # so no conversion is necessary.
+
+        # PostgreSQL CURRENT_DATE
+        sql = sql.replace(
+            "CURRENT_DATE",
+            "date('now')"
+        )
+
+        # PostgreSQL interval syntax used by the bills page.
+        sql = sql.replace(
+            "date('now') + INTERVAL '7 days'",
+            "date('now', '+7 days')"
+        )
+
+        # PostgreSQL date cast:
+        # due_date::date
+        sql = sql.replace(
+            "due_date::date",
+            "date(due_date)"
+        )
+
+        return sql
 
 
-class Connection:
-    """Wraps a psycopg2 connection to provide a sqlite3-style .cursor(),
-    .commit(), .close(), and context-manager support."""
+class SQLiteConnectionWrapper:
+    """
+    SQLite connection wrapper.
+    """
 
-    def __init__(self, pg_conn):
-        self._conn = pg_conn
+    def __init__(self, connection):
+        self.connection = connection
 
     def cursor(self):
-        return Cursor(self._conn.cursor())
+        return SQLiteCursorWrapper(
+            self.connection.cursor()
+        )
 
     def commit(self):
-        self._conn.commit()
+        return self.connection.commit()
 
     def rollback(self):
-        self._conn.rollback()
+        return self.connection.rollback()
 
     def close(self):
-        self._conn.close()
+        return self.connection.close()
+
+    def execute(self, sql, params=()):
+        return SQLiteCursorWrapper(
+            self.connection.cursor()
+        ).execute(sql, params)
+
+    def __enter__(self):
+        self.connection.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return self.connection.__exit__(
+            exc_type,
+            exc_value,
+            traceback
+        )
+
+
+def _create_postgres_pool():
+    """
+    Lazily create a PostgreSQL connection pool.
+    """
+
+    global _pool
+
+    if _pool is not None:
+        return _pool
+
+    with _pool_lock:
+        if _pool is not None:
+            return _pool
+
+        from psycopg2 import pool
+
+        _pool = pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=10,
+            dsn=DATABASE_URL
+        )
+
+    return _pool
+
+
+class PostgresConnectionWrapper:
+    """
+    PostgreSQL pooled connection wrapper.
+    """
+
+    def __init__(self, pooled_connection, connection_pool):
+        self.connection = pooled_connection
+        self.pool = connection_pool
+
+    def cursor(self):
+        return self.connection.cursor()
+
+    def commit(self):
+        return self.connection.commit()
+
+    def rollback(self):
+        return self.connection.rollback()
+
+    def close(self):
+        if self.connection is not None:
+            self.pool.putconn(self.connection)
+            self.connection = None
+
+    def execute(self, sql, params=()):
+        cursor = self.cursor()
+        cursor.execute(sql, params)
+        return cursor
 
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, tb):
-        if exc_type is None:
-            self.commit()
-        else:
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type:
             self.rollback()
+        else:
+            self.commit()
+
         self.close()
 
 
-def connect(database_url, *args, **kwargs):
-    """Drop-in replacement for sqlite3.connect(). The first argument is
-    expected to be a Postgres connection URL (e.g. from DATABASE_URL),
-    not a file path."""
-    pg_conn = psycopg2.connect(database_url)
-    return Connection(pg_conn)
+def connect(database=None):
+    """
+    Main connection function.
+
+    Priority:
+
+    1. Explicit PostgreSQL URL passed to connect()
+    2. DATABASE_URL environment variable
+    3. Local SQLite database
+    """
+
+    global DATABASE_URL
+
+    requested_database = database or DATABASE_URL
+
+    # PostgreSQL
+    if requested_database and requested_database.startswith(
+        ("postgres://", "postgresql://")
+    ):
+        DATABASE_URL = requested_database
+
+        pool_instance = _create_postgres_pool()
+
+        connection = pool_instance.getconn()
+
+        return PostgresConnectionWrapper(
+            connection,
+            pool_instance
+        )
+
+    # SQLite
+    sqlite_path = (
+        requested_database
+        if requested_database
+        and not requested_database.startswith(
+            ("postgres://", "postgresql://")
+        )
+        else SQLITE_PATH
+    )
+
+    connection = sqlite3.connect(
+        sqlite_path,
+        check_same_thread=False
+    )
+
+    # Important for SQLite foreign keys
+    connection.execute(
+        "PRAGMA foreign_keys = ON"
+    )
+
+    # Improve SQLite performance
+    connection.execute(
+        "PRAGMA journal_mode = WAL"
+    )
+
+    connection.execute(
+        "PRAGMA synchronous = NORMAL"
+    )
+
+    connection.execute(
+        "PRAGMA busy_timeout = 5000"
+    )
+
+    return SQLiteConnectionWrapper(connection)
 
 
-# sqlite3 module-level constants/exceptions some code may reference --
-# mapped to psycopg2 equivalents so "except sqlite3.Error" style code
-# (if any exists or is added later) doesn't break.
-Error = psycopg2.Error
-IntegrityError = psycopg2.IntegrityError
-OperationalError = psycopg2.OperationalError
-ProgrammingError = psycopg2.ProgrammingError
+def get_database_type():
+    """
+    Return the active database type.
+    """
+
+    if is_postgres():
+        return "postgresql"
+
+    return "sqlite"
+
+
+def get_database_path():
+    """
+    Return SQLite path when SQLite is active.
+    """
+
+    if get_database_type() == "sqlite":
+        return SQLITE_PATH
+
+    return None

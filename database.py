@@ -13,16 +13,27 @@ import db_compat as sqlite3
 #   export DATABASE_URL="postgresql://user:password@localhost:5432/expenses"
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-if not DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL is not set. On Render: create a free PostgreSQL "
-        "database (New -> PostgreSQL), then add its Internal Database "
-        "URL as the DATABASE_URL environment variable on this web "
-        "service. Locally: export DATABASE_URL pointing at your own "
-        "Postgres instance before running the app."
-    )
+# ============================================================
+# DATABASE SELECTION
+# ============================================================
+#
+# Local development / offline:
+#     DATABASE_URL is not set
+#     -> db_compat uses local SQLite (expenses.db)
+#
+# Production:
+#     DATABASE_URL is set to PostgreSQL
+#     -> db_compat uses PostgreSQL connection pooling
+#
+# This allows the same application to work both offline and
+# online without changing the application code.
+# ============================================================
 
-conn = sqlite3.connect(DATABASE_URL)
+if DATABASE_URL:
+    conn = sqlite3.connect(DATABASE_URL)
+else:
+    conn = sqlite3.connect()
+
 cursor = conn.cursor()
 
 # ================= USERS =================
@@ -209,14 +220,7 @@ conn.commit()
 
 
 def _column_exists(table, column):
-    cursor.execute(
-        """
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = ? AND column_name = ?
-        """,
-        (table, column),
-    )
-    return cursor.fetchone() is not None
+    return sqlite3.column_exists(table, column)
 
 
 for table in ("expenses", "income", "groups_table"):
@@ -246,8 +250,9 @@ cursor.execute("SELECT id, user_id FROM groups_table WHERE user_id IS NOT NULL")
 for group_id, owner_id in cursor.fetchall():
     cursor.execute(
         """
-        INSERT OR IGNORE INTO group_members (group_id, user_id, role)
+        INSERT INTO group_members (group_id, user_id, role)
         VALUES (?, ?, 'owner')
+        ON CONFLICT (group_id, user_id) DO NOTHING
         """,
         (group_id, owner_id)
     )

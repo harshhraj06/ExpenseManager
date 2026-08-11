@@ -2237,10 +2237,14 @@ def add_group():
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO groups_table (user_id, group_name) VALUES (?, ?)",
+        """
+        INSERT INTO groups_table (user_id, group_name)
+        VALUES (?, ?)
+        RETURNING id
+        """,
         (session["user_id"], request.form["group_name"])
     )
-    new_group_id = cursor.lastrowid
+    new_group_id = cursor.fetchone()[0]
 
     # The creator is automatically the owner of their own group.
     cursor.execute(
@@ -2290,8 +2294,9 @@ def invite_group_user(group_id):
 
     cursor.execute(
         """
-        INSERT OR IGNORE INTO group_members (group_id, user_id, role)
+        INSERT INTO group_members (group_id, user_id, role)
         VALUES (?, ?, 'member')
+        ON CONFLICT (group_id, user_id) DO NOTHING
         """,
         (group_id, invited_user_id)
     )
