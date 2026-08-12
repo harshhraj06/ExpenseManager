@@ -1,0 +1,181 @@
+/* ==========================================================
+   ASK AI — NOTIFICATION PORTAL
+   Always above hero / Personal Finance Intelligence
+   ========================================================== */
+
+body.ai-page {
+    overflow-x: hidden;
+}
+
+.ai-page .ai-topbar {
+    position: relative !important;
+    z-index: 100 !important;
+    overflow: visible !important;
+}
+
+.ai-page .ai-hero {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.ai-page .ai-workspace {
+    position: relative;
+    z-index: 1;
+}
+
+
+/*
+ * Dropdown is moved directly under <body> by JS.
+ */
+
+body.ai-page > .notif-dropdown.ai-notif-portal {
+    position: fixed !important;
+
+    display: none;
+
+    width: 390px !important;
+    max-width: calc(100vw - 28px) !important;
+
+    max-height: min(
+        520px,
+        calc(100vh - 105px)
+    ) !important;
+
+    overflow-y: auto !important;
+
+    border:
+        1px solid
+        rgba(151, 130, 174, .24) !important;
+
+    border-radius: 18px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #211b29 0%,
+            #17151e 42%,
+            #101217 100%
+        ) !important;
+
+    box-shadow:
+        0 30px 95px
+        rgba(0, 0, 0, .62) !important;
+
+    backdrop-filter: blur(24px);
+
+    /*
+     * Deliberately extremely high.
+     */
+    z-index: 2147483000 !important;
+
+    isolation: isolate;
+}
+
+body.ai-page >
+.notif-dropdown.ai-notif-portal.open {
+    display: block !important;
+
+    animation:
+        notifPortalOpen
+        .16s ease-out;
+}
+
+@keyframes notifPortalOpen {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(-7px)
+            scale(.985);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+}
+
+
+/* header */
+
+.ai-notif-portal
+.notif-dropdown-header {
+    position: sticky !important;
+
+    top: 0;
+
+    z-index: 5;
+
+    min-height: 72px;
+
+    padding: 14px 16px !important;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.065) !important;
+
+    background:
+        rgba(27,23,34,.97) !important;
+
+    backdrop-filter: blur(18px);
+}
+
+
+/* items */
+
+.ai-notif-portal
+.notif-item {
+    background:
+        transparent !important;
+}
+
+.ai-notif-portal
+.notif-item:hover {
+    background:
+        rgba(127,102,150,.08) !important;
+}
+
+.ai-notif-portal
+.notif-unread {
+    background:
+        rgba(127,102,150,.07) !important;
+}
+
+
+/* empty state */
+
+.ai-notif-portal
+.notif-empty {
+    min-height: 190px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 36px 24px !important;
+}
+
+
+/* mobile */
+
+@media (max-width: 600px) {
+
+    body.ai-page >
+    .notif-dropdown.ai-notif-portal {
+        left: 10px !important;
+        right: 10px !important;
+
+        width: auto !important;
+
+        max-width: none !important;
+
+        max-height:
+            calc(100vh - 86px) !important;
+    }
+}

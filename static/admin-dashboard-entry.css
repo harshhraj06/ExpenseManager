@@ -1,0 +1,135 @@
+.profile-admin-divider {
+    height: 1px;
+
+    margin: 9px 0;
+
+    background:
+        rgba(255,255,255,.07);
+}
+
+
+.profile-admin-entry {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        34px 1fr auto;
+
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 9px;
+
+    border:
+        1px solid rgba(255,255,255,.065);
+
+    border-radius: 9px;
+
+    background:
+        rgba(255,255,255,.025);
+
+    color: inherit;
+
+    text-decoration: none;
+
+    transition:
+        background .18s ease,
+        border-color .18s ease;
+}
+
+
+.profile-admin-entry:hover {
+    background:
+        rgba(255,255,255,.055);
+
+    border-color:
+        rgba(255,255,255,.11);
+}
+
+
+.profile-admin-icon {
+    width: 34px;
+    height: 34px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 8px;
+
+    background:
+        rgba(150,126,104,.11);
+
+    color: #b19a86;
+
+    font-size: .52rem;
+
+    font-weight: 800;
+
+    letter-spacing: .05em;
+}
+
+
+.profile-admin-copy {
+    min-width: 0;
+}
+
+
+.profile-admin-copy strong,
+.profile-admin-copy small {
+    display: block;
+}
+
+
+.profile-admin-copy strong {
+    color: #e5e9ec;
+
+    font-size: .61rem;
+}
+
+
+.profile-admin-copy small {
+    margin-top: 3px;
+
+    color: #707c86;
+
+    font-size: .48rem;
+}
+
+
+.profile-admin-arrow {
+    color: #69757f;
+
+    font-size: .8rem;
+}
+
+
+html[data-theme="light"]
+.profile-admin-divider {
+    background:
+        rgba(22,32,42,.08);
+}
+
+
+html[data-theme="light"]
+.profile-admin-entry {
+    border-color:
+        rgba(22,32,42,.08);
+
+    background:
+        rgba(22,32,42,.025);
+}
+
+
+html[data-theme="light"]
+.profile-admin-copy strong {
+    color: #252d34;
+}
+
+
+html[data-theme="light"]
+.profile-admin-copy small {
+    color: #78838c;
+}

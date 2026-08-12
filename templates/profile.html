@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
+
+<title>
+    Account Settings · Expense Manager
+</title>
+
+
+<script>
+(() => {
+
+    const saved =
+        localStorage.getItem(
+            "expense-manager-theme"
+        );
+
+    document.documentElement
+    .setAttribute(
+        "data-theme",
+        saved === "light"
+            ? "light"
+            : "dark"
+    );
+
+})();
+</script>
+
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}">
+
+<link
+    rel="stylesheet"
+    href="/static/profile-pro.css?v=20260812">
+
+<link rel="stylesheet" href="/static/app-professional-final.css?v=20260812-final2">
+</head>
+
+
+<body class="profile-page">
+
+
+<div class="profile-shell">
+
+
+    <header class="profile-topbar">
+
+
+        <a
+            href="/"
+            class="profile-brand">
+
+            <span class="profile-brand-mark">
+                ₹
+            </span>
+
+            <span>
+
+                <strong>
+                    Expense Manager
+                </strong>
+
+                <small>
+                    Account Settings
+                </small>
+
+            </span>
+
+        </a>
+
+
+        <div class="profile-top-actions">
+
+            <button
+                type="button"
+                id="profileThemeToggle"
+                class="profile-theme-button">
+
+                Theme
+
+            </button>
+
+
+            <a
+                href="/"
+                class="profile-dashboard-link">
+
+                Dashboard
+
+            </a>
+
+        </div>
+
+
+    </header>
+
+
+
+    <section class="profile-hero">
+
+
+        <div class="profile-photo-wrap">
+
+            <div class="profile-avatar">
+
+                {% if profile.profile_image %}
+
+                <img
+                    src="{{ profile.profile_image }}"
+                    alt="Profile picture"
+                    class="profile-avatar-image">
+
+                {% else %}
+
+                <span class="profile-avatar-letter">
+                    {{ profile.username[0]|upper if profile.username else 'U' }}
+                </span>
+
+                {% endif %}
+
+            </div>
+
+
+            <form
+                method="POST"
+                enctype="multipart/form-data"
+                class="profile-photo-form">
+
+                <input
+                    type="hidden"
+                    name="action"
+                    value="picture">
+
+                <label
+                    for="profilePictureInput"
+                    class="profile-photo-change">
+
+                    Change photo
+
+                </label>
+
+                <input
+                    id="profilePictureInput"
+                    type="file"
+                    name="profile_picture"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onchange="this.form.submit()">
+
+            </form>
+
+
+            {% if profile.profile_image %}
+
+            <form
+                method="POST"
+                class="profile-remove-photo-form">
+
+                <input
+                    type="hidden"
+                    name="action"
+                    value="remove_picture">
+
+                <button
+                    type="submit"
+                    class="profile-remove-photo">
+
+                    Remove
+
+                </button>
+
+            </form>
+
+            {% endif %}
+
+        </div>
+
+
+        <div>
+
+            <span class="profile-eyebrow">
+                Personal account
+            </span>
+
+            <h1>
+                {{ profile.username }}
+            </h1>
+
+            <p>
+                Manage your personal details,
+                login email, UPI identity and
+                account security.
+            </p>
+
+        </div>
+
+
+    </section>
+
+
+
+    {% if message %}
+
+    <div class="profile-message success">
+        {{ message }}
+    </div>
+
+    {% endif %}
+
+
+    {% if error %}
+
+    <div class="profile-message error">
+        {{ error }}
+    </div>
+
+    {% endif %}
+
+
+
+    <div class="profile-grid">
+
+
+        <!-- ==============================================
+             PERSONAL INFORMATION
+             ============================================== -->
+
+        <section class="profile-card">
+
+
+            <div class="profile-card-head">
+
+                <div>
+
+                    <span class="profile-section-label">
+                        Identity
+                    </span>
+
+                    <h2>
+                        Personal information
+                    </h2>
+
+                </div>
+
+
+                <div class="profile-card-icon">
+
+                    <svg viewBox="0 0 24 24">
+
+                        <circle
+                            cx="12"
+                            cy="8"
+                            r="4">
+                        </circle>
+
+                        <path
+                            d="M4 21
+                               c0-5 3-8 8-8
+                               s8 3 8 8">
+                        </path>
+
+                    </svg>
+
+                </div>
+
+            </div>
+
+
+
+            <form
+                method="POST"
+                class="profile-form">
+
+
+                <input
+                    type="hidden"
+                    name="action"
+                    value="profile">
+
+
+                <label>
+
+                    Display name
+
+                    <input
+                        type="text"
+                        name="username"
+                        value="{{ profile.username }}"
+                        autocomplete="name"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    Email address
+
+                    <input
+                        type="email"
+                        name="email"
+                        value="{{ profile.email }}"
+                        autocomplete="email"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    UPI ID
+
+                    <input
+                        type="text"
+                        name="upi_id"
+                        value="{{ profile.upi_id }}"
+                        placeholder="name@bank">
+
+                    <small>
+                        Optional. Used for payment-related
+                        features where applicable.
+                    </small>
+
+                </label>
+
+
+                <button
+                    type="submit"
+                    class="profile-save">
+
+                    Save profile
+
+                </button>
+
+
+            </form>
+
+
+        </section>
+
+
+
+        <!-- ==============================================
+             SECURITY
+             ============================================== -->
+
+        <section class="profile-card security-card">
+
+
+            <div class="profile-card-head">
+
+                <div>
+
+                    <span class="profile-section-label">
+                        Security
+                    </span>
+
+                    <h2>
+                        Change password
+                    </h2>
+
+                </div>
+
+
+                <div class="profile-card-icon">
+
+                    <svg viewBox="0 0 24 24">
+
+                        <rect
+                            x="5"
+                            y="10"
+                            width="14"
+                            height="11"
+                            rx="2">
+                        </rect>
+
+                        <path
+                            d="M8 10V7
+                               a4 4 0 0 1
+                               8 0v3">
+                        </path>
+
+                        <circle
+                            cx="12"
+                            cy="15"
+                            r="1">
+                        </circle>
+
+                    </svg>
+
+                </div>
+
+            </div>
+
+
+
+            <form
+                method="POST"
+                class="profile-form">
+
+
+                <input
+                    type="hidden"
+                    name="action"
+                    value="password">
+
+
+                <label>
+
+                    Current password
+
+                    <input
+                        type="password"
+                        name="current_password"
+                        autocomplete="current-password"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    New password
+
+                    <input
+                        type="password"
+                        name="new_password"
+                        autocomplete="new-password"
+                        minlength="6"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    Confirm new password
+
+                    <input
+                        type="password"
+                        name="confirm_password"
+                        autocomplete="new-password"
+                        minlength="6"
+                        required>
+
+                </label>
+
+
+                <button
+                    type="submit"
+                    class="profile-save">
+
+                    Update password
+
+                </button>
+
+
+            </form>
+
+
+        </section>
+
+
+    </div>
+
+
+
+    <section class="profile-account-strip">
+
+
+        <div>
+
+            <span class="profile-section-label">
+                Signed in as
+            </span>
+
+            <strong>
+                {{ profile.email }}
+            </strong>
+
+        </div>
+
+
+        <a href="/logout">
+            Sign out
+        </a>
+
+
+    </section>
+
+
+</div>
+
+
+
+<script>
+
+(() => {
+
+    const button =
+        document.getElementById(
+            "profileThemeToggle"
+        );
+
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            const root =
+                document.documentElement;
+
+            const current =
+                root.getAttribute(
+                    "data-theme"
+                );
+
+            const next =
+                current === "light"
+                    ? "dark"
+                    : "light";
+
+
+            root.setAttribute(
+                "data-theme",
+                next
+            );
+
+
+            localStorage.setItem(
+                "expense-manager-theme",
+                next
+            );
+
+        }
+    );
+
+})();
+
+</script>
+
+
+</body>
+
+</html>

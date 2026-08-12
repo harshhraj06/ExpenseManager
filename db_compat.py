@@ -183,6 +183,14 @@ class SQLiteCursorWrapper:
     def __iter__(self):
         return iter(self.cursor)
 
+    def __getattr__(self, name):
+        """
+        Forward standard DB-API cursor attributes such as
+        description, rowcount and lastrowid to the real
+        sqlite3 cursor.
+        """
+        return getattr(self.cursor, name)
+
     @staticmethod
     def _convert_sql(sql):
         """

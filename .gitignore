@@ -3,3 +3,15 @@ __pycache__/
 expenses.db
 .env
 uploads/receipts/
+
+# Local / private ExpenseManager files
+.env
+.env.*
+expenses.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.pyc
+*.backup-*
+*.brand-backup
+uploads/receipts/*

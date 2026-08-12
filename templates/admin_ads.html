@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
+
+<title>
+    Advertising · ExpenseX Admin
+</title>
+
+<link
+    rel="stylesheet"
+    href="/static/admin-ads.css?v=20260812">
+
+</head>
+
+
+<body>
+
+
+<div class="ad-admin-shell">
+
+
+    <!-- TOPBAR -->
+
+    <header class="ad-admin-topbar">
+
+        <a
+            href="/"
+            class="ad-admin-brand">
+
+            <img
+                src="/static/logo.png"
+                alt="ExpenseX">
+
+            <div>
+
+                <strong>
+                    Advertising
+                </strong>
+
+                <span>
+                    Admin console
+                </span>
+
+            </div>
+
+        </a>
+
+
+        <div class="ad-admin-top-actions">
+
+            <span class="admin-private-label">
+                Private administration
+            </span>
+
+            <a href="/">
+                Dashboard
+            </a>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- INTRO -->
+
+    <section class="ad-admin-intro">
+
+        <div>
+
+            <span class="admin-eyebrow">
+                Revenue & partnerships
+            </span>
+
+            <h1>
+                Advertising Studio
+            </h1>
+
+            <p>
+                Manage sponsored placements on ExpenseX.
+                Create campaigns, schedule promotions,
+                track performance and control what appears
+                beside the dashboard hero.
+            </p>
+
+        </div>
+
+
+        <div class="admin-live-indicator">
+
+            <span></span>
+
+            {{ stats.active }}
+
+            live campaign{% if stats.active != 1 %}s{% endif %}
+
+        </div>
+
+    </section>
+
+
+
+    <!-- STATS -->
+
+    <section class="ad-admin-stats">
+
+        <article>
+
+            <span>
+                Campaigns
+            </span>
+
+            <strong>
+                {{ stats.total }}
+            </strong>
+
+            <small>
+                Total created
+            </small>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Active
+            </span>
+
+            <strong>
+                {{ stats.active }}
+            </strong>
+
+            <small>
+                Running now
+            </small>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Impressions
+            </span>
+
+            <strong>
+                {{ "{:,}".format(stats.impressions) }}
+            </strong>
+
+            <small>
+                Recorded views
+            </small>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Clicks
+            </span>
+
+            <strong>
+                {{ "{:,}".format(stats.clicks) }}
+            </strong>
+
+            <small>
+                Sponsor visits
+            </small>
+
+        </article>
+
+
+        <article>
+
+            <span>
+                Overall CTR
+            </span>
+
+            <strong>
+
+                {% if stats.impressions %}
+
+                    {{ "%.2f"|format(
+                        (stats.clicks / stats.impressions) * 100
+                    ) }}%
+
+                {% else %}
+
+                    0.00%
+
+                {% endif %}
+
+            </strong>
+
+            <small>
+                Click-through rate
+            </small>
+
+        </article>
+
+    </section>
+
+
+
+    {% if request.args.get('saved') %}
+
+    <div class="admin-success">
+        Campaign saved successfully.
+    </div>
+
+    {% endif %}
+
+
+
+    <!-- MAIN -->
+
+    <main class="ad-admin-grid">
+
+
+        <!-- CAMPAIGN EDITOR -->
+
+        <section class="ad-admin-editor">
+
+
+            <div class="admin-section-head">
+
+                <div>
+
+                    <span>
+                        Campaign builder
+                    </span>
+
+                    <h2>
+
+                        {% if edit_campaign %}
+
+                            Edit campaign
+
+                        {% else %}
+
+                            Create campaign
+
+                        {% endif %}
+
+                    </h2>
+
+                </div>
+
+
+                {% if edit_campaign %}
+
+                <a
+                    href="/admin/ads"
+                    class="admin-new-campaign">
+
+                    New campaign
+
+                </a>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <form
+                action="/admin/ads/save"
+                method="POST"
+                id="campaignEditor">
+
+
+                <input
+                    type="hidden"
+                    name="campaign_id"
+                    value="{{ edit_campaign.id if edit_campaign else '' }}">
+
+
+                <div class="admin-form-grid">
+
+
+                    <label>
+
+                        Campaign type
+
+                        <select
+                            name="campaign_type"
+                            id="campaignType">
+
+                            <option
+                                value="advertisement"
+                                {% if not edit_campaign or edit_campaign.campaign_type == 'advertisement' %}
+                                    selected
+                                {% endif %}>
+
+                                Advertisement
+
+                            </option>
+
+                            <option
+                                value="sponsorship"
+                                {% if edit_campaign and edit_campaign.campaign_type == 'sponsorship' %}
+                                    selected
+                                {% endif %}>
+
+                                Sponsorship
+
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+
+                    <label>
+
+                        Status
+
+                        <select
+                            name="status">
+
+                            {% for value, label in [
+                                ('draft','Draft'),
+                                ('active','Active'),
+                                ('paused','Paused')
+                            ] %}
+
+                            <option
+                                value="{{ value }}"
+                                {% if edit_campaign and edit_campaign.status == value %}
+                                    selected
+                                {% elif not edit_campaign and value == 'draft' %}
+                                    selected
+                                {% endif %}>
+
+                                {{ label }}
+
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </label>
+
+
+
+                    <label>
+
+                        Internal campaign name
+
+                        <input
+                            type="text"
+                            name="campaign_name"
+                            placeholder="August partner campaign"
+                            value="{{ edit_campaign.campaign_name if edit_campaign else '' }}"
+                            required>
+
+                    </label>
+
+
+
+                    <label>
+
+                        Sponsor / brand
+
+                        <input
+                            type="text"
+                            name="sponsor_name"
+                            id="sponsorName"
+                            placeholder="Brand name"
+                            value="{{ edit_campaign.sponsor_name if edit_campaign else '' }}"
+                            required>
+
+                    </label>
+
+
+
+                    <label class="admin-full-field">
+
+                        Advertisement headline
+
+                        <input
+                            type="text"
+                            name="headline"
+                            id="adHeadline"
+                            maxlength="160"
+                            placeholder="A clear benefit-led headline"
+                            value="{{ edit_campaign.headline if edit_campaign else '' }}"
+                            required>
+
+                    </label>
+
+
+
+                    <label class="admin-full-field">
+
+                        Description
+
+                        <textarea
+                            name="description"
+                            id="adDescription"
+                            maxlength="600"
+                            placeholder="Short sponsor message shown on the dashboard.">{{ edit_campaign.description if edit_campaign else '' }}</textarea>
+
+                    </label>
+
+
+
+                    <label>
+
+                        Label
+
+                        <input
+                            type="text"
+                            name="badge_text"
+                            id="adBadge"
+                            value="{{ edit_campaign.badge_text if edit_campaign else 'Sponsored' }}">
+
+                    </label>
+
+
+
+                    <label>
+
+                        CTA text
+
+                        <input
+                            type="text"
+                            name="cta_text"
+                            id="adCta"
+                            value="{{ edit_campaign.cta_text if edit_campaign else 'Learn more' }}">
+
+                    </label>
+
+
+
+                    <label class="admin-full-field">
+
+                        Sponsor logo URL
+
+                        <input
+                            type="url"
+                            name="logo_url"
+                            id="adLogoUrl"
+                            placeholder="https://..."
+                            value="{{ edit_campaign.logo_url if edit_campaign else '' }}">
+
+                    </label>
+
+
+
+                    <label class="admin-full-field">
+
+                        Campaign image URL
+
+                        <input
+                            type="url"
+                            name="image_url"
+                            id="adImageUrl"
+                            placeholder="https://..."
+                            value="{{ edit_campaign.image_url if edit_campaign else '' }}">
+
+                        <small>
+                            Recommended: landscape promotional creative.
+                        </small>
+
+                    </label>
+
+
+
+                    <label class="admin-full-field">
+
+                        Destination URL
+
+                        <input
+                            type="url"
+                            name="destination_url"
+                            placeholder="https://sponsor.example/offer"
+                            value="{{ edit_campaign.destination_url if edit_campaign else '' }}">
+
+                    </label>
+
+
+
+                    <label>
+
+                        Start date & time
+
+                        <input
+                            type="datetime-local"
+                            id="adStartLocal">
+
+                        <input
+                            type="hidden"
+                            name="start_at"
+                            id="adStartUtc"
+                            value="{{ edit_campaign.start_at if edit_campaign else '' }}">
+
+                        <small>
+                            Leave empty to start immediately.
+                        </small>
+
+                    </label>
+
+
+
+                    <label>
+
+                        End date & time
+
+                        <input
+                            type="datetime-local"
+                            id="adEndLocal">
+
+                        <input
+                            type="hidden"
+                            name="end_at"
+                            id="adEndUtc"
+                            value="{{ edit_campaign.end_at if edit_campaign else '' }}">
+
+                        <small>
+                            Leave empty for no automatic end.
+                        </small>
+
+                    </label>
+
+
+
+                    <label>
+
+                        Priority
+
+                        <input
+                            type="number"
+                            name="priority"
+                            min="0"
+                            max="999"
+                            value="{{ edit_campaign.priority if edit_campaign else 0 }}">
+
+                        <small>
+                            Higher priority appears first.
+                        </small>
+
+                    </label>
+
+
+                </div>
+
+
+
+                <div class="admin-preview-label">
+                    Dashboard preview
+                </div>
+
+
+                <div
+                    class="admin-ad-preview"
+                    id="adminAdPreview">
+
+                    <div
+                        class="admin-ad-preview-media"
+                        id="previewMedia">
+
+                        <img
+                            id="previewAdImage"
+                            alt=""
+                            hidden>
+
+                    </div>
+
+
+                    <div class="admin-ad-preview-content">
+
+
+                        <div class="admin-preview-sponsor-row">
+
+                            <img
+                                id="previewSponsorLogo"
+                                alt=""
+                                hidden>
+
+                            <div>
+
+                                <span>
+                                    Sponsored
+                                </span>
+
+                                <strong
+                                    id="previewSponsor">
+
+                                    Sponsor
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <h3 id="previewHeadline">
+                            Campaign headline
+                        </h3>
+
+
+                        <p id="previewDescription">
+                            Your sponsored message will appear here.
+                        </p>
+
+
+                        <span
+                            class="admin-preview-cta"
+                            id="previewCta">
+
+                            Learn more
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="admin-form-actions">
+
+                    <button
+                        type="submit"
+                        class="admin-save-campaign">
+
+                        {% if edit_campaign %}
+
+                            Save changes
+
+                        {% else %}
+
+                            Create campaign
+
+                        {% endif %}
+
+                    </button>
+
+                </div>
+
+
+            </form>
+
+
+        </section>
+
+
+
+        <!-- CAMPAIGNS -->
+
+        <aside class="ad-admin-campaigns">
+
+
+            <div class="admin-section-head">
+
+                <div>
+
+                    <span>
+                        Inventory
+                    </span>
+
+                    <h2>
+                        Campaigns
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="admin-campaign-list">
+
+
+                {% for campaign in campaigns %}
+
+                <article class="admin-campaign-card">
+
+
+                    <div class="admin-campaign-status-row">
+
+
+                        <span
+                            class="campaign-status
+                            status-{{ campaign.status }}">
+
+                            {{ campaign.status }}
+
+                        </span>
+
+
+                        <span class="campaign-type">
+
+                            {% if campaign.campaign_type == 'sponsorship' %}
+
+                                Sponsorship
+
+                            {% else %}
+
+                                Advertisement
+
+                            {% endif %}
+
+                        </span>
+
+
+                    </div>
+
+
+
+                    <div class="admin-campaign-brand">
+
+                        {% if campaign.logo_url %}
+
+                        <img
+                            src="{{ campaign.logo_url }}"
+                            alt="">
+
+                        {% endif %}
+
+
+                        <div>
+
+                            <small>
+                                {{ campaign.sponsor_name }}
+                            </small>
+
+                            <strong>
+                                {{ campaign.headline }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="admin-campaign-metrics">
+
+
+                        <div>
+
+                            <span>
+                                Impressions
+                            </span>
+
+                            <strong>
+                                {{ campaign.impressions }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Clicks
+                            </span>
+
+                            <strong>
+                                {{ campaign.clicks }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                CTR
+                            </span>
+
+                            <strong>
+
+                                {% if campaign.impressions %}
+
+                                    {{ "%.2f"|format(
+                                        (
+                                            campaign.clicks
+                                            /
+                                            campaign.impressions
+                                        ) * 100
+                                    ) }}%
+
+                                {% else %}
+
+                                    0%
+
+                                {% endif %}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Priority
+                            </span>
+
+                            <strong>
+                                {{ campaign.priority }}
+                            </strong>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    {% if campaign.start_at or campaign.end_at %}
+
+                    <div class="admin-campaign-schedule">
+
+                        {% if campaign.start_at %}
+
+                            Starts
+                            {{ campaign.start_at }}
+
+                        {% endif %}
+
+                        {% if campaign.end_at %}
+
+                            · Ends
+                            {{ campaign.end_at }}
+
+                        {% endif %}
+
+                    </div>
+
+                    {% endif %}
+
+
+
+                    <div class="admin-campaign-actions">
+
+
+                        <a
+                            href="/admin/ads?edit={{ campaign.id }}">
+
+                            Edit
+
+                        </a>
+
+
+                        {% if campaign.status == 'active' %}
+
+                        <form
+                            action="/admin/ads/status/{{ campaign.id }}"
+                            method="POST">
+
+                            <input
+                                type="hidden"
+                                name="status"
+                                value="paused">
+
+                            <button type="submit">
+                                Pause
+                            </button>
+
+                        </form>
+
+
+                        {% else %}
+
+                        <form
+                            action="/admin/ads/status/{{ campaign.id }}"
+                            method="POST">
+
+                            <input
+                                type="hidden"
+                                name="status"
+                                value="active">
+
+                            <button type="submit">
+                                Activate
+                            </button>
+
+                        </form>
+
+                        {% endif %}
+
+
+                        <form
+                            action="/admin/ads/delete/{{ campaign.id }}"
+                            method="POST"
+
+                            onsubmit="
+                                return confirm(
+                                    'Delete this campaign?'
+                                );
+                            ">
+
+                            <button
+                                type="submit"
+                                class="admin-delete-campaign">
+
+                                Delete
+
+                            </button>
+
+                        </form>
+
+
+                    </div>
+
+
+                </article>
+
+
+                {% else %}
+
+
+                <div class="admin-empty-campaigns">
+
+                    <strong>
+                        No campaigns yet
+                    </strong>
+
+                    <span>
+                        Create your first advertising
+                        or sponsorship campaign.
+                    </span>
+
+                </div>
+
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </aside>
+
+
+    </main>
+
+
+</div>
+
+
+<script src="/static/js/admin-ads.js?v=20260812"></script>
+
+</body>
+
+</html>

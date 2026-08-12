@@ -1,0 +1,668 @@
+/* ==========================================================
+   EXPENSE MANAGER
+   MOBILE NAVBAR — REARRANGE ONLY
+   NO HAMBURGER / NO DRAWER
+   ========================================================== */
+
+@media (max-width: 768px) {
+
+    html,
+    body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden !important;
+    }
+
+    .container {
+        width: calc(100% - 14px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+
+    /* ======================================================
+       NAV CONTAINER
+       ====================================================== */
+
+    body .nav {
+        position: relative !important;
+
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+
+        gap: 12px !important;
+
+        padding: 14px !important;
+
+        margin: 8px 0 14px !important;
+
+        border:
+            1px solid rgba(255,255,255,.08) !important;
+
+        border-radius: 15px !important;
+
+        background:
+            #0d1217 !important;
+
+        color:
+            #eef2f5 !important;
+
+        box-shadow:
+            0 10px 28px rgba(0,0,0,.20) !important;
+
+        overflow: visible !important;
+    }
+
+
+    /* ======================================================
+       LOGO
+       ====================================================== */
+
+    body .nav .brand {
+        position: relative !important;
+
+        width: 100% !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        margin: 0 !important;
+
+        padding: 2px 52px !important;
+    }
+
+
+    body .nav .brand::before {
+        inset: -7px 25% !important;
+
+        opacity: .72 !important;
+
+        filter: blur(10px) !important;
+    }
+
+
+    body .nav .logo {
+        width: 150px !important;
+        max-width: 150px !important;
+
+        height: 44px !important;
+
+        object-fit: contain !important;
+
+        border-radius: 7px !important;
+
+        box-shadow:
+            0 0 16px rgba(255,255,255,.12) !important;
+    }
+
+
+    /* ======================================================
+       NAV LINKS BECOME A GRID
+       ====================================================== */
+
+    body .nav .nav-links {
+        width: 100% !important;
+
+        display: grid !important;
+
+        grid-template-columns:
+            repeat(3, minmax(0,1fr)) !important;
+
+        gap: 7px !important;
+
+        align-items: stretch !important;
+
+        justify-content: stretch !important;
+
+        padding: 0 !important;
+
+        margin: 0 !important;
+    }
+
+
+    /* ======================================================
+       PROFILE / WELCOME
+       ====================================================== */
+
+    body .nav .profile-wrap {
+        grid-column: 1 / -1 !important;
+
+        width: 100% !important;
+
+        margin: 0 !important;
+
+        order: -10;
+    }
+
+
+    body .nav .profile-btn {
+        width: 100% !important;
+
+        min-height: 40px !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        gap: 7px !important;
+
+        padding: 7px 10px !important;
+
+        border:
+            1px solid rgba(255,255,255,.07) !important;
+
+        border-radius: 9px !important;
+
+        background:
+            #141a20 !important;
+
+        color:
+            #cbd3da !important;
+
+        font-size: .72rem !important;
+        font-weight: 650 !important;
+
+        text-align: center !important;
+    }
+
+
+    /* If a page has Welcome as a plain span */
+
+    body .nav .nav-links > span {
+        grid-column: 1 / -1 !important;
+
+        min-height: 38px;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        padding: 6px 9px !important;
+
+        border:
+            1px solid rgba(255,255,255,.06);
+
+        border-radius: 8px;
+
+        background:
+            #141a20;
+
+        color:
+            #aeb8c1 !important;
+
+        font-size:
+            .69rem !important;
+
+        font-weight:
+            620 !important;
+    }
+
+
+    /* ======================================================
+       NORMAL NAV LINKS
+       ====================================================== */
+
+    body .nav .nav-links > a:not(.add-btn) {
+        min-width: 0 !important;
+        min-height: 43px !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        padding:
+            7px 6px !important;
+
+        margin: 0 !important;
+
+        border:
+            1px solid rgba(255,255,255,.065) !important;
+
+        border-radius:
+            8px !important;
+
+        background:
+            #141a20 !important;
+
+        color:
+            #c1c9d0 !important;
+
+        font-size:
+            .65rem !important;
+
+        font-weight:
+            650 !important;
+
+        line-height:
+            1.2 !important;
+
+        text-align:
+            center !important;
+
+        text-decoration:
+            none !important;
+
+        white-space:
+            normal !important;
+    }
+
+
+    body .nav .nav-links > a:not(.add-btn):active {
+        background:
+            #1b222a !important;
+    }
+
+
+    /* ======================================================
+       DASHBOARD / GROUPS / BILLS
+       first main row
+       ====================================================== */
+
+    body .nav .nav-links
+    a[href="/"] {
+        grid-column:
+            auto !important;
+    }
+
+
+    body .nav .nav-links
+    a[href="/groups"] {
+        grid-column:
+            auto !important;
+    }
+
+
+    body .nav .nav-links
+    a[href="/bills"] {
+        grid-column:
+            auto !important;
+    }
+
+
+    /* ======================================================
+       DOWNLOAD BILL
+       Wider because text is longer
+       ====================================================== */
+
+    body .nav .nav-links
+    a[href="/expenses_bill"] {
+        grid-column:
+            span 2 !important;
+
+        min-height:
+            43px !important;
+    }
+
+
+    /* ======================================================
+       LOGOUT
+       ====================================================== */
+
+    body .nav .nav-links
+    a[href="/logout"] {
+        grid-column:
+            span 1 !important;
+
+        color:
+            #c69899 !important;
+
+        background:
+            rgba(126,74,77,.08) !important;
+
+        border-color:
+            rgba(173,95,99,.14) !important;
+    }
+
+
+    /* ======================================================
+       ADD EXPENSE — FULL WIDTH
+       ====================================================== */
+
+    body .nav .nav-links
+    .add-btn {
+        grid-column:
+            1 / -1 !important;
+
+        min-height:
+            46px !important;
+
+        display: flex !important;
+
+        align-items:
+            center !important;
+
+        justify-content:
+            center !important;
+
+        margin:
+            2px 0 0 !important;
+
+        padding:
+            8px 12px !important;
+
+        border:
+            1px solid #eff1f3 !important;
+
+        border-radius:
+            9px !important;
+
+        background:
+            #f2f4f5 !important;
+
+        color:
+            #171b20 !important;
+
+        font-size:
+            .75rem !important;
+
+        font-weight:
+            730 !important;
+
+        box-shadow:
+            none !important;
+    }
+
+
+    /* ======================================================
+       NOTIFICATION
+       Keep it in nav, but move visually beside logo
+       ====================================================== */
+
+    body .nav > .mobile-rearranged-notif {
+        position: absolute !important;
+
+        top: 15px !important;
+        right: 15px !important;
+
+        z-index: 20 !important;
+    }
+
+
+    body .nav >
+    .mobile-rearranged-notif
+    .notif-bell-btn {
+        width: 39px !important;
+        height: 39px !important;
+
+        display: grid !important;
+        place-items: center !important;
+
+        padding: 0 !important;
+
+        border:
+            1px solid rgba(255,255,255,.09) !important;
+
+        border-radius:
+            9px !important;
+
+        background:
+            #151b22 !important;
+
+        color:
+            #cad2da !important;
+
+        box-shadow:
+            none !important;
+    }
+
+
+    /* Hide notification's original grid space */
+
+    body .nav .nav-links
+    > .notif-bell-wrap {
+        display: none !important;
+    }
+
+
+    /* ======================================================
+       PROFILE DROPDOWN
+       ====================================================== */
+
+    body .nav
+    .profile-dropdown {
+        position: absolute !important;
+
+        left: 0 !important;
+        right: 0 !important;
+
+        top: calc(100% + 6px) !important;
+
+        width: 100% !important;
+
+        max-width: none !important;
+
+        border-radius:
+            10px !important;
+
+        z-index:
+            100 !important;
+    }
+
+
+    /* ======================================================
+       NOTIFICATION POPUP MOBILE
+       ====================================================== */
+
+    body .notif-dropdown {
+        position: fixed !important;
+
+        top: 74px !important;
+
+        left: 8px !important;
+        right: 8px !important;
+
+        width: auto !important;
+
+        max-width: none !important;
+
+        max-height:
+            calc(100dvh - 90px) !important;
+
+        z-index:
+            20000 !important;
+    }
+
+
+    /* ======================================================
+       HERO
+       ====================================================== */
+
+    .hero {
+        grid-template-columns:
+            1fr !important;
+
+        gap:
+            18px !important;
+
+        min-height:
+            auto !important;
+
+        padding:
+            28px 4px 25px !important;
+    }
+
+
+    .hero-title {
+        font-size:
+            clamp(
+                3rem,
+                15vw,
+                4.6rem
+            ) !important;
+
+        line-height:
+            .91 !important;
+    }
+
+
+    .hero-subtitle {
+        margin-top:
+            17px !important;
+
+        font-size:
+            .72rem !important;
+    }
+
+
+    .hero-right {
+        width:
+            100% !important;
+    }
+
+
+    .hero-finance-map {
+        width:
+            100% !important;
+
+        max-width:
+            none !important;
+
+        padding:
+            13px !important;
+
+        border-radius:
+            11px !important;
+    }
+
+
+    /* ======================================================
+       CONTROL CENTER
+       ====================================================== */
+
+    .pro-control-center {
+        padding:
+            15px !important;
+
+        border-radius:
+            11px !important;
+    }
+
+
+    .pro-control-top {
+        flex-direction:
+            column !important;
+
+        align-items:
+            flex-start !important;
+
+        gap:
+            10px !important;
+    }
+
+
+    .pro-control-copy h2 {
+        font-size:
+            1.3rem !important;
+    }
+
+
+    /* ======================================================
+       QUICK ACTIONS
+       ====================================================== */
+
+    .pro-actions {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr))
+            !important;
+
+        gap:
+            8px !important;
+    }
+
+
+    .pro-action,
+    .pro-action.qa-action {
+        min-height:
+            92px !important;
+
+        padding:
+            10px !important;
+    }
+
+
+    /* ======================================================
+       GENERAL MOBILE CARDS
+       ====================================================== */
+
+    .card,
+    .stat-card,
+    .chart-card {
+        border-radius:
+            10px !important;
+    }
+
+
+    input,
+    select,
+    textarea,
+    button,
+    a {
+        -webkit-tap-highlight-color:
+            transparent;
+    }
+
+
+    /* ======================================================
+       LIGHT MODE
+       navbar intentionally remains dark
+       ====================================================== */
+
+    html[data-theme="light"]
+    body .nav {
+        background:
+            #11161c !important;
+
+        color:
+            #eef2f5 !important;
+    }
+
+
+    html[data-theme="light"]
+    body .nav .nav-links > a:not(.add-btn),
+
+    html[data-theme="light"]
+    body .nav .profile-btn,
+
+    html[data-theme="light"]
+    body .nav .nav-links > span {
+        color:
+            #c8d0d7 !important;
+    }
+
+}
+
+
+@media (max-width: 390px) {
+
+    body .nav .nav-links {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr))
+            !important;
+    }
+
+
+    body .nav .nav-links
+    a[href="/expenses_bill"] {
+        grid-column:
+            1 / -1 !important;
+    }
+
+
+    body .nav .nav-links
+    a[href="/logout"] {
+        grid-column:
+            1 / -1 !important;
+    }
+
+
+    .pro-actions {
+        grid-template-columns:
+            1fr !important;
+    }
+}

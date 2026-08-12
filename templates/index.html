@@ -96,6 +96,18 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='mobile.css') }}">
 
+<link rel="stylesheet" href="/static/dashboard-premium-v2.css?v=20260812">
+<link rel="stylesheet" href="/static/notification-center-pro.css?v=20260812b">
+<link rel="stylesheet" href="/static/expense-history-collapse.css?v=20260812c">
+<link rel="stylesheet" href="/static/dashboard-charts-pro.css?v=20260812-final">
+<link rel="stylesheet" href="/static/quick-actions-pro.css?v=20260812-final">
+<link rel="stylesheet" href="/static/profile-entry.css?v=20260812">
+<link rel="stylesheet" href="/static/app-professional-final.css?v=20260812-final2">
+<link rel="stylesheet" href="/static/mobile-navbar-rearrange.css?v=20260812">
+<link rel="stylesheet" href="/static/dashboard-sponsored.css?v=20260812">
+<link rel="stylesheet" href="/static/admin-dashboard-entry.css?v=20260812">
+<link rel="stylesheet" href="/static/security-biometric.css?v=20260812">
+<link rel="stylesheet" href="/static/dashboard-heist-pro.css?v=20260812">
 </head>
 
 <body class="pro-dashboard-page">
@@ -318,12 +330,255 @@
     </script>
 
     <div class="hero">
-        <h1>
-            TRACK.<br>
-            ANALYZE.<br>
-            GROW.
-        </h1>
-        <p>Manage every rupee with precision.</p>
+
+        <div class="hero-left">
+
+            <h1 class="hero-title">
+
+                <span class="hero-line">
+                    <span class="hero-letter c1">T</span><span class="hero-letter c2">R</span><span class="hero-letter c3">A</span><span class="hero-letter c4">C</span><span class="hero-letter c5">K</span><span class="hero-letter c6">.</span>
+                </span>
+
+                <span class="hero-line">
+                    <span class="hero-letter c3">A</span><span class="hero-letter c4">N</span><span class="hero-letter c5">A</span><span class="hero-letter c1">L</span><span class="hero-letter c2">Y</span><span class="hero-letter c6">Z</span><span class="hero-letter c4">E</span><span class="hero-letter c5">.</span>
+                </span>
+
+                <span class="hero-line">
+                    <span class="hero-letter c5">G</span><span class="hero-letter c1">R</span><span class="hero-letter c2">O</span><span class="hero-letter c3">W</span><span class="hero-letter c6">.</span>
+                </span>
+
+            </h1>
+
+            <p class="hero-subtitle">
+                Manage every rupee with precision.
+            </p>
+
+        </div>
+
+
+        <div class="hero-right">
+
+            <div class="hero-finance-map">
+
+                <div class="hero-map-head">
+
+                    <div>
+                        <span class="hero-map-kicker">
+                            Financial flow
+                        </span>
+
+                        <strong>
+                            Know where your money moves
+                        </strong>
+                    </div>
+
+                    <span class="hero-map-status">
+                        Live overview
+                    </span>
+
+                </div>
+
+
+                <div class="hero-map-canvas">
+
+                    <svg
+                        viewBox="0 0 430 245"
+                        aria-label="Financial flow diagram">
+
+                        <defs>
+
+                            <marker
+                                id="heroArrow"
+                                markerWidth="7"
+                                markerHeight="7"
+                                refX="6"
+                                refY="3.5"
+                                orient="auto">
+
+                                <path
+                                    d="M0,0 L7,3.5 L0,7 Z"
+                                    class="hero-map-arrow">
+                                </path>
+
+                            </marker>
+
+                        </defs>
+
+
+                        <path
+                            d="M80 122 H177"
+                            class="hero-map-path"
+                            marker-end="url(#heroArrow)">
+                        </path>
+
+                        <path
+                            d="M252 122 C300 122 300 68 342 68"
+                            class="hero-map-path"
+                            marker-end="url(#heroArrow)">
+                        </path>
+
+                        <path
+                            d="M252 122 C300 122 300 177 342 177"
+                            class="hero-map-path"
+                            marker-end="url(#heroArrow)">
+                        </path>
+
+
+                        <g class="hero-map-node">
+
+                            <rect
+                                x="21"
+                                y="91"
+                                width="92"
+                                height="62"
+                                rx="13">
+                            </rect>
+
+                            <text
+                                x="67"
+                                y="116"
+                                text-anchor="middle"
+                                class="hero-map-node-title">
+                                INCOME
+                            </text>
+
+                            <text
+                                x="67"
+                                y="135"
+                                text-anchor="middle"
+                                class="hero-map-node-copy">
+                                Money in
+                            </text>
+
+                        </g>
+
+
+                        <g class="hero-map-node hero-map-node-main">
+
+                            <rect
+                                x="178"
+                                y="82"
+                                width="76"
+                                height="80"
+                                rx="16">
+                            </rect>
+
+                            <circle
+                                cx="216"
+                                cy="110"
+                                r="9">
+                            </circle>
+
+                            <path
+                                d="M216 104V116 M210 110H222"
+                                class="hero-map-mini-line">
+                            </path>
+
+                            <text
+                                x="216"
+                                y="143"
+                                text-anchor="middle"
+                                class="hero-map-node-title">
+                                PLAN
+                            </text>
+
+                        </g>
+
+
+                        <g class="hero-map-node">
+
+                            <rect
+                                x="343"
+                                y="38"
+                                width="67"
+                                height="58"
+                                rx="13">
+                            </rect>
+
+                            <text
+                                x="376.5"
+                                y="62"
+                                text-anchor="middle"
+                                class="hero-map-node-title">
+                                SAVE
+                            </text>
+
+                            <text
+                                x="376.5"
+                                y="80"
+                                text-anchor="middle"
+                                class="hero-map-node-copy">
+                                Goals
+                            </text>
+
+                        </g>
+
+
+                        <g class="hero-map-node">
+
+                            <rect
+                                x="343"
+                                y="148"
+                                width="67"
+                                height="58"
+                                rx="13">
+                            </rect>
+
+                            <text
+                                x="376.5"
+                                y="172"
+                                text-anchor="middle"
+                                class="hero-map-node-title">
+                                SPEND
+                            </text>
+
+                            <text
+                                x="376.5"
+                                y="190"
+                                text-anchor="middle"
+                                class="hero-map-node-copy">
+                                Needs
+                            </text>
+
+                        </g>
+
+
+                        <circle
+                            cx="288"
+                            cy="122"
+                            r="3"
+                            class="hero-map-junction">
+                        </circle>
+
+                    </svg>
+
+                </div>
+
+
+                <div class="hero-map-footer">
+
+                    <span>
+                        Track
+                    </span>
+
+                    <span>
+                        Analyze
+                    </span>
+
+                    <span>
+                        Decide
+                    </span>
+
+                    <span>
+                        Grow
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
     <section class="pro-control-center">
@@ -418,6 +673,13 @@
                     href="/bills">
                     Bills
                 </a>
+
+                <a
+                    class="pro-action"
+                    href="/connected_apps">
+                    Connected Apps
+                </a>
+
 
                 <a
                     class="pro-action"
@@ -1082,11 +1344,9 @@ var trendExpense = [
 <script src="{{ url_for('static', filename='js/financial-health.js') }}"></script>
 
 
-<script src="{{ url_for('static', filename='js/expense-history-toggle.js') }}"></script>
 
 
 <script
-    src="{{ url_for('static', filename='js/mobile-sidebar.js') }}"
     defer>
 </script>
 
@@ -1632,5 +1892,22 @@ var trendExpense = [
 <!-- MOBILE PROFILE POPOVER FIX END -->
 
 
+
+
+
+
+<script src="/static/js/gmail-auto-sync.js"></script>
+<script src="/static/js/dashboard-premium-v2.js?v=20260812"></script>
+<script src="/static/js/notification-center-pro.js?v=20260812b"></script>
+<script src="/static/js/expense-history-final.js?v=20260812-final"></script>
+<script src="/static/js/dashboard-charts-pro.js?v=20260812-final"></script>
+<script src="/static/js/quick-actions-pro.js?v=20260812-final"></script>
+<script src="/static/js/profile-menu-link.js?v=20260812"></script>
+<script src="/static/js/profile-picture-nav.js?v=20260812"></script>
+<script src="/static/js/mobile-navbar-rearrange.js?v=20260812"></script>
+<script src="/static/js/dashboard-heist-pro.js?v=20260812"></script>
+<script src="/static/js/dashboard-sponsored.js?v=20260812"></script>
+<script src="/static/js/admin-dashboard-entry.js?v=20260812"></script>
+<script src="/static/js/security-dashboard-entry.js?v=20260812"></script>
 </body>
 </html>

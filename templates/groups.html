@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta
         name="viewport"
@@ -8,14 +7,10 @@
 
     <script>
         (() => {
-            const saved =
-                localStorage.getItem(
-                    "expense-manager-theme"
-                );
+            const saved = localStorage.getItem("expense-manager-theme");
 
             const theme =
-                saved === "light" ||
-                saved === "dark"
+                saved === "light" || saved === "dark"
                     ? saved
                     : (
                         window.matchMedia(
@@ -32,124 +27,670 @@
         })();
     </script>
 
-    <title>Split Groups</title>
+    <title>Groups · Expense Manager</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-    <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#0b0b0b">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='theme.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='secondary-pages.css') }}">
+
+    <link rel="manifest" href="/static/manifest.json">
+
+    <meta name="theme-color" content="#0b0b0b">
 
     <script
         src="{{ url_for('static', filename='js/theme.js') }}"
         defer>
     </script>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='language.css') }}">
-
     <script
         src="{{ url_for('static', filename='js/language.js') }}"
         defer>
     </script>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='mobile.css') }}">
-
+<link rel="stylesheet" href="/static/workspace-premium.css?v=20260812c">
+<link rel="stylesheet" href="/static/app-professional-final.css?v=20260812-final2">
 </head>
 
-<body>
+<body class="workspace-page groups-workspace">
 
-<div class="container">
+{% set group_stats = namespace(owned=0, joined=0) %}
 
-    <div class="card">
+{% for group in groups %}
+    {% if group[3] == 'owner' %}
+        {% set group_stats.owned = group_stats.owned + 1 %}
+    {% else %}
+        {% set group_stats.joined = group_stats.joined + 1 %}
+    {% endif %}
+{% endfor %}
 
-        <h1>👥 Split Expense Groups</h1>
 
-        <p>
-            <a href="/">Dashboard</a> |
-            <a href="/groups">Split Groups</a>
-        </p>
+<div class="workspace-shell">
 
-    </div>
+    <!-- =====================================================
+         TOP BAR
+         ===================================================== -->
 
-    <div class="card">
+    <header class="workspace-topbar">
 
-        <h2>Create Group</h2>
+        <a href="/" class="workspace-brand">
+            <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt=""
+                class="workspace-logo">
 
-        <form action="/add_group" method="POST">
+            <div>
+                <strong>Expense Manager</strong>
+                <span>Financial workspace</span>
+            </div>
+        </a>
 
-            <input
-                type="text"
-                name="group_name"
-                placeholder="Group Name"
-                required>
+        <nav class="workspace-nav">
+            <a href="/">Dashboard</a>
+            <a href="/groups" class="active">Groups</a>
+            <a href="/bills">Bills</a>
+            <a href="/ask_ai">Ask AI</a>
+        </nav>
 
-            <button type="submit">
-                Create Group
-            </button>
+        <div class="workspace-account">
+            <span class="workspace-user">
+                {{ session['username'] }}
+            </span>
 
-        </form>
+            <a href="/logout" class="workspace-logout">
+                Logout
+            </a>
+        </div>
 
-    </div>
+    </header>
 
-    <div class="card">
 
-        <h2>Groups</h2>
+    <!-- =====================================================
+         PAGE INTRO
+         ===================================================== -->
 
-        <table>
+    <section class="workspace-intro">
 
-            <tr>
-                <th>ID</th>
-                <th>Group Name</th>
-                <th>Open</th>
-                <th>Delete</th>
-            </tr>
+        <div class="workspace-intro-copy">
 
-            {% for group in groups %}
+            <span class="workspace-eyebrow">
+                SPLIT EXPENSE WORKSPACE
+            </span>
 
-            <tr>
+            <h1>
+                Groups that keep
+                shared money clear.
+            </h1>
 
-                <td>{{ group[0] }}</td>
+            <p>
+                Organize trips, roommates, events and shared
+                expenses in one place. Keep ownership and
+                membership easy to understand.
+            </p>
 
-                <td>{{ group[1] }}</td>
+        </div>
 
-                <td>
+        <a
+            href="#create-group"
+            class="workspace-primary-action">
 
-                    <a href="/group/{{ group[0] }}">
-                        Open
-                    </a>
+            <span>+</span>
+            New group
 
-                </td>
+        </a>
 
-                <td>
+    </section>
 
-                    <a
-                    href="/delete_group/{{ group[0] }}"
-                    onclick="return confirm('Delete this group and all its data?')">
 
-                        ❌ Delete
+    <!-- =====================================================
+         STATS
+         ===================================================== -->
 
-                    </a>
+    <section class="workspace-stats">
 
-                </td>
+        <article class="workspace-stat">
 
-            </tr>
+            <span class="workspace-stat-label">
+                Total groups
+            </span>
 
-            {% endfor %}
+            <strong>
+                {{ groups|length }}
+            </strong>
 
-        </table>
+            <small>
+                All groups available to you
+            </small>
+
+        </article>
+
+
+        <article class="workspace-stat">
+
+            <span class="workspace-stat-label">
+                Owned by you
+            </span>
+
+            <strong>
+                {{ group_stats.owned }}
+            </strong>
+
+            <small>
+                Groups you can manage
+            </small>
+
+        </article>
+
+
+        <article class="workspace-stat">
+
+            <span class="workspace-stat-label">
+                Joined groups
+            </span>
+
+            <strong>
+                {{ group_stats.joined }}
+            </strong>
+
+            <small>
+                Shared with your account
+            </small>
+
+        </article>
+
+
+        <article class="workspace-stat workspace-stat-note">
+
+            <span class="workspace-stat-label">
+                Access model
+            </span>
+
+            <strong class="workspace-stat-word">
+                Private
+            </strong>
+
+            <small>
+                Only invited members can open a group
+            </small>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         MAIN LAYOUT
+         ===================================================== -->
+
+    <div class="workspace-layout">
+
+        <main class="workspace-main">
+
+            <!-- TOOLBAR -->
+
+            <section class="workspace-panel workspace-toolbar">
+
+                <div class="workspace-search-wrap">
+
+                    <span class="workspace-search-icon">
+                        ⌕
+                    </span>
+
+                    <input
+                        type="search"
+                        id="groupSearch"
+                        class="workspace-search"
+                        placeholder="Search groups..."
+                        autocomplete="off">
+
+                </div>
+
+
+                <div
+                    class="workspace-filter-row"
+                    id="groupFilters">
+
+                    <button
+                        type="button"
+                        class="workspace-filter active"
+                        data-filter="all">
+                        All
+                    </button>
+
+                    <button
+                        type="button"
+                        class="workspace-filter"
+                        data-filter="owner">
+                        Owned
+                    </button>
+
+                    <button
+                        type="button"
+                        class="workspace-filter"
+                        data-filter="member">
+                        Joined
+                    </button>
+
+                </div>
+
+                <span
+                    class="workspace-result-count"
+                    id="groupResultCount">
+                </span>
+
+            </section>
+
+
+            <!-- GROUP CARDS -->
+
+            <section
+                class="group-grid"
+                id="groupGrid">
+
+                {% for group in groups %}
+
+                <article
+                    class="group-pro-card"
+                    data-group-card
+                    data-name="{{ group[1]|lower }}"
+                    data-role="{{ group[3] }}">
+
+                    <div class="group-card-top">
+
+                        <div class="group-avatar">
+                            {{ group[1][0]|upper }}
+                        </div>
+
+                        <span
+                            class="role-badge
+                            {% if group[3] == 'owner' %}
+                                role-owner
+                            {% else %}
+                                role-member
+                            {% endif %}">
+
+                            {% if group[3] == 'owner' %}
+                                Owner
+                            {% else %}
+                                Member
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="group-card-body">
+
+                        <span class="group-card-id">
+                            GROUP #{{ group[0] }}
+                        </span>
+
+                        <h2>
+                            {{ group[1] }}
+                        </h2>
+
+                        <p>
+                            {% if group[3] == 'owner' %}
+                                You created this group and can manage
+                                its members, expenses and settlements.
+                            {% else %}
+                                You were invited to this shared group.
+                                Your access is limited to this group.
+                            {% endif %}
+                        </p>
+
+                    </div>
+
+
+                    <div class="group-card-actions">
+
+                        <a
+                            href="/group/{{ group[0] }}"
+                            class="group-open-btn">
+
+                            Open workspace
+                            <span>→</span>
+
+                        </a>
+
+
+                        <button
+                            type="button"
+                            class="group-copy-btn"
+                            data-group-link="/group/{{ group[0] }}">
+
+                            Copy link
+
+                        </button>
+
+
+                        {% if group[3] == 'owner' %}
+
+                        <a
+                            href="/delete_group/{{ group[0] }}"
+                            class="group-delete-btn"
+                            onclick="return confirm(
+                                'Delete this group and all its data?'
+                            )">
+
+                            Delete
+
+                        </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+            </section>
+
+
+            <!-- NO RESULTS -->
+
+            <section
+                class="workspace-empty"
+                id="groupNoResults"
+                hidden>
+
+                <div class="workspace-empty-icon">
+                    ⌕
+                </div>
+
+                <h3>No matching groups</h3>
+
+                <p>
+                    Try another search or change the group filter.
+                </p>
+
+            </section>
+
+
+            {% if groups|length == 0 %}
+
+            <section class="workspace-empty initial-empty">
+
+                <div class="workspace-empty-icon">
+                    +
+                </div>
+
+                <h3>Create your first shared group</h3>
+
+                <p>
+                    Start a group for roommates, trips,
+                    projects or any shared spending.
+                </p>
+
+                <a
+                    href="#create-group"
+                    class="workspace-primary-action compact">
+
+                    Create group
+
+                </a>
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+
+        <!-- =================================================
+             CREATE GROUP PANEL
+             ================================================= -->
+
+        <aside class="workspace-side">
+
+            <section
+                class="workspace-panel create-panel"
+                id="create-group">
+
+                <div class="panel-kicker">
+                    NEW GROUP
+                </div>
+
+                <h2>Create a group</h2>
+
+                <p class="panel-description">
+                    Give your group a clear name. You will
+                    automatically become its owner.
+                </p>
+
+
+                <form
+                    action="/add_group"
+                    method="POST"
+                    class="workspace-form">
+
+                    <label>
+                        Group name
+
+                        <input
+                            type="text"
+                            name="group_name"
+                            maxlength="60"
+                            placeholder="e.g. Goa Trip 2026"
+                            required>
+                    </label>
+
+
+                    <button
+                        type="submit"
+                        class="workspace-submit">
+
+                        Create group
+
+                    </button>
+
+                </form>
+
+
+                <div class="workspace-side-note">
+
+                    <strong>What happens next?</strong>
+
+                    <span>
+                        Open the group to invite members,
+                        add shared expenses and settle balances.
+                    </span>
+
+                </div>
+
+            </section>
+
+        </aside>
 
     </div>
 
 </div>
 
-    <script src="/static/js/db.js"></script>
-    <script src="/static/js/sync.js"></script>
-    <script src="/static/js/offline.js"></script>
+
+<!-- =========================================================
+     GROUP SEARCH / FILTER / COPY LINK
+     ========================================================= -->
+
+<script>
+(function () {
+
+    const search =
+        document.getElementById("groupSearch");
+
+    const cards =
+        Array.from(
+            document.querySelectorAll("[data-group-card]")
+        );
+
+    const filters =
+        Array.from(
+            document.querySelectorAll(
+                "#groupFilters .workspace-filter"
+            )
+        );
+
+    const count =
+        document.getElementById("groupResultCount");
+
+    const empty =
+        document.getElementById("groupNoResults");
+
+    let currentFilter = "all";
+
+
+    function updateGroups() {
+
+        const query =
+            (search?.value || "")
+                .trim()
+                .toLowerCase();
+
+        let visible = 0;
+
+
+        cards.forEach(function (card) {
+
+            const matchesSearch =
+                !query
+                || card.dataset.name.includes(query);
+
+            const matchesFilter =
+                currentFilter === "all"
+                || card.dataset.role === currentFilter;
+
+            const show =
+                matchesSearch && matchesFilter;
+
+            card.hidden = !show;
+
+            if (show) {
+                visible += 1;
+            }
+
+        });
+
+
+        if (count) {
+            count.textContent =
+                visible
+                + (
+                    visible === 1
+                        ? " group"
+                        : " groups"
+                );
+        }
+
+
+        if (empty) {
+            empty.hidden =
+                visible !== 0
+                || cards.length === 0;
+        }
+
+    }
+
+
+    search?.addEventListener(
+        "input",
+        updateGroups
+    );
+
+
+    filters.forEach(function (button) {
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                currentFilter =
+                    button.dataset.filter;
+
+                filters.forEach(
+                    item =>
+                        item.classList.remove("active")
+                );
+
+                button.classList.add("active");
+
+                updateGroups();
+            }
+        );
+
+    });
+
+
+    document
+        .querySelectorAll(".group-copy-btn")
+        .forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                async function () {
+
+                    const link =
+                        window.location.origin
+                        + button.dataset.groupLink;
+
+                    try {
+
+                        await navigator.clipboard
+                            .writeText(link);
+
+                        const original =
+                            button.textContent;
+
+                        button.textContent =
+                            "Copied";
+
+                        setTimeout(
+                            () => {
+                                button.textContent =
+                                    original;
+                            },
+                            1500
+                        );
+
+                    } catch (error) {
+
+                        window.prompt(
+                            "Copy this group link:",
+                            link
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    updateGroups();
+
+})();
+</script>
+
+
+<script src="/static/js/db.js"></script>
+<script src="/static/js/sync.js"></script>
+<script src="/static/js/offline.js"></script>
+
+<script src="/static/js/workspace-premium.js?v=20260812c"></script>
 </body>
 </html>

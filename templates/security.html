@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
+
+<title>
+    Security · ExpenseX
+</title>
+
+<script>
+(() => {
+    const theme =
+        localStorage.getItem(
+            "expense-manager-theme"
+        ) || "dark";
+
+    document.documentElement.setAttribute(
+        "data-theme",
+        theme
+    );
+})();
+</script>
+
+<link
+    rel="stylesheet"
+    href="/static/security-biometric.css?v=20260812">
+
+</head>
+
+
+<body
+    class="security-page"
+    data-security-csrf="{{ csrf_token }}">
+
+
+<div class="security-shell">
+
+
+    <header class="security-topbar">
+
+        <a
+            href="/"
+            class="security-brand">
+
+            <img
+                src="/static/logo.png"
+                alt="ExpenseX">
+
+            <div>
+
+                <strong>
+                    Account Security
+                </strong>
+
+                <span>
+                    Device verification
+                </span>
+
+            </div>
+
+        </a>
+
+
+        <a
+            href="/"
+            class="security-back">
+
+            Dashboard
+
+        </a>
+
+    </header>
+
+
+    <main class="security-main">
+
+
+        <section class="security-intro">
+
+            <span>
+                Security center
+            </span>
+
+            <h1>
+                Protect your account
+                with device authentication.
+            </h1>
+
+            <p>
+                Use Touch ID, fingerprint, Face ID,
+                Windows Hello or your device's secure
+                unlock method to sign in to ExpenseX.
+            </p>
+
+        </section>
+
+
+
+        <section class="security-grid">
+
+
+            <article class="security-card security-primary">
+
+                <div class="security-icon">
+                    ◎
+                </div>
+
+
+                <div class="security-card-copy">
+
+                    <span>
+                        Device authentication
+                    </span>
+
+                    <h2>
+                        Fingerprint / device unlock
+                    </h2>
+
+                    <p>
+                        Your biometric information stays
+                        with your device. ExpenseX stores
+                        only the secure public credential
+                        needed to verify future sign-ins.
+                    </p>
+
+                </div>
+
+
+                <div
+                    class="security-status"
+                    id="biometricStatus">
+
+                    Checking this device…
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="enableBiometricBtn"
+                    class="security-primary-btn">
+
+                    Enable on this device
+
+                </button>
+
+
+                <div
+                    class="security-message"
+                    id="biometricMessage">
+                </div>
+
+            </article>
+
+
+
+            <article class="security-card">
+
+                <div class="security-card-copy">
+
+                    <span>
+                        Registered devices
+                    </span>
+
+                    <h2>
+                        Trusted authenticators
+                    </h2>
+
+                    <p>
+                        Remove a credential if you no
+                        longer use that device.
+                    </p>
+
+                </div>
+
+
+                <div class="security-devices">
+
+
+                    {% if credentials %}
+
+                        {% for credential in credentials %}
+
+                        <div class="security-device">
+
+                            <div>
+
+                                <strong>
+                                    {{ credential[1] or 'Trusted device' }}
+                                </strong>
+
+                                <span>
+                                    Added {{ credential[2] }}
+                                </span>
+
+                            </div>
+
+
+                            <form
+                                action="/security/remove-device"
+                                method="POST">
+
+                                <input
+                                    type="hidden"
+                                    name="csrf_token"
+                                    value="{{ csrf_token }}">
+
+                                <input
+                                    type="hidden"
+                                    name="credential_id"
+                                    value="{{ credential[0] }}">
+
+                                <button
+                                    type="submit"
+                                    onclick="
+                                        return confirm(
+                                            'Remove this trusted device?'
+                                        );
+                                    ">
+
+                                    Remove
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                        {% endfor %}
+
+
+                    {% else %}
+
+                    <div class="security-empty">
+
+                        No fingerprint or device
+                        credentials registered yet.
+
+                    </div>
+
+                    {% endif %}
+
+
+                </div>
+
+            </article>
+
+
+        </section>
+
+
+    </main>
+
+
+</div>
+
+
+<script
+    src="/static/js/biometric-auth.js?v=20260812">
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,144 @@
+/* ==========================================================
+   PROFESSIONAL FINANCE CHARTS
+   ========================================================== */
+
+.dashboard-premium-v2
+.chart-card {
+    position: relative;
+
+    overflow: hidden;
+
+    padding: 21px !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075) !important;
+
+    border-radius:
+        19px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #141920,
+            #0e1217
+        ) !important;
+
+    box-shadow:
+        0 17px 45px
+        rgba(0,0,0,.22) !important;
+}
+
+
+.dashboard-premium-v2
+.chart-card::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 20px;
+
+    width: 68px;
+    height: 2px;
+
+    border-radius:
+        0 0 999px 999px;
+
+    background:
+        #7a8797;
+
+    opacity: .7;
+}
+
+
+.dashboard-premium-v2
+.chart-card h2 {
+    margin-bottom:
+        4px !important;
+
+    color:
+        #e8ecef !important;
+
+    font-size:
+        1rem !important;
+
+    font-weight:
+        700 !important;
+}
+
+
+.dashboard-premium-v2
+.trend-sub {
+    margin-top:
+        3px !important;
+
+    color:
+        #66727e !important;
+
+    font-size:
+        .66rem !important;
+}
+
+
+.dashboard-premium-v2
+.chart-container {
+    position: relative;
+
+    padding:
+        9px 5px 2px;
+}
+
+
+.dashboard-premium-v2
+.chart-toggle-btn {
+    min-height:
+        34px;
+
+    padding:
+        6px 10px !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08) !important;
+
+    border-radius:
+        8px !important;
+
+    background:
+        #171d24 !important;
+
+    color:
+        #909ca8 !important;
+
+    font-size:
+        .63rem !important;
+
+    font-weight:
+        650 !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+.dashboard-premium-v2
+.chart-toggle-btn:hover {
+    border-color:
+        rgba(255,255,255,.14) !important;
+
+    background:
+        #1c242d !important;
+
+    color:
+        #dfe4e9 !important;
+}
+
+
+/* remove emoji styling feel */
+
+.dashboard-premium-v2
+#toggleTrendChartBtn {
+    letter-spacing:
+        .01em;
+}

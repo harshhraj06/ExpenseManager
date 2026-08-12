@@ -1,0 +1,548 @@
+* {
+    box-sizing: border-box;
+}
+
+
+body.security-page {
+    margin: 0;
+
+    min-height: 100vh;
+
+    background: #090d11;
+
+    color: #edf1f4;
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+
+.security-shell {
+    width:
+        min(1180px, calc(100% - 28px));
+
+    margin: auto;
+
+    padding: 15px 0 50px;
+}
+
+
+.security-topbar {
+    min-height: 66px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 10px 13px;
+
+    border:
+        1px solid rgba(255,255,255,.075);
+
+    border-radius: 13px;
+
+    background: #10151a;
+}
+
+
+.security-brand {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    color: inherit;
+
+    text-decoration: none;
+}
+
+
+.security-brand img {
+    width: 140px;
+    height: 40px;
+
+    object-fit: contain;
+
+    border-radius: 6px;
+}
+
+
+.security-brand strong,
+.security-brand span {
+    display: block;
+}
+
+
+.security-brand strong {
+    font-size: .72rem;
+}
+
+
+.security-brand span {
+    margin-top: 2px;
+
+    color: #6f7b85;
+
+    font-size: .52rem;
+}
+
+
+.security-back {
+    padding: 8px 11px;
+
+    border:
+        1px solid rgba(255,255,255,.08);
+
+    border-radius: 8px;
+
+    color: #abb5bd;
+
+    font-size: .58rem;
+
+    text-decoration: none;
+}
+
+
+.security-intro {
+    padding: 45px 4px 28px;
+}
+
+
+.security-intro > span {
+    color: #8c7969;
+
+    font-size: .55rem;
+
+    font-weight: 750;
+
+    letter-spacing: .11em;
+
+    text-transform: uppercase;
+}
+
+
+.security-intro h1 {
+    max-width: 760px;
+
+    margin: 7px 0 0;
+
+    font-size:
+        clamp(2.2rem,5vw,4rem);
+
+    line-height: 1;
+
+    letter-spacing: -.055em;
+}
+
+
+.security-intro p {
+    max-width: 650px;
+
+    margin: 13px 0 0;
+
+    color: #707c86;
+
+    font-size: .68rem;
+
+    line-height: 1.65;
+}
+
+
+.security-grid {
+    display: grid;
+
+    grid-template-columns:
+        1.05fr .95fr;
+
+    gap: 10px;
+}
+
+
+.security-card {
+    padding: 22px;
+
+    border:
+        1px solid rgba(255,255,255,.075);
+
+    border-radius: 13px;
+
+    background: #11171d;
+}
+
+
+.security-primary {
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+.security-icon {
+    width: 46px;
+    height: 46px;
+
+    display: grid;
+    place-items: center;
+
+    margin-bottom: 24px;
+
+    border:
+        1px solid rgba(255,255,255,.08);
+
+    border-radius: 12px;
+
+    background: #171e25;
+
+    color: #a7b1b9;
+
+    font-size: 1.35rem;
+}
+
+
+.security-card-copy > span {
+    color: #73808a;
+
+    font-size: .5rem;
+
+    font-weight: 750;
+
+    letter-spacing: .09em;
+
+    text-transform: uppercase;
+}
+
+
+.security-card-copy h2 {
+    margin: 6px 0 0;
+
+    font-size: 1.15rem;
+}
+
+
+.security-card-copy p {
+    max-width: 540px;
+
+    margin: 8px 0 0;
+
+    color: #707c86;
+
+    font-size: .61rem;
+
+    line-height: 1.58;
+}
+
+
+.security-status {
+    margin-top: 22px;
+
+    padding: 10px 11px;
+
+    border:
+        1px solid rgba(255,255,255,.065);
+
+    border-radius: 8px;
+
+    background: #0d1217;
+
+    color: #8f9ba5;
+
+    font-size: .57rem;
+}
+
+
+.security-primary-btn {
+    width: 100%;
+
+    min-height: 43px;
+
+    margin-top: 9px;
+
+    border:
+        1px solid #e8ebed;
+
+    border-radius: 8px;
+
+    background: #e8ebed;
+
+    color: #171c21;
+
+    font: inherit;
+
+    font-size: .62rem;
+
+    font-weight: 740;
+
+    cursor: pointer;
+}
+
+
+.security-primary-btn:disabled {
+    opacity: .45;
+
+    cursor: not-allowed;
+}
+
+
+.security-message {
+    min-height: 20px;
+
+    margin-top: 9px;
+
+    color: #91a69a;
+
+    font-size: .55rem;
+}
+
+
+.security-devices {
+    display: grid;
+
+    gap: 7px;
+
+    margin-top: 20px;
+}
+
+
+.security-device {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 12px;
+
+    border:
+        1px solid rgba(255,255,255,.06);
+
+    border-radius: 9px;
+
+    background: #0d1217;
+}
+
+
+.security-device strong,
+.security-device span {
+    display: block;
+}
+
+
+.security-device strong {
+    color: #d1d7dc;
+
+    font-size: .62rem;
+}
+
+
+.security-device span {
+    margin-top: 4px;
+
+    color: #65717b;
+
+    font-size: .48rem;
+}
+
+
+.security-device button {
+    padding: 6px 8px;
+
+    border:
+        1px solid rgba(160,85,89,.14);
+
+    border-radius: 7px;
+
+    background:
+        rgba(113,62,65,.08);
+
+    color: #aa7d80;
+
+    font: inherit;
+
+    font-size: .5rem;
+
+    cursor: pointer;
+}
+
+
+.security-empty {
+    padding: 24px;
+
+    border:
+        1px dashed rgba(255,255,255,.08);
+
+    border-radius: 9px;
+
+    color: #68747e;
+
+    font-size: .56rem;
+
+    text-align: center;
+}
+
+
+/* LOGIN BUTTON */
+
+.biometric-login-block {
+    width: 100%;
+
+    margin-top: 14px;
+}
+
+
+.biometric-divider {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin: 11px 0;
+}
+
+
+.biometric-divider::before,
+.biometric-divider::after {
+    content: "";
+
+    height: 1px;
+
+    flex: 1;
+
+    background:
+        rgba(255,255,255,.08);
+}
+
+
+.biometric-divider span {
+    color: #636f79;
+
+    font-size: .53rem;
+
+    text-transform: uppercase;
+}
+
+
+.biometric-login-btn {
+    width: 100%;
+
+    min-height: 45px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    border:
+        1px solid rgba(255,255,255,.09);
+
+    border-radius: 9px;
+
+    background: #151b21;
+
+    color: #dbe1e5;
+
+    font: inherit;
+
+    font-size: .65rem;
+
+    font-weight: 680;
+
+    cursor: pointer;
+}
+
+
+.biometric-login-btn:hover {
+    background: #1a2128;
+}
+
+
+.biometric-login-icon {
+    font-size: 1rem;
+}
+
+
+.biometric-login-message {
+    min-height: 18px;
+
+    margin-top: 7px;
+
+    color: #7e8a94;
+
+    font-size: .53rem;
+
+    text-align: center;
+}
+
+
+/* DASHBOARD SECURITY LINK */
+
+.profile-security-entry {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    margin-top: 8px;
+
+    padding: 9px;
+
+    border:
+        1px solid rgba(255,255,255,.06);
+
+    border-radius: 8px;
+
+    background:
+        rgba(255,255,255,.025);
+
+    color: #d6dce1;
+
+    font-size: .56rem;
+
+    text-decoration: none;
+}
+
+
+.profile-security-entry span {
+    color: #8f9aa3;
+}
+
+
+@media (max-width: 760px) {
+
+    .security-shell {
+        width: calc(100% - 14px);
+
+        padding-top: 7px;
+    }
+
+
+    .security-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .security-intro {
+        padding:
+            30px 3px 20px;
+    }
+
+
+    .security-intro h1 {
+        font-size: 2.5rem;
+    }
+
+
+    .security-card {
+        padding: 16px;
+    }
+
+}

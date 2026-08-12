@@ -1,10 +1,20 @@
+from flask import redirect, url_for
+from flask import flash
 import os
+import base64
 import re
 import json
 import secrets
 import db_compat as sqlite3
 import requests
-from html import escape
+from dotenv import load_dotenv
+from cryptography.fernet import Fernet
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials as GoogleCredentials
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from html import escape, unescape
+from email.utils import parseaddr
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from urllib.parse import urlencode
@@ -12,6 +22,8 @@ from urllib.parse import urlencode
 from flask import Flask, render_template, request, redirect, session, send_file, send_from_directory, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+
+load_dotenv()
 
 # DATABASE: now stored in a free Render PostgreSQL database instead of a
 # local SQLite file. Render's web service filesystem is wiped on every
@@ -52,6 +64,17 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 
 app = Flask(__name__)
+
+from biometric_auth import biometric_bp
+app.register_blueprint(biometric_bp)
+
+
+# ============================================================
+# ADMIN ADVERTISING / SPONSORSHIP
+# ============================================================
+from admin_ads import admin_ads_bp
+app.register_blueprint(admin_ads_bp)
+
 
 @app.route("/service-worker.js")
 def service_worker():
@@ -969,9 +992,24 @@ def ask_expense_manager_ai(user_id, question):
 
     context = _build_financial_context(user_id)
 
+    app_identity = (
+        "Product name: Expense Manager.\n"
+        "Founder, creator and developer: Harsh Raj.\n"
+        "Harsh Raj designed and built Expense Manager.\n"
+        "If the user asks who built this app, who created it, "
+        "who developed it, who the founder is, founder name, "
+        "creator name, developer name, or who owns Expense Manager, "
+        "answer that Harsh Raj is the founder, creator and developer "
+        "of Expense Manager.\n"
+        "Do not confuse the AI model provider with the creator "
+        "of the Expense Manager application."
+    )
+
     system_prompt = (
         "You are 'Ask Expense Manager', a helpful assistant inside a personal "
-        "finance app. Answer the user's question ONLY using the financial data "
+        "finance app. You may answer questions about Expense Manager itself using "
+        "the App identity section below. For financial questions, answer ONLY using "
+        "the financial data "
         "provided below -- never invent numbers that aren't in it. If the data "
         "doesn't contain what's needed to answer, say so plainly. Keep answers "
         "short (2-4 sentences or a short list), friendly, and in INR (₹).\n\n"
@@ -982,6 +1020,7 @@ def ask_expense_manager_ai(user_id, question):
         "this period, or savings for the current month. Always be clear in your "
         "answer about whether a number is all-time or for the current month, so "
         "the user is never confused about which balance you mean.\n\n"
+        f"App identity:\n{app_identity}\n\n"
         f"User's financial data:\n{context}"
     )
 
@@ -1020,31 +1059,75 @@ def ask_expense_manager_ai(user_id, question):
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-
     error = None
 
     if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = _normalise_email(request.form.get("email", ""))
+        raw_password = request.form.get("password", "")
 
-        username = request.form["username"]
-        email    = _normalise_email(request.form["email"])
-        password = generate_password_hash(request.form["password"])
+        if not username or not email or not raw_password:
+            error = "Please fill in all fields."
+            return render_template("register.html", error=error)
 
-        conn   = sqlite3.connect(DB_PATH)
+        password = generate_password_hash(raw_password)
+
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
         try:
+            # Check if account already exists
             cursor.execute(
-                "INSERT INTO users (username,email,password) VALUES (?,?,?)",
+                "SELECT id FROM users WHERE LOWER(email) = LOWER(?)",
+                (email,)
+            )
+            existing_user = cursor.fetchone()
+
+            if existing_user:
+                conn.close()
+
+                flash(
+                    "An account with this email already exists. Please log in.",
+                    "warning"
+                )
+
+                return redirect(url_for("login"))
+
+            # Create new account
+            cursor.execute(
+                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
                 (username, email, password)
             )
+
             conn.commit()
             conn.close()
-            return redirect("/login")
+
+            flash(
+                "Account created successfully. Please log in.",
+                "success"
+            )
+
+            return redirect(url_for("login"))
 
         except sqlite3.IntegrityError:
             conn.rollback()
             conn.close()
-            error = "An account with that email already exists."
+
+            flash(
+                "An account with this email already exists. Please log in.",
+                "warning"
+            )
+
+            return redirect(url_for("login"))
+
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+
+            print("REGISTER ERROR:", repr(e))
+
+            error = "Unable to create account. Please try again."
+            return render_template("register.html", error=error)
 
     return render_template("register.html", error=error)
 
@@ -1196,6 +1279,388 @@ def reset_password(token):
 
     conn.close()
     return render_template("reset_password.html", token=token, error=error, expired=False)
+
+
+
+# ============================================================
+# USER PROFILE / ACCOUNT SETTINGS
+# ============================================================
+
+
+@app.route("/api/profile")
+def profile_api():
+    if "user_id" not in session:
+        return {"error": "Not logged in"}, 401
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT username, email, profile_image
+        FROM users
+        WHERE id=?
+        """,
+        (session["user_id"],)
+    )
+
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return {"error": "User not found"}, 404
+
+    return {
+        "username": user[0],
+        "email": user[1],
+        "profile_image": user[2] or ""
+    }
+
+
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    message = None
+    error = None
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, username, email, password, upi_id, profile_image
+        FROM users
+        WHERE id=?
+        """,
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        session.clear()
+        return redirect("/login")
+
+    if request.method == "POST":
+
+        action = request.form.get(
+            "action",
+            ""
+        ).strip()
+
+
+        # ----------------------------------------------------
+        # PROFILE DETAILS
+        # ----------------------------------------------------
+
+        if action == "profile":
+
+            username = request.form.get(
+                "username",
+                ""
+            ).strip()
+
+            email = _normalise_email(
+                request.form.get(
+                    "email",
+                    ""
+                )
+            )
+
+            upi_id = request.form.get(
+                "upi_id",
+                ""
+            ).strip()
+
+
+            if len(username) < 2:
+
+                error = (
+                    "Name must contain at least 2 characters."
+                )
+
+
+            elif (
+                not email
+                or "@" not in email
+            ):
+
+                error = (
+                    "Enter a valid email address."
+                )
+
+
+            else:
+
+                cursor.execute(
+                    """
+                    SELECT id
+                    FROM users
+                    WHERE email=?
+                    AND id<>?
+                    """,
+                    (
+                        email,
+                        user_id
+                    )
+                )
+
+                duplicate = cursor.fetchone()
+
+
+                if duplicate:
+
+                    error = (
+                        "That email address is already "
+                        "used by another account."
+                    )
+
+
+                else:
+
+                    try:
+
+                        cursor.execute(
+                            """
+                            UPDATE users
+                            SET
+                                username=?,
+                                email=?,
+                                upi_id=?
+                            WHERE id=?
+                            """,
+                            (
+                                username,
+                                email,
+                                upi_id or None,
+                                user_id
+                            )
+                        )
+
+                        conn.commit()
+
+                        session["username"] = username
+                        session["email"] = email
+
+                        message = (
+                            "Profile updated successfully."
+                        )
+
+
+                    except sqlite3.IntegrityError:
+
+                        conn.rollback()
+
+                        error = (
+                            "That email address is already "
+                            "used by another account."
+                        )
+
+
+        # ----------------------------------------------------
+        # PROFILE PICTURE
+        # ----------------------------------------------------
+
+        elif action == "picture":
+
+            import base64
+
+            photo = request.files.get(
+                "profile_picture"
+            )
+
+            allowed_types = {
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+            }
+
+            if not photo or not photo.filename:
+
+                error = (
+                    "Choose a profile picture first."
+                )
+
+            elif photo.mimetype not in allowed_types:
+
+                error = (
+                    "Only JPG, PNG and WEBP images "
+                    "are supported."
+                )
+
+            else:
+
+                image_bytes = photo.read()
+
+                if len(image_bytes) > 2 * 1024 * 1024:
+
+                    error = (
+                        "Profile picture must be "
+                        "smaller than 2 MB."
+                    )
+
+                else:
+
+                    encoded = base64.b64encode(
+                        image_bytes
+                    ).decode("utf-8")
+
+                    profile_image = (
+                        "data:"
+                        + photo.mimetype
+                        + ";base64,"
+                        + encoded
+                    )
+
+                    cursor.execute(
+                        """
+                        UPDATE users
+                        SET profile_image=?
+                        WHERE id=?
+                        """,
+                        (
+                            profile_image,
+                            user_id
+                        )
+                    )
+
+                    conn.commit()
+
+                    message = (
+                        "Profile picture updated."
+                    )
+
+
+        # ----------------------------------------------------
+        # REMOVE PROFILE PICTURE
+        # ----------------------------------------------------
+
+        elif action == "remove_picture":
+
+            cursor.execute(
+                """
+                UPDATE users
+                SET profile_image=NULL
+                WHERE id=?
+                """,
+                (user_id,)
+            )
+
+            conn.commit()
+
+            message = (
+                "Profile picture removed."
+            )
+
+
+        # ----------------------------------------------------
+        # PASSWORD
+        # ----------------------------------------------------
+
+        elif action == "password":
+
+            current_password = request.form.get(
+                "current_password",
+                ""
+            )
+
+            new_password = request.form.get(
+                "new_password",
+                ""
+            )
+
+            confirm_password = request.form.get(
+                "confirm_password",
+                ""
+            )
+
+
+            if not check_password_hash(
+                user[3],
+                current_password
+            ):
+
+                error = (
+                    "Current password is incorrect."
+                )
+
+
+            elif len(new_password) < 6:
+
+                error = (
+                    "New password must contain "
+                    "at least 6 characters."
+                )
+
+
+            elif new_password != confirm_password:
+
+                error = (
+                    "New passwords do not match."
+                )
+
+
+            else:
+
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET password=?
+                    WHERE id=?
+                    """,
+                    (
+                        generate_password_hash(
+                            new_password
+                        ),
+                        user_id
+                    )
+                )
+
+                conn.commit()
+
+                message = (
+                    "Password changed successfully."
+                )
+
+
+        # ----------------------------------------------------
+        # REFRESH USER AFTER UPDATE
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT id, username, email, password, upi_id, profile_image
+            FROM users
+            WHERE id=?
+            """,
+            (user_id,)
+        )
+
+        user = cursor.fetchone()
+
+
+    profile_data = {
+        "username": user[1],
+        "email": user[2],
+        "upi_id": user[4] or "",
+        "profile_image": user[5] or "",
+    }
+
+
+    conn.close()
+
+
+    return render_template(
+        "profile.html",
+        profile=profile_data,
+        message=message,
+        error=error
+    )
 
 
 @app.route("/logout")
@@ -2339,9 +2804,660 @@ def pay_bill(bill_id):
     return redirect("/bills")
 
 
+
+# ============================================================
+# BILL / INVOICE STUDIO
+# ============================================================
+
+def _invoice_float(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_bill_invoice_data(cursor, bill_id, user_id):
+    import json
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            user_id,
+            name,
+            amount,
+            category,
+            due_date,
+            recurrence,
+            status,
+            last_generated_date
+        FROM bills
+        WHERE id=? AND user_id=?
+        """,
+        (bill_id, user_id)
+    )
+
+    row = cursor.fetchone()
+
+    if not row:
+        return None, None
+
+    bill = {
+        "id": row[0],
+        "user_id": row[1],
+        "name": row[2],
+        "amount": float(row[3]),
+        "category": row[4],
+        "due_date": row[5],
+        "recurrence": row[6],
+        "status": row[7],
+        "paid_date": row[8],
+    }
+
+    cursor.execute(
+        """
+        SELECT username, email
+        FROM users
+        WHERE id=?
+        """,
+        (user_id,)
+    )
+
+    user_row = cursor.fetchone()
+
+    user = {
+        "username": (
+            user_row[0]
+            if user_row
+            else "User"
+        ),
+        "email": (
+            user_row[1]
+            if user_row
+            else ""
+        ),
+    }
+
+    cursor.execute(
+        """
+        SELECT
+            document_title,
+            business_name,
+            business_email,
+            business_phone,
+            business_address,
+            bill_to_name,
+            bill_to_email,
+            bill_to_address,
+            invoice_number,
+            issue_date,
+            items_json,
+            tax_percent,
+            discount_amount,
+            extra_charges,
+            payment_method,
+            notes,
+            footer_text,
+            accent
+        FROM bill_invoice_settings
+        WHERE bill_id=? AND user_id=?
+        """,
+        (bill_id, user_id)
+    )
+
+    settings_row = cursor.fetchone()
+
+    if settings_row:
+
+        try:
+            items = json.loads(
+                settings_row[10]
+                or "[]"
+            )
+        except Exception:
+            items = []
+
+        settings = {
+            "document_title": settings_row[0] or "INVOICE",
+            "business_name": settings_row[1] or "Expense Manager",
+            "business_email": settings_row[2] or "",
+            "business_phone": settings_row[3] or "",
+            "business_address": settings_row[4] or "",
+            "bill_to_name": settings_row[5] or user["username"],
+            "bill_to_email": settings_row[6] or user["email"],
+            "bill_to_address": settings_row[7] or "",
+            "invoice_number": settings_row[8] or f"INV-{bill_id:05d}",
+            "issue_date": settings_row[9] or date.today().strftime("%Y-%m-%d"),
+            "items": items,
+            "tax_percent": float(settings_row[11] or 0),
+            "discount_amount": float(settings_row[12] or 0),
+            "extra_charges": float(settings_row[13] or 0),
+            "payment_method": settings_row[14] or "",
+            "notes": settings_row[15] or "",
+            "footer_text": settings_row[16] or "",
+            "accent": settings_row[17] or "slate",
+        }
+
+    else:
+
+        paid = (
+            bill["status"]
+            == "paid"
+        )
+
+        settings = {
+            "document_title": (
+                "PAYMENT RECEIPT"
+                if paid
+                else "INVOICE"
+            ),
+
+            "business_name": "Expense Manager",
+            "business_email": "",
+            "business_phone": "",
+            "business_address": "",
+
+            "bill_to_name": user["username"],
+            "bill_to_email": user["email"],
+            "bill_to_address": "",
+
+            "invoice_number": (
+                (
+                    "RCP-"
+                    if paid
+                    else "INV-"
+                )
+                + f"{bill_id:05d}"
+            ),
+
+            "issue_date": (
+                bill["paid_date"]
+                if paid
+                and bill["paid_date"]
+                else date.today().strftime(
+                    "%Y-%m-%d"
+                )
+            ),
+
+            "items": [
+                {
+                    "description": bill["name"],
+                    "quantity": 1,
+                    "rate": bill["amount"],
+                }
+            ],
+
+            "tax_percent": 0,
+            "discount_amount": 0,
+            "extra_charges": 0,
+
+            "payment_method": (
+                "Recorded payment"
+                if paid
+                else "Pending"
+            ),
+
+            "notes": "",
+
+            "footer_text": (
+                "Generated by Expense Manager. "
+                "This is a computer-generated document."
+            ),
+
+            "accent": "slate",
+        }
+
+    if not settings["items"]:
+        settings["items"] = [
+            {
+                "description": bill["name"],
+                "quantity": 1,
+                "rate": bill["amount"],
+            }
+        ]
+
+    return bill, {
+        "user": user,
+        "settings": settings,
+    }
+
+
+@app.route(
+    "/bill_invoice_editor/<int:bill_id>",
+    methods=["GET", "POST"]
+)
+def bill_invoice_editor(bill_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    bill, data = _get_bill_invoice_data(
+        cursor,
+        bill_id,
+        user_id
+    )
+
+    if not bill:
+        conn.close()
+        return redirect("/bills")
+
+    if request.method == "POST":
+
+        import json
+
+        descriptions = request.form.getlist(
+            "item_description"
+        )
+
+        quantities = request.form.getlist(
+            "item_quantity"
+        )
+
+        rates = request.form.getlist(
+            "item_rate"
+        )
+
+        items = []
+
+        count = min(
+            max(
+                len(descriptions),
+                len(quantities),
+                len(rates)
+            ),
+            20
+        )
+
+        for index in range(count):
+
+            description = (
+                descriptions[index].strip()
+                if index < len(descriptions)
+                else ""
+            )
+
+            if not description:
+                continue
+
+            quantity = max(
+                _invoice_float(
+                    quantities[index]
+                    if index < len(quantities)
+                    else 1,
+                    1
+                ),
+                0
+            )
+
+            rate = max(
+                _invoice_float(
+                    rates[index]
+                    if index < len(rates)
+                    else 0
+                ),
+                0
+            )
+
+            items.append({
+                "description": description[:180],
+                "quantity": quantity,
+                "rate": rate,
+            })
+
+        if not items:
+            items = [
+                {
+                    "description": bill["name"],
+                    "quantity": 1,
+                    "rate": bill["amount"],
+                }
+            ]
+
+        accent = request.form.get(
+            "accent",
+            "slate"
+        )
+
+        if accent not in (
+            "slate",
+            "blue",
+            "sage",
+            "copper",
+            "plum",
+        ):
+            accent = "slate"
+
+        values = {
+            "document_title": request.form.get(
+                "document_title",
+                "INVOICE"
+            ).strip()[:60],
+
+            "business_name": request.form.get(
+                "business_name",
+                ""
+            ).strip()[:120],
+
+            "business_email": request.form.get(
+                "business_email",
+                ""
+            ).strip()[:160],
+
+            "business_phone": request.form.get(
+                "business_phone",
+                ""
+            ).strip()[:80],
+
+            "business_address": request.form.get(
+                "business_address",
+                ""
+            ).strip()[:800],
+
+            "bill_to_name": request.form.get(
+                "bill_to_name",
+                ""
+            ).strip()[:120],
+
+            "bill_to_email": request.form.get(
+                "bill_to_email",
+                ""
+            ).strip()[:160],
+
+            "bill_to_address": request.form.get(
+                "bill_to_address",
+                ""
+            ).strip()[:800],
+
+            "invoice_number": request.form.get(
+                "invoice_number",
+                ""
+            ).strip()[:80],
+
+            "issue_date": request.form.get(
+                "issue_date",
+                ""
+            ).strip()[:30],
+
+            "items_json": json.dumps(
+                items
+            ),
+
+            "tax_percent": max(
+                _invoice_float(
+                    request.form.get(
+                        "tax_percent"
+                    )
+                ),
+                0
+            ),
+
+            "discount_amount": max(
+                _invoice_float(
+                    request.form.get(
+                        "discount_amount"
+                    )
+                ),
+                0
+            ),
+
+            "extra_charges": max(
+                _invoice_float(
+                    request.form.get(
+                        "extra_charges"
+                    )
+                ),
+                0
+            ),
+
+            "payment_method": request.form.get(
+                "payment_method",
+                ""
+            ).strip()[:120],
+
+            "notes": request.form.get(
+                "notes",
+                ""
+            ).strip()[:1200],
+
+            "footer_text": request.form.get(
+                "footer_text",
+                ""
+            ).strip()[:500],
+
+            "accent": accent,
+        }
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM bill_invoice_settings
+            WHERE bill_id=? AND user_id=?
+            """,
+            (
+                bill_id,
+                user_id
+            )
+        )
+
+        existing = cursor.fetchone()
+
+        if existing:
+
+            cursor.execute(
+                """
+                UPDATE bill_invoice_settings
+                SET
+                    document_title=?,
+                    business_name=?,
+                    business_email=?,
+                    business_phone=?,
+                    business_address=?,
+
+                    bill_to_name=?,
+                    bill_to_email=?,
+                    bill_to_address=?,
+
+                    invoice_number=?,
+                    issue_date=?,
+                    items_json=?,
+
+                    tax_percent=?,
+                    discount_amount=?,
+                    extra_charges=?,
+
+                    payment_method=?,
+                    notes=?,
+                    footer_text=?,
+                    accent=?,
+                    updated_at=CURRENT_TIMESTAMP
+
+                WHERE
+                    bill_id=?
+                    AND user_id=?
+                """,
+                (
+                    values["document_title"],
+                    values["business_name"],
+                    values["business_email"],
+                    values["business_phone"],
+                    values["business_address"],
+
+                    values["bill_to_name"],
+                    values["bill_to_email"],
+                    values["bill_to_address"],
+
+                    values["invoice_number"],
+                    values["issue_date"],
+                    values["items_json"],
+
+                    values["tax_percent"],
+                    values["discount_amount"],
+                    values["extra_charges"],
+
+                    values["payment_method"],
+                    values["notes"],
+                    values["footer_text"],
+                    values["accent"],
+
+                    bill_id,
+                    user_id,
+                )
+            )
+
+        else:
+
+            cursor.execute(
+                """
+                INSERT INTO bill_invoice_settings
+                (
+                    bill_id,
+                    user_id,
+
+                    document_title,
+                    business_name,
+                    business_email,
+                    business_phone,
+                    business_address,
+
+                    bill_to_name,
+                    bill_to_email,
+                    bill_to_address,
+
+                    invoice_number,
+                    issue_date,
+                    items_json,
+
+                    tax_percent,
+                    discount_amount,
+                    extra_charges,
+
+                    payment_method,
+                    notes,
+                    footer_text,
+                    accent
+                )
+
+                VALUES
+                (
+                    ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?
+                )
+                """,
+                (
+                    bill_id,
+                    user_id,
+
+                    values["document_title"],
+                    values["business_name"],
+                    values["business_email"],
+                    values["business_phone"],
+                    values["business_address"],
+
+                    values["bill_to_name"],
+                    values["bill_to_email"],
+                    values["bill_to_address"],
+
+                    values["invoice_number"],
+                    values["issue_date"],
+                    values["items_json"],
+
+                    values["tax_percent"],
+                    values["discount_amount"],
+                    values["extra_charges"],
+
+                    values["payment_method"],
+                    values["notes"],
+                    values["footer_text"],
+                    values["accent"],
+                )
+            )
+
+        conn.commit()
+        conn.close()
+
+        if (
+            request.form.get(
+                "after_save"
+            )
+            == "download"
+        ):
+            return redirect(
+                f"/bill_invoice/{bill_id}"
+            )
+
+        return redirect(
+            f"/bill_invoice_editor/{bill_id}?saved=1"
+        )
+
+    conn.close()
+
+    return render_template(
+        "bill_invoice_editor.html",
+        bill=bill,
+        invoice_user=data["user"],
+        settings=data["settings"],
+    )
+
+
+@app.route(
+    "/bill_invoice/<int:bill_id>"
+)
+def bill_invoice_pdf(bill_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    bill, data = _get_bill_invoice_data(
+        cursor,
+        bill_id,
+        session["user_id"]
+    )
+
+    conn.close()
+
+    if not bill:
+        return redirect("/bills")
+
+    from invoice_service import (
+        build_bill_invoice_pdf
+    )
+
+    buffer, filename, _ = (
+        build_bill_invoice_pdf(
+            bill,
+            data["user"],
+            data["settings"],
+        )
+    )
+
+    return send_file(
+        buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+
 @app.route("/bill_receipt/<int:bill_id>")
 def bill_receipt(bill_id):
-    """Generate and download a PDF receipt for a paid bill."""
+    """
+    Backwards-compatible receipt URL.
+    Paid-bill receipt downloads now use the professional
+    Bill & Invoice Studio PDF generator.
+    """
     if "user_id" not in session:
         return redirect("/login")
 
@@ -2350,139 +3466,24 @@ def bill_receipt(bill_id):
 
     cursor.execute(
         """
-        SELECT id, user_id, name, amount, category, due_date,
-               recurrence, status, last_generated_date
+        SELECT id
         FROM bills
-        WHERE id=? AND user_id=? AND status='paid'
+        WHERE id=? AND user_id=?
         """,
-        (bill_id, session["user_id"])
+        (
+            bill_id,
+            session["user_id"]
+        )
     )
-    bill = cursor.fetchone()
 
-    cursor.execute(
-        "SELECT username FROM users WHERE id=?",
-        (session["user_id"],)
-    )
-    user = cursor.fetchone()
+    bill = cursor.fetchone()
     conn.close()
 
-    if bill is None:
+    if not bill:
         return redirect("/bills")
 
-    bill_name = bill[2]
-    bill_amount = float(bill[3])
-    bill_category = bill[4]
-    bill_due_date = bill[5]
-    bill_paid_date = bill[8] or date.today().strftime("%Y-%m-%d")
-    username = user[0] if user else "User"
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=20 * mm,
-        leftMargin=20 * mm,
-        topMargin=20 * mm,
-        bottomMargin=20 * mm
-    )
-
-    styles = getSampleStyleSheet()
-
-    title_style = ParagraphStyle(
-        "Title", fontSize=11, fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#111827"), alignment=TA_CENTER, spaceAfter=2
-    )
-    sub_style = ParagraphStyle(
-        "Sub", fontSize=10, fontName="Helvetica",
-        textColor=colors.HexColor("#6b7280"), alignment=TA_CENTER, spaceAfter=2
-    )
-    amount_style = ParagraphStyle(
-        "Amount", fontSize=11, fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#16a34a"), alignment=TA_CENTER, spaceAfter=2
-    )
-    paid_style = ParagraphStyle(
-        "Paid", fontSize=11, fontName="Helvetica-Bold",
-        textColor=colors.HexColor("#16a34a"), alignment=TA_CENTER, spaceAfter=2
-    )
-    footer_style = ParagraphStyle(
-        "Footer", fontSize=8, fontName="Helvetica",
-        textColor=colors.HexColor("#9ca3af"), alignment=TA_CENTER
-    )
-
-    story = []
-    story.append(Spacer(1, 6 * mm))
-    story.append(Paragraph("Expense Manager", title_style))
-    story.append(Paragraph("Payment Receipt", sub_style))
-    story.append(Spacer(1, 4 * mm))
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb")))
-    story.append(Spacer(1, 6 * mm))
-
-    story.append(Paragraph(f"Rs. {bill_amount:,.2f}", amount_style))
-    story.append(Paragraph("PAID", paid_style))
-    story.append(Spacer(1, 6 * mm))
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb")))
-    story.append(Spacer(1, 6 * mm))
-
-    details = [
-        ["Bill Name", bill_name],
-        ["Category", bill_category],
-        ["Due Date", bill_due_date],
-        ["Date Paid", bill_paid_date],
-        ["Paid By", username],
-        ["Receipt No.", f"RCP-{bill_id:05d}"],
-    ]
-    table = Table(details, colWidths=[55 * mm, 100 * mm])
-    table.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica"),
-        ("FONTNAME", (1, 0), (1, -1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 10),
-        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#6b7280")),
-        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#111827")),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1),
-         [colors.HexColor("#f9fafb"), colors.white]),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-        ("ROUNDEDCORNERS", (0, 0), (-1, -1), [4, 4, 4, 4]),
-    ]))
-    story.append(table)
-    story.append(Spacer(1, 8 * mm))
-
-    status_data = [["Payment Status: Completed"]]
-    status_table = Table(status_data, colWidths=[155 * mm])
-    status_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#dcfce7")),
-        ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#166534")),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 10),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story.append(status_table)
-    story.append(Spacer(1, 10 * mm))
-
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb")))
-    story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(
-        f"Generated on {date.today().strftime('%d %B %Y')} · Expense Manager",
-        footer_style
-    ))
-    story.append(Paragraph(
-        "This is a computer-generated receipt and does not require a signature.",
-        footer_style
-    ))
-
-    doc.build(story)
-    buffer.seek(0)
-
-    filename = f"receipt_{bill_name.replace(' ', '_')}_{bill_paid_date}.pdf"
-    return send_file(
-        buffer,
-        mimetype="application/pdf",
-        as_attachment=True,
-        download_name=filename
+    return redirect(
+        f"/bill_invoice/{bill_id}"
     )
 
 
@@ -6413,6 +7414,3339 @@ def about_expense_manager():
 def health():
     return {"status": "ok"}, 200
 
+
+
+# ============================================================
+# AUTO EXPENSE SYNC ROUTES START
+# ============================================================
+
+
+# ============================================================
+# GMAIL OAUTH CONFIGURATION
+# ============================================================
+
+GMAIL_OAUTH_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly"
+]
+
+
+def _google_oauth_client_config():
+    """
+    Build Google OAuth configuration from environment
+    variables. Secrets are never stored in source code.
+    """
+
+    client_id = os.environ.get(
+        "GOOGLE_CLIENT_ID"
+    )
+
+    client_secret = os.environ.get(
+        "GOOGLE_CLIENT_SECRET"
+    )
+
+    if not client_id or not client_secret:
+        raise RuntimeError(
+            "Google OAuth credentials are not configured."
+        )
+
+    return {
+        "web": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": (
+                "https://accounts.google.com/o/oauth2/auth"
+            ),
+            "token_uri": (
+                "https://oauth2.googleapis.com/token"
+            ),
+        }
+    }
+
+
+def _gmail_oauth_callback_url():
+    """
+    Use whichever local hostname opened Expense Manager.
+
+    127.0.0.1 -> 127.0.0.1 callback
+    localhost -> localhost callback
+
+    Both are already registered in Google Cloud.
+    """
+
+    return (
+        request.host_url.rstrip("/")
+        + "/connected_apps/gmail/callback"
+    )
+
+
+def _prepare_local_google_oauth():
+    """
+    OAuthlib normally expects HTTPS.
+
+    Google explicitly permits HTTP localhost redirects
+    during local development. Never enable insecure
+    transport for production hosts.
+    """
+
+    hostname = request.host.split(":", 1)[0]
+
+    if hostname in {
+        "127.0.0.1",
+        "localhost",
+        "::1",
+    }:
+        os.environ[
+            "OAUTHLIB_INSECURE_TRANSPORT"
+        ] = "1"
+
+
+def _integration_fernet():
+    key = os.environ.get(
+        "INTEGRATION_ENCRYPTION_KEY"
+    )
+
+    if not key:
+        raise RuntimeError(
+            "INTEGRATION_ENCRYPTION_KEY "
+            "is not configured."
+        )
+
+    try:
+        return Fernet(
+            key.encode("utf-8")
+        )
+
+    except Exception as exc:
+        raise RuntimeError(
+            "INTEGRATION_ENCRYPTION_KEY "
+            "is invalid."
+        ) from exc
+
+
+def _encrypt_integration_secret(value):
+    if not value:
+        return None
+
+    return (
+        _integration_fernet()
+        .encrypt(
+            value.encode("utf-8")
+        )
+        .decode("utf-8")
+    )
+
+
+def _decrypt_integration_secret(value):
+    if not value:
+        return None
+
+    return (
+        _integration_fernet()
+        .decrypt(
+            value.encode("utf-8")
+        )
+        .decode("utf-8")
+    )
+
+
+AUTO_SYNC_PROVIDERS = [
+    {
+        "id": "gmail",
+        "name": "Gmail",
+        "subtitle": "Purchase email connection",
+        "method": "oauth",
+        "mode": "Direct connection",
+        "description": (
+            "Securely scan purchase and receipt emails after "
+            "Google authorization."
+        ),
+    },
+    {
+        "id": "amazon",
+        "name": "Amazon",
+        "subtitle": "Shopping orders",
+        "method": "email",
+        "mode": "Via Gmail",
+        "description": (
+            "Detect Amazon order confirmations, invoices "
+            "and purchase totals."
+        ),
+    },
+    {
+        "id": "flipkart",
+        "name": "Flipkart",
+        "subtitle": "Shopping orders",
+        "method": "email",
+        "mode": "Via Gmail",
+        "description": (
+            "Import Flipkart purchases automatically from "
+            "order and invoice emails."
+        ),
+    },
+    {
+        "id": "swiggy",
+        "name": "Swiggy",
+        "subtitle": "Food & Instamart",
+        "method": "hybrid",
+        "mode": "Direct + Email",
+        "description": (
+            "Prepare food and Instamart transactions for "
+            "automatic expense tracking."
+        ),
+    },
+    {
+        "id": "zomato",
+        "name": "Zomato",
+        "subtitle": "Food delivery",
+        "method": "email",
+        "mode": "Via Gmail",
+        "description": (
+            "Detect restaurant orders and automatically "
+            "categorize them as food expenses."
+        ),
+    },
+    {
+        "id": "blinkit",
+        "name": "Blinkit",
+        "subtitle": "Quick commerce",
+        "method": "email",
+        "mode": "Via Gmail",
+        "description": (
+            "Import grocery and quick-commerce order receipts."
+        ),
+    },
+    {
+        "id": "zepto",
+        "name": "Zepto",
+        "subtitle": "Quick commerce",
+        "method": "email",
+        "mode": "Via Gmail",
+        "description": (
+            "Detect Zepto purchase confirmations and totals."
+        ),
+    },
+    {
+        "id": "myntra",
+        "name": "Myntra",
+        "subtitle": "Fashion shopping",
+        "method": "email",
+        "mode": "Via Gmail",
+        "description": (
+            "Automatically identify fashion orders and "
+            "shopping expenses."
+        ),
+    },
+]
+
+
+
+def _ensure_sync_activity_hidden_column():
+    """
+    Add reversible hide support to Sync Activity.
+    Safe to call repeatedly on SQLite and PostgreSQL.
+    """
+    try:
+        if sqlite3.column_exists(
+            "integration_sync_activity",
+            "hidden"
+        ):
+            return
+
+        conn = sqlite3.connect(DB_PATH)
+
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                ALTER TABLE integration_sync_activity
+                ADD COLUMN hidden INTEGER DEFAULT 0
+                """
+            )
+
+            conn.commit()
+
+        finally:
+            conn.close()
+
+    except Exception as exc:
+        print(
+            "Sync activity hidden-column check:",
+            type(exc).__name__,
+            str(exc)[:200]
+        )
+
+
+@app.route("/connected_apps")
+def connected_apps():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    _ensure_sync_activity_hidden_column()
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                provider,
+                status,
+                account_label,
+                auth_method,
+                auto_import_enabled,
+                last_sync_at,
+                connected_at
+            FROM integration_connections
+            WHERE user_id=?
+            """,
+            (user_id,)
+        )
+
+        connection_rows = cursor.fetchall()
+
+        connection_map = {
+            row[0]: {
+                "status": row[1],
+                "account_label": row[2],
+                "auth_method": row[3],
+                "auto_import_enabled": bool(row[4]),
+                "last_sync_at": row[5],
+                "connected_at": row[6],
+            }
+            for row in connection_rows
+        }
+
+        providers = []
+
+        for provider in AUTO_SYNC_PROVIDERS:
+            item = dict(provider)
+
+            state = connection_map.get(
+                provider["id"],
+                {}
+            )
+
+            item["status"] = state.get(
+                "status",
+                "disconnected"
+            )
+
+            item["account_label"] = state.get(
+                "account_label"
+            )
+
+            item["auto_import_enabled"] = state.get(
+                "auto_import_enabled",
+                True
+            )
+
+            item["last_sync_at"] = state.get(
+                "last_sync_at"
+            )
+
+            providers.append(item)
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                provider,
+                merchant,
+                amount,
+                category,
+                description,
+                transaction_date,
+                status,
+                source_type,
+                created_at
+            FROM integration_sync_activity
+            WHERE user_id=?
+              AND COALESCE(hidden, 0)=0
+            ORDER BY id DESC
+            LIMIT 30
+            """,
+            (user_id,)
+        )
+
+        sync_activity = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                provider,
+                merchant,
+                amount,
+                category,
+                description,
+                transaction_date,
+                status,
+                source_type,
+                created_at
+            FROM integration_sync_activity
+            WHERE user_id=?
+              AND COALESCE(hidden, 0)=1
+            ORDER BY id DESC
+            LIMIT 30
+            """,
+            (user_id,)
+        )
+
+        hidden_activity = cursor.fetchall()
+
+    finally:
+        conn.close()
+
+    connected_count = sum(
+        1
+        for provider in providers
+        if provider["status"] == "connected"
+    )
+
+    enabled_count = sum(
+        1
+        for provider in providers
+        if provider["auto_import_enabled"]
+    )
+
+    gmail_connected = any(
+        provider["id"] == "gmail"
+        and provider["status"] == "connected"
+        for provider in providers
+    )
+
+    return render_template(
+        "connected_apps.html",
+        providers=providers,
+        sync_activity=sync_activity,
+        hidden_activity=hidden_activity,
+        connected_count=connected_count,
+        enabled_count=enabled_count,
+        gmail_connected=gmail_connected,
+    )
+
+
+
+# ============================================================
+# SYNC ACTIVITY ACTIONS
+# ============================================================
+
+@app.route(
+    "/connected_apps/activity/<int:activity_id>/hide",
+    methods=["POST"]
+)
+def hide_connected_app_activity(activity_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    _ensure_sync_activity_hidden_column()
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE integration_sync_activity
+            SET hidden=1
+            WHERE id=?
+              AND user_id=?
+            """,
+            (
+                activity_id,
+                session["user_id"],
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    return redirect(
+        "/connected_apps#sync-activity"
+    )
+
+
+@app.route(
+    "/connected_apps/activity/<int:activity_id>/restore",
+    methods=["POST"]
+)
+def restore_connected_app_activity(activity_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    _ensure_sync_activity_hidden_column()
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE integration_sync_activity
+            SET hidden=0
+            WHERE id=?
+              AND user_id=?
+            """,
+            (
+                activity_id,
+                session["user_id"],
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    return redirect(
+        "/connected_apps#sync-activity"
+    )
+
+
+@app.route(
+    "/connected_apps/activity/<int:activity_id>/delete",
+    methods=["POST"]
+)
+def delete_connected_app_activity(activity_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM integration_sync_activity
+            WHERE id=?
+              AND user_id=?
+            """,
+            (
+                activity_id,
+                session["user_id"],
+            )
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    return redirect(
+        "/connected_apps#sync-activity"
+    )
+
+
+@app.route(
+    "/connected_apps/toggle/<provider>",
+    methods=["POST"]
+)
+def toggle_connected_app(provider):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    valid_providers = {
+        item["id"]
+        for item in AUTO_SYNC_PROVIDERS
+    }
+
+    if provider not in valid_providers:
+        abort(404)
+
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT id, auto_import_enabled
+            FROM integration_connections
+            WHERE user_id=? AND provider=?
+            """,
+            (
+                user_id,
+                provider
+            )
+        )
+
+        row = cursor.fetchone()
+
+        if row:
+            new_value = 0 if row[1] else 1
+
+            cursor.execute(
+                """
+                UPDATE integration_connections
+                SET
+                    auto_import_enabled=?,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+                """,
+                (
+                    new_value,
+                    row[0]
+                )
+            )
+
+        else:
+            provider_config = next(
+                item
+                for item in AUTO_SYNC_PROVIDERS
+                if item["id"] == provider
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO integration_connections
+                (
+                    user_id,
+                    provider,
+                    status,
+                    auth_method,
+                    auto_import_enabled
+                )
+                VALUES (?, ?, 'disconnected', ?, 0)
+                """,
+                (
+                    user_id,
+                    provider,
+                    provider_config["method"]
+                )
+            )
+
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
+
+    return redirect("/connected_apps")
+
+
+# ============================================================
+# GMAIL OAUTH
+# ============================================================
+
+@app.route("/connected_apps/gmail/setup")
+def gmail_connection_setup():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    _prepare_local_google_oauth()
+
+    try:
+        flow = Flow.from_client_config(
+            _google_oauth_client_config(),
+            scopes=GMAIL_OAUTH_SCOPES,
+            autogenerate_code_verifier=True,
+        )
+
+        flow.redirect_uri = (
+            _gmail_oauth_callback_url()
+        )
+
+        authorization_url, state = (
+            flow.authorization_url(
+                access_type="offline",
+                include_granted_scopes="true",
+                prompt="consent",
+            )
+        )
+
+        # State protects the OAuth callback
+        # against forged requests.
+        session["gmail_oauth_state"] = state
+
+        # PKCE: Google receives the challenge during
+        # authorization. We must send the matching verifier
+        # when exchanging the returned authorization code.
+        session["gmail_oauth_code_verifier"] = (
+            flow.code_verifier
+        )
+
+        return redirect(
+            authorization_url
+        )
+
+    except Exception as exc:
+        print(
+            "Gmail OAuth setup error:",
+            type(exc).__name__
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_error=configuration"
+        )
+
+
+@app.route("/connected_apps/gmail/callback")
+def gmail_oauth_callback():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    _prepare_local_google_oauth()
+
+    # User may deny access on Google's screen.
+    oauth_error = request.args.get("error")
+
+    if oauth_error:
+        session.pop(
+            "gmail_oauth_state",
+            None
+        )
+
+        session.pop(
+            "gmail_oauth_code_verifier",
+            None
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_error=denied"
+        )
+
+    expected_state = session.pop(
+        "gmail_oauth_state",
+        None
+    )
+
+    code_verifier = session.pop(
+        "gmail_oauth_code_verifier",
+        None
+    )
+
+    returned_state = request.args.get(
+        "state",
+        ""
+    )
+
+    if (
+        not expected_state
+        or not returned_state
+        or not secrets.compare_digest(
+            expected_state,
+            returned_state
+        )
+    ):
+        abort(
+            400,
+            description="Invalid OAuth state."
+        )
+
+    if not code_verifier:
+        print(
+            "Gmail OAuth callback error:",
+            "Missing stored PKCE code verifier"
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_error=pkce"
+        )
+
+    try:
+        flow = Flow.from_client_config(
+            _google_oauth_client_config(),
+            scopes=GMAIL_OAUTH_SCOPES,
+            state=expected_state,
+            code_verifier=code_verifier,
+        )
+
+        flow.redirect_uri = (
+            _gmail_oauth_callback_url()
+        )
+
+        flow.fetch_token(
+            authorization_response=request.url
+        )
+
+        credentials = flow.credentials
+
+        # ----------------------------------------------------
+        # Get the Gmail account address
+        # ----------------------------------------------------
+
+        gmail_service = build(
+            "gmail",
+            "v1",
+            credentials=credentials,
+            cache_discovery=False,
+        )
+
+        profile = (
+            gmail_service
+            .users()
+            .getProfile(userId="me")
+            .execute()
+        )
+
+        gmail_address = profile.get(
+            "emailAddress"
+        )
+
+        if not gmail_address:
+            raise RuntimeError(
+                "Google did not return "
+                "a Gmail address."
+            )
+
+        # ----------------------------------------------------
+        # We specifically requested offline access because
+        # automatic sync later needs a refresh token.
+        # ----------------------------------------------------
+
+        refresh_token = (
+            credentials.refresh_token
+        )
+
+        if not refresh_token:
+            print(
+                "Google OAuth did not return "
+                "a refresh token."
+            )
+
+            return redirect(
+                "/connected_apps"
+                "?gmail_error=no_refresh_token"
+            )
+
+        encrypted_refresh_token = (
+            _encrypt_integration_secret(
+                refresh_token
+            )
+        )
+
+        scopes_json = json.dumps(
+            list(
+                credentials.scopes
+                or GMAIL_OAUTH_SCOPES
+            )
+        )
+
+        user_id = session["user_id"]
+
+        conn = sqlite3.connect(DB_PATH)
+
+        try:
+            cursor = conn.cursor()
+
+            # ------------------------------------------------
+            # Secure OAuth token storage
+            # ------------------------------------------------
+
+            cursor.execute(
+                """
+                INSERT INTO integration_oauth_tokens
+                (
+                    user_id,
+                    provider,
+                    encrypted_refresh_token,
+                    scopes,
+                    updated_at
+                )
+                VALUES (?, 'gmail', ?, ?, CURRENT_TIMESTAMP)
+
+                ON CONFLICT(user_id, provider)
+                DO UPDATE SET
+                    encrypted_refresh_token=
+                        excluded.encrypted_refresh_token,
+                    scopes=excluded.scopes,
+                    updated_at=CURRENT_TIMESTAMP
+                """,
+                (
+                    user_id,
+                    encrypted_refresh_token,
+                    scopes_json,
+                )
+            )
+
+            # ------------------------------------------------
+            # Update Connected Apps status
+            # ------------------------------------------------
+
+            cursor.execute(
+                """
+                INSERT INTO integration_connections
+                (
+                    user_id,
+                    provider,
+                    status,
+                    account_label,
+                    auth_method,
+                    auto_import_enabled,
+                    connected_at,
+                    updated_at
+                )
+                VALUES
+                (
+                    ?,
+                    'gmail',
+                    'connected',
+                    ?,
+                    'oauth',
+                    1,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+
+                ON CONFLICT(user_id, provider)
+                DO UPDATE SET
+                    status='connected',
+                    account_label=excluded.account_label,
+                    auth_method='oauth',
+                    auto_import_enabled=1,
+                    connected_at=CURRENT_TIMESTAMP,
+                    updated_at=CURRENT_TIMESTAMP
+                """,
+                (
+                    user_id,
+                    gmail_address,
+                )
+            )
+
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_connected=1"
+        )
+
+    except Exception as exc:
+        print(
+            "Gmail OAuth callback error:",
+            type(exc).__name__,
+            str(exc)[:250]
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_error=callback"
+        )
+
+
+
+
+# ============================================================
+# GMAIL PURCHASE SCANNER
+# ============================================================
+
+GMAIL_PURCHASE_SEARCH_QUERY = (
+    'from:noreply@zomato.com '
+    'subject:"Your Zomato order from"'
+)
+
+
+TRUSTED_PURCHASE_SENDERS = {
+    "zomato": {
+        "noreply@zomato.com",
+    },
+}
+
+
+def _trusted_purchase_message(
+    provider,
+    sender,
+    subject
+):
+    """
+    Final safety gate before an email can become an expense.
+
+    Sender must be explicitly trusted and the subject must
+    match a verified transaction-email format.
+    """
+
+    address = (
+        parseaddr(sender or "")[1]
+        .strip()
+        .lower()
+    )
+
+    subject_lower = (
+        subject
+        or ""
+    ).strip().lower()
+
+    trusted_senders = (
+        TRUSTED_PURCHASE_SENDERS.get(
+            provider,
+            set()
+        )
+    )
+
+    if address not in trusted_senders:
+        return False
+
+    if provider == "zomato":
+        return subject_lower.startswith(
+            "your zomato order from "
+        )
+
+    return False
+
+
+AUTO_SYNC_MERCHANTS = {
+    "amazon": {
+        "merchant": "Amazon",
+        "category": "Shopping",
+        "keywords": (
+            "amazon",
+        ),
+    },
+
+    "flipkart": {
+        "merchant": "Flipkart",
+        "category": "Shopping",
+        "keywords": (
+            "flipkart",
+        ),
+    },
+
+    "swiggy": {
+        "merchant": "Swiggy",
+        "category": "Food",
+        "keywords": (
+            "swiggy",
+        ),
+    },
+
+    "zomato": {
+        "merchant": "Zomato",
+        "category": "Food",
+        "keywords": (
+            "zomato",
+        ),
+    },
+
+    "blinkit": {
+        "merchant": "Blinkit",
+        "category": "Shopping",
+        "keywords": (
+            "blinkit",
+            "grofers",
+        ),
+    },
+
+    "zepto": {
+        "merchant": "Zepto",
+        "category": "Shopping",
+        "keywords": (
+            "zepto",
+            "zeptonow",
+        ),
+    },
+
+    "myntra": {
+        "merchant": "Myntra",
+        "category": "Shopping",
+        "keywords": (
+            "myntra",
+        ),
+    },
+}
+
+
+GMAIL_NON_PURCHASE_SUBJECT_TERMS = (
+    "shipped",
+    "out for delivery",
+    "delivered",
+    "delivery update",
+    "refund",
+    "refunded",
+    "return initiated",
+    "return accepted",
+    "cancelled",
+    "canceled",
+)
+
+
+GMAIL_PURCHASE_SUBJECT_TERMS = (
+    "order confirmed",
+    "order confirmation",
+    "order placed",
+    "your order",
+    "thanks for your order",
+    "payment successful",
+    "payment received",
+    "invoice",
+    "receipt",
+    "purchase",
+)
+
+
+def _gmail_sync_service(user_id):
+    """
+    Create an authenticated Gmail API client from the
+    encrypted refresh token stored for this Expense Manager
+    user.
+    """
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT encrypted_refresh_token
+            FROM integration_oauth_tokens
+            WHERE user_id=?
+            AND provider='gmail'
+            """,
+            (user_id,)
+        )
+
+        row = cursor.fetchone()
+
+    finally:
+        conn.close()
+
+    if not row or not row[0]:
+        raise RuntimeError(
+            "Gmail is not connected."
+        )
+
+    refresh_token = (
+        _decrypt_integration_secret(
+            row[0]
+        )
+    )
+
+    client_config = (
+        _google_oauth_client_config()
+        ["web"]
+    )
+
+    credentials = GoogleCredentials(
+        token=None,
+        refresh_token=refresh_token,
+        token_uri=client_config["token_uri"],
+        client_id=client_config["client_id"],
+        client_secret=client_config[
+            "client_secret"
+        ],
+        scopes=GMAIL_OAUTH_SCOPES,
+    )
+
+    # Refresh immediately so authentication problems are
+    # detected before scanning messages.
+    credentials.refresh(
+        GoogleAuthRequest()
+    )
+
+    return build(
+        "gmail",
+        "v1",
+        credentials=credentials,
+        cache_discovery=False,
+    )
+
+
+def _gmail_decode_data(value):
+    """
+    Decode Gmail API base64url MIME body data safely.
+    """
+
+    if not value:
+        return ""
+
+    try:
+        if isinstance(value, str):
+            encoded = value.encode("ascii")
+
+        elif isinstance(
+            value,
+            (bytes, bytearray)
+        ):
+            encoded = bytes(value)
+
+        else:
+            return ""
+
+        # Gmail uses URL-safe Base64 and padding may
+        # be omitted.
+        encoded += (
+            b"="
+            * (-len(encoded) % 4)
+        )
+
+        raw = base64.urlsafe_b64decode(
+            encoded
+        )
+
+        return raw.decode(
+            "utf-8",
+            errors="replace"
+        )
+
+    except Exception as exc:
+        print(
+            "Gmail body decode error:",
+            type(exc).__name__
+        )
+
+        return ""
+
+
+def _gmail_extract_text_from_part(part):
+    """
+    Recursively collect text/plain and text/html content.
+
+    Attachments are intentionally ignored.
+    """
+
+    if not part:
+        return ""
+
+    mime_type = (
+        part.get("mimeType")
+        or ""
+    ).lower()
+
+    body = part.get("body") or {}
+
+    chunks = []
+
+    if mime_type in {
+        "text/plain",
+        "text/html",
+    }:
+
+        data = body.get("data")
+
+        if data:
+            chunks.append(
+                _gmail_decode_data(data)
+            )
+
+    for child in (
+        part.get("parts")
+        or []
+    ):
+        chunks.append(
+            _gmail_extract_text_from_part(
+                child
+            )
+        )
+
+    return "\n".join(
+        chunk
+        for chunk in chunks
+        if chunk
+    )
+
+
+def _gmail_clean_message_text(value):
+    """
+    Convert email HTML/plain content into compact text
+    suitable for merchant and amount extraction.
+    """
+
+    value = value or ""
+
+    value = re.sub(
+        r"(?is)<script.*?>.*?</script>",
+        " ",
+        value
+    )
+
+    value = re.sub(
+        r"(?is)<style.*?>.*?</style>",
+        " ",
+        value
+    )
+
+    value = re.sub(
+        r"(?s)<[^>]+>",
+        " ",
+        value
+    )
+
+    value = unescape(value)
+
+    value = re.sub(
+        r"[ \t\r\f\v]+",
+        " ",
+        value
+    )
+
+    value = re.sub(
+        r"\n{3,}",
+        "\n\n",
+        value
+    )
+
+    return value.strip()
+
+
+def _gmail_headers(message):
+    headers = {}
+
+    payload = (
+        message.get("payload")
+        or {}
+    )
+
+    for header in (
+        payload.get("headers")
+        or []
+    ):
+
+        name = (
+            header.get("name")
+            or ""
+        ).lower()
+
+        value = (
+            header.get("value")
+            or ""
+        )
+
+        if name:
+            headers[name] = value
+
+    return headers
+
+
+def _detect_purchase_provider(
+    sender,
+    subject,
+    body
+):
+    """
+    Prefer sender/subject for merchant detection, then use
+    a small body sample as fallback.
+    """
+
+    sender = (
+        sender
+        or ""
+    ).lower()
+
+    subject = (
+        subject
+        or ""
+    ).lower()
+
+    body_sample = (
+        body
+        or ""
+    )[:5000].lower()
+
+    strong_text = (
+        sender
+        + "\n"
+        + subject
+    )
+
+    fallback_text = (
+        strong_text
+        + "\n"
+        + body_sample
+    )
+
+    for provider, config in (
+        AUTO_SYNC_MERCHANTS.items()
+    ):
+
+        for keyword in config[
+            "keywords"
+        ]:
+
+            if keyword in strong_text:
+                return provider
+
+    for provider, config in (
+        AUTO_SYNC_MERCHANTS.items()
+    ):
+
+        for keyword in config[
+            "keywords"
+        ]:
+
+            if keyword in fallback_text:
+                return provider
+
+    return None
+
+
+def _gmail_subject_looks_transactional(
+    subject
+):
+    """
+    Never default to True.
+
+    Only subjects matching known transaction patterns are
+    eligible for automatic expense creation.
+    """
+
+    subject_lower = (
+        subject
+        or ""
+    ).strip().lower()
+
+    if not subject_lower:
+        return False
+
+    non_purchase_terms = (
+        "refund",
+        "refunded",
+        "cancelled",
+        "canceled",
+        "return initiated",
+        "return accepted",
+        "delivery update",
+        "out for delivery",
+    )
+
+    if any(
+        term in subject_lower
+        for term in non_purchase_terms
+    ):
+        return False
+
+    purchase_terms = (
+        "your zomato order from ",
+        "order confirmed",
+        "order confirmation",
+        "order placed",
+        "thanks for your order",
+        "payment successful",
+        "payment received",
+        "invoice",
+        "receipt",
+    )
+
+    return any(
+        term in subject_lower
+        for term in purchase_terms
+    )
+
+
+def _extract_purchase_amount(text):
+    """
+    Extract the final amount actually paid.
+
+    Priority:
+    1. Total paid
+    2. Amount paid / You paid
+    3. Paid ₹...
+    4. Grand total / Order total
+    5. Standalone Total
+
+    Standalone word boundaries prevent matching
+    'subtotal'.
+    """
+
+    if not text:
+        return None
+
+    currency = (
+        r"(?:₹|INR\s*|Rs\.?\s*)"
+    )
+
+    amount = (
+        r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)"
+    )
+
+    patterns = [
+        # Zomato newer format:
+        # Total paid - ₹179.49
+        rf"""
+        \btotal\s+paid\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+
+        # Amount paid ₹...
+        rf"""
+        \bamount\s+paid\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+
+        # You paid ₹...
+        rf"""
+        \byou\s+paid\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+
+        # Zomato older format:
+        # Paid ₹78.68
+        rf"""
+        \bpaid\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+
+        # Grand Total / Order Total
+        rf"""
+        \b(?:grand|order)\s+total\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+
+        # Other labelled totals
+        rf"""
+        \b(?:total\s+amount|
+           amount\s+payable|
+           payment\s+amount|
+           bill\s+total)\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+
+        # Standalone Total.
+        # \b means this cannot match "subtotal".
+        rf"""
+        \btotal\b
+        \s*[-:]?\s*
+        {currency}
+        {amount}
+        """,
+    ]
+
+    flags = (
+        re.IGNORECASE
+        | re.VERBOSE
+    )
+
+    for pattern in patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            flags=flags,
+        )
+
+        if not match:
+            continue
+
+        try:
+            value = float(
+                match.group(1)
+                .replace(",", "")
+            )
+
+        except (TypeError, ValueError):
+            continue
+
+        if 0 < value < 10000000:
+            return round(value, 2)
+
+    return None
+
+
+def _extract_order_id(
+    provider,
+    text
+):
+    """
+    Extract a stable order identifier when possible.
+    """
+
+    value = text or ""
+
+    # Amazon order format:
+    # 123-1234567-1234567
+    if provider == "amazon":
+
+        match = re.search(
+            r"\b\d{3}-\d{7}-\d{7}\b",
+            value
+        )
+
+        if match:
+            return match.group(0)
+
+    # Flipkart order format commonly begins with OD.
+    if provider == "flipkart":
+
+        match = re.search(
+            r"\bOD\d{10,25}\b",
+            value,
+            flags=re.IGNORECASE
+        )
+
+        if match:
+            return match.group(0)
+
+    # Generic order-number patterns used by food /
+    # quick-commerce providers.
+    pattern = r"""
+        \border
+        (?:\s*(?:id|number|no\.?))?
+        \s*[:#-]\s*
+        ([A-Z0-9][A-Z0-9_-]{5,35})
+    """
+
+    match = re.search(
+        pattern,
+        value,
+        flags=(
+            re.IGNORECASE
+            | re.VERBOSE
+        )
+    )
+
+    if match:
+
+        candidate = (
+            match.group(1)
+            .strip()
+        )
+
+        # Avoid accidentally treating normal words as IDs.
+        if any(
+            character.isdigit()
+            for character in candidate
+        ):
+            return candidate
+
+    return None
+
+
+def _gmail_message_date(message):
+    """
+    Gmail internalDate is milliseconds since epoch.
+    """
+
+    internal_date = (
+        message.get("internalDate")
+    )
+
+    if internal_date:
+
+        try:
+            return datetime.fromtimestamp(
+                int(internal_date)
+                / 1000
+            ).strftime(
+                "%Y-%m-%d"
+            )
+
+        except (
+            TypeError,
+            ValueError,
+            OSError
+        ):
+            pass
+
+    return date.today().strftime(
+        "%Y-%m-%d"
+    )
+
+
+def _provider_auto_import_enabled(
+    cursor,
+    user_id,
+    provider
+):
+    """
+    No preference row means enabled, matching the Connected
+    Apps UI default.
+    """
+
+    cursor.execute(
+        """
+        SELECT auto_import_enabled
+        FROM integration_connections
+        WHERE user_id=?
+        AND provider=?
+        """,
+        (
+            user_id,
+            provider,
+        )
+    )
+
+    row = cursor.fetchone()
+
+    if not row:
+        return True
+
+    return bool(row[0])
+
+
+def _gmail_activity_exists(
+    cursor,
+    user_id,
+    provider,
+    external_id
+):
+
+    cursor.execute(
+        """
+        SELECT 1
+        FROM integration_sync_activity
+        WHERE user_id=?
+        AND provider=?
+        AND external_id=?
+        LIMIT 1
+        """,
+        (
+            user_id,
+            provider,
+            external_id,
+        )
+    )
+
+    return (
+        cursor.fetchone()
+        is not None
+    )
+
+
+
+
+
+
+# ============================================================
+# AUTOMATIC GMAIL SYNC
+# ============================================================
+
+def _gmail_auto_sync_due(user_id, hours=6):
+    """
+    Return True only when Gmail is connected, automatic
+    importing is enabled, and the previous sync is older
+    than the configured interval.
+    """
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                status,
+                auto_import_enabled,
+                last_sync_at
+            FROM integration_connections
+            WHERE user_id=?
+            AND provider='gmail'
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+
+        row = cursor.fetchone()
+
+    finally:
+        conn.close()
+
+    if not row:
+        return False
+
+    status = row[0]
+    auto_enabled = bool(row[1])
+    last_sync = row[2]
+
+    if (
+        status != "connected"
+        or not auto_enabled
+    ):
+        return False
+
+    if not last_sync:
+        return True
+
+    if isinstance(last_sync, datetime):
+        last_sync_dt = last_sync
+
+    else:
+        value = str(last_sync).strip()
+
+        # PostgreSQL may return timezone information.
+        # SQLite normally stores a simpler timestamp.
+        value = value.replace(
+            "Z",
+            "+00:00"
+        )
+
+        try:
+            last_sync_dt = (
+                datetime.fromisoformat(value)
+            )
+
+        except ValueError:
+
+            formats = [
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+            ]
+
+            last_sync_dt = None
+
+            for fmt in formats:
+                try:
+                    last_sync_dt = (
+                        datetime.strptime(
+                            value,
+                            fmt
+                        )
+                    )
+                    break
+
+                except ValueError:
+                    continue
+
+            if last_sync_dt is None:
+                return True
+
+    # Convert timezone-aware database values into a simple
+    # UTC comparison.
+    if last_sync_dt.tzinfo is not None:
+
+        now = datetime.now(
+            last_sync_dt.tzinfo
+        )
+
+    else:
+        now = datetime.now()
+
+    return (
+        now - last_sync_dt
+    ) >= timedelta(hours=hours)
+
+
+@app.route(
+    "/api/gmail/auto-sync",
+    methods=["POST"]
+)
+def gmail_auto_sync():
+    """
+    Lightweight background endpoint called by the dashboard.
+
+    Existing gmail_sync_purchases() performs the actual
+    Gmail scan and retains duplicate protection.
+    """
+
+    if "user_id" not in session:
+        return {
+            "status": "unauthorized"
+        }, 401
+
+    user_id = session["user_id"]
+
+    try:
+        due = _gmail_auto_sync_due(
+            user_id,
+            hours=6
+        )
+
+    except Exception as exc:
+
+        print(
+            "Gmail auto-sync check error:",
+            type(exc).__name__
+        )
+
+        return {
+            "status": "error"
+        }, 500
+
+    if not due:
+        return {
+            "status": "skipped",
+            "reason": "not_due"
+        }, 200
+
+    try:
+        # Reuse the already-tested Gmail sync engine.
+        gmail_sync_purchases()
+
+        return {
+            "status": "completed"
+        }, 200
+
+    except Exception as exc:
+
+        print(
+            "Gmail automatic sync error:",
+            type(exc).__name__
+        )
+
+        return {
+            "status": "error"
+        }, 500
+
+
+
+
+
+# ============================================================
+# DISCONNECT GMAIL
+# ============================================================
+
+@app.route(
+    "/connected_apps/gmail/disconnect",
+    methods=["POST"]
+)
+def gmail_disconnect():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT encrypted_refresh_token
+            FROM integration_oauth_tokens
+            WHERE user_id=?
+            AND provider='gmail'
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+
+        row = cursor.fetchone()
+
+        refresh_token = None
+
+        if row and row[0]:
+            try:
+                refresh_token = (
+                    _decrypt_integration_secret(
+                        row[0]
+                    )
+                )
+            except Exception:
+                refresh_token = None
+
+        # ----------------------------------------------------
+        # Revoke Google permission
+        # ----------------------------------------------------
+
+        if refresh_token:
+
+            try:
+                response = requests.post(
+                    "https://oauth2.googleapis.com/revoke",
+                    data={
+                        "token": refresh_token
+                    },
+                    headers={
+                        "Content-Type":
+                        "application/x-www-form-urlencoded"
+                    },
+                    timeout=10,
+                )
+
+                print(
+                    "Google OAuth revoke:",
+                    response.status_code
+                )
+
+            except Exception as exc:
+                # Local disconnect still proceeds.
+                print(
+                    "Google OAuth revoke error:",
+                    type(exc).__name__
+                )
+
+        # ----------------------------------------------------
+        # Permanently remove stored token
+        # ----------------------------------------------------
+
+        cursor.execute(
+            """
+            DELETE FROM integration_oauth_tokens
+            WHERE user_id=?
+            AND provider='gmail'
+            """,
+            (user_id,)
+        )
+
+        cursor.execute(
+            """
+            UPDATE integration_connections
+            SET
+                status='disconnected',
+                account_label=NULL,
+                auto_import_enabled=0,
+                last_sync_at=NULL,
+                connected_at=NULL,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE user_id=?
+            AND provider='gmail'
+            """,
+            (user_id,)
+        )
+
+        conn.commit()
+
+    except Exception:
+
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
+
+    session.pop(
+        "gmail_oauth_state",
+        None
+    )
+
+    session.pop(
+        "gmail_oauth_code_verifier",
+        None
+    )
+
+    return redirect(
+        "/connected_apps"
+        "?gmail_disconnected=1"
+    )
+
+
+
+
+
+# ============================================================
+# GMAIL SYNC ENGINE START
+# ============================================================
+
+def _gmail_sync_decrypt_token(encrypted_value):
+    """
+    Decrypt the OAuth refresh token that was stored when
+    Gmail was connected.
+    """
+    if not encrypted_value:
+        return None
+
+    return (
+        _integration_fernet()
+        .decrypt(
+            encrypted_value.encode("utf-8")
+        )
+        .decode("utf-8")
+    )
+
+
+def _gmail_sync_message_body(payload):
+    """
+    Extract readable text from Gmail MIME payloads.
+    """
+    import base64
+    from html import unescape
+
+    if not payload:
+        return ""
+
+    collected = []
+
+    mime_type = (
+        payload.get("mimeType")
+        or ""
+    ).lower()
+
+    body = payload.get("body") or {}
+    data = body.get("data")
+
+    if data and mime_type in {
+        "text/plain",
+        "text/html",
+    }:
+        try:
+            padded = data + (
+                "=" * (-len(data) % 4)
+            )
+
+            decoded = (
+                base64.urlsafe_b64decode(
+                    padded.encode("utf-8")
+                )
+                .decode(
+                    "utf-8",
+                    errors="ignore"
+                )
+            )
+
+            if mime_type == "text/html":
+                decoded = re.sub(
+                    r"<script[\s\S]*?</script>",
+                    " ",
+                    decoded,
+                    flags=re.I
+                )
+
+                decoded = re.sub(
+                    r"<style[\s\S]*?</style>",
+                    " ",
+                    decoded,
+                    flags=re.I
+                )
+
+                decoded = re.sub(
+                    r"<[^>]+>",
+                    " ",
+                    decoded
+                )
+
+                decoded = unescape(decoded)
+
+            collected.append(decoded)
+
+        except Exception:
+            pass
+
+    for part in payload.get("parts") or []:
+        child = _gmail_sync_message_body(part)
+
+        if child:
+            collected.append(child)
+
+    return "\n".join(collected)
+
+
+def _gmail_sync_headers(message):
+    result = {}
+
+    payload = (
+        message.get("payload")
+        or {}
+    )
+
+    for item in payload.get("headers") or []:
+        name = (
+            item.get("name")
+            or ""
+        ).strip().lower()
+
+        value = (
+            item.get("value")
+            or ""
+        ).strip()
+
+        if name:
+            result[name] = value
+
+    return result
+
+
+def _gmail_sync_provider(sender, subject, content=""):
+    """
+    Detect supported merchants using sender, subject,
+    snippet and email body.
+    """
+
+    identity = (
+        f"{sender}\n{subject}\n{content}"
+    ).lower()
+
+    rules = [
+        (
+            "amazon",
+            (
+                "amazon.in",
+                "amazon.com",
+                "@amazon",
+                "amazon pay",
+                "amazon order",
+                "your amazon",
+            )
+        ),
+        (
+            "flipkart",
+            (
+                "flipkart",
+                "ekart",
+            )
+        ),
+        (
+            "swiggy",
+            (
+                "swiggy",
+                "instamart",
+            )
+        ),
+        (
+            "zomato",
+            (
+                "zomato",
+            )
+        ),
+        (
+            "blinkit",
+            (
+                "blinkit",
+                "grofers",
+            )
+        ),
+        (
+            "zepto",
+            (
+                "zepto",
+            )
+        ),
+        (
+            "myntra",
+            (
+                "myntra",
+            )
+        ),
+    ]
+
+    for provider, keywords in rules:
+        if any(
+            keyword in identity
+            for keyword in keywords
+        ):
+            return provider
+
+    return None
+
+
+def _gmail_sync_amount(text):
+    """
+    Detect a likely final paid/order total from common
+    Indian ecommerce and food-delivery email formats.
+    """
+
+    if not text:
+        return None
+
+    cleaned = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
+
+    currency = r"(?:₹|rs\.?|inr)"
+
+    labels = [
+        r"grand\s*total",
+        r"order\s*total",
+        r"amount\s*paid",
+        r"total\s*paid",
+        r"you\s*paid",
+        r"payment\s*amount",
+        r"total\s*amount",
+        r"final\s*amount",
+        r"amount\s*payable",
+        r"payable\s*amount",
+        r"net\s*amount",
+        r"order\s*value",
+        r"total\s*value",
+        r"bill\s*amount",
+        r"invoice\s*total",
+        r"paid\s*amount",
+        r"total",
+    ]
+
+    for label in labels:
+
+        patterns = [
+            (
+                rf"{label}"
+                rf".{{0,70}}?"
+                rf"{currency}\s*"
+                rf"([\d,]+(?:\.\d{{1,2}})?)"
+            ),
+
+            (
+                rf"{label}"
+                rf".{{0,70}}?"
+                rf"([\d,]+(?:\.\d{{1,2}})?)"
+                rf"\s*{currency}"
+            ),
+        ]
+
+        for pattern in patterns:
+            match = re.search(
+                pattern,
+                cleaned,
+                flags=re.I
+            )
+
+            if not match:
+                continue
+
+            try:
+                amount = float(
+                    match.group(1)
+                    .replace(",", "")
+                )
+
+                if 1 <= amount <= 1000000:
+                    return amount
+
+            except (ValueError, TypeError):
+                continue
+
+    fallback_patterns = [
+        (
+            r"(?:paid|payment|charged|debited|payable|total)"
+            r".{0,50}?"
+            r"(?:₹|rs\.?|inr)\s*"
+            r"([\d,]+(?:\.\d{1,2})?)"
+        ),
+
+        (
+            r"(?:₹|rs\.?|inr)\s*"
+            r"([\d,]+(?:\.\d{1,2})?)"
+            r".{0,40}?"
+            r"(?:paid|payment|charged|total)"
+        ),
+    ]
+
+    for pattern in fallback_patterns:
+
+        match = re.search(
+            pattern,
+            cleaned,
+            flags=re.I
+        )
+
+        if not match:
+            continue
+
+        try:
+            amount = float(
+                match.group(1)
+                .replace(",", "")
+            )
+
+            if 1 <= amount <= 1000000:
+                return amount
+
+        except (ValueError, TypeError):
+            continue
+
+    return None
+
+
+def _gmail_sync_expense_date(date_header):
+    from email.utils import parsedate_to_datetime
+
+    if date_header:
+        try:
+            value = parsedate_to_datetime(
+                date_header
+            )
+
+            return value.date().isoformat()
+
+        except Exception:
+            pass
+
+    return datetime.now().date().isoformat()
+
+
+def _gmail_sync_category(provider):
+    categories = {
+        "amazon": "Shopping",
+        "flipkart": "Shopping",
+        "myntra": "Shopping",
+
+        "swiggy": "Food",
+        "zomato": "Food",
+
+        "blinkit": "Groceries",
+        "zepto": "Groceries",
+    }
+
+    return categories.get(
+        provider,
+        "Shopping"
+    )
+
+
+def _gmail_sync_expense_columns(cursor):
+    """
+    Discover the real ExpenseManager expense table columns.
+    Works without assuming SQLite-only PRAGMA statements.
+    """
+
+    cursor.execute(
+        "SELECT * FROM expenses WHERE 1=0"
+    )
+
+    return [
+        item[0]
+        for item in cursor.description
+    ]
+
+
+def _gmail_sync_find_column(
+    columns,
+    *possibilities
+):
+    lookup = {
+        str(column).lower(): column
+        for column in columns
+    }
+
+    for possibility in possibilities:
+        if possibility.lower() in lookup:
+            return lookup[
+                possibility.lower()
+            ]
+
+    return None
+
+
+def _gmail_sync_insert_expense(
+    cursor,
+    columns,
+    user_id,
+    amount,
+    category,
+    expense_date,
+    description
+):
+    """
+    Insert into the existing ExpenseManager expenses table
+    while respecting whichever common field names it uses.
+    """
+
+    user_column = _gmail_sync_find_column(
+        columns,
+        "user_id",
+        "userid"
+    )
+
+    amount_column = _gmail_sync_find_column(
+        columns,
+        "amount",
+        "expense_amount",
+        "cost"
+    )
+
+    date_column = _gmail_sync_find_column(
+        columns,
+        "date",
+        "expense_date",
+        "spent_on"
+    )
+
+    category_column = _gmail_sync_find_column(
+        columns,
+        "category",
+        "expense_category"
+    )
+
+    description_column = _gmail_sync_find_column(
+        columns,
+        "description",
+        "note",
+        "notes",
+        "title",
+        "expense_name",
+        "name"
+    )
+
+    if not user_column:
+        raise RuntimeError(
+            "expenses table has no user_id column"
+        )
+
+    if not amount_column:
+        raise RuntimeError(
+            "expenses table has no amount column"
+        )
+
+    if not date_column:
+        raise RuntimeError(
+            "expenses table has no date column"
+        )
+
+    values = {
+        user_column: user_id,
+        amount_column: amount,
+        date_column: expense_date,
+    }
+
+    if category_column:
+        values[category_column] = category
+
+    if description_column:
+        values[description_column] = (
+            description[:240]
+        )
+
+    insert_columns = list(
+        values.keys()
+    )
+
+    placeholders = ", ".join(
+        "?"
+        for _ in insert_columns
+    )
+
+    quoted_columns = ", ".join(
+        f'"{column}"'
+        for column in insert_columns
+    )
+
+    sql = (
+        f"INSERT INTO expenses "
+        f"({quoted_columns}) "
+        f"VALUES ({placeholders})"
+    )
+
+    cursor.execute(
+        sql,
+        tuple(
+            values[column]
+            for column in insert_columns
+        )
+    )
+
+
+@app.route(
+    "/connected_apps/gmail/sync",
+    methods=["POST"]
+)
+def gmail_sync_expenses():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    # --------------------------------------------------------
+    # Load encrypted refresh token
+    # --------------------------------------------------------
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                encrypted_refresh_token,
+                scopes
+            FROM integration_oauth_tokens
+            WHERE user_id=?
+              AND provider='gmail'
+            """,
+            (user_id,)
+        )
+
+        token_row = cursor.fetchone()
+
+        if not token_row:
+            print(
+                "Gmail sync:",
+                "No stored OAuth token."
+            )
+
+            return redirect(
+                "/connected_apps"
+                "?gmail_sync_error=auth"
+            )
+
+        encrypted_refresh_token = (
+            token_row[0]
+        )
+
+        stored_scopes = (
+            token_row[1]
+            if len(token_row) > 1
+            else None
+        )
+
+        # Deduplication table.
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            gmail_synced_messages
+            (
+                user_id INTEGER NOT NULL,
+                gmail_message_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                amount REAL,
+                synced_at TIMESTAMP
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                PRIMARY KEY
+                (
+                    user_id,
+                    gmail_message_id
+                )
+            )
+            """
+        )
+
+        conn.commit()
+
+        cursor.execute(
+            """
+            SELECT gmail_message_id
+            FROM gmail_synced_messages
+            WHERE user_id=?
+            """,
+            (user_id,)
+        )
+
+        already_synced = {
+            row[0]
+            for row in cursor.fetchall()
+        }
+
+    finally:
+        conn.close()
+
+    # --------------------------------------------------------
+    # Rebuild Google OAuth credentials
+    # --------------------------------------------------------
+
+    try:
+        from google.oauth2.credentials import (
+            Credentials
+        )
+
+        from google.auth.transport.requests import (
+            Request as GoogleAuthRequest
+        )
+
+        from googleapiclient.discovery import (
+            build as google_build
+        )
+
+        refresh_token = (
+            _gmail_sync_decrypt_token(
+                encrypted_refresh_token
+            )
+        )
+
+        if not refresh_token:
+            raise RuntimeError(
+                "Stored Gmail refresh token is empty."
+            )
+
+        scopes = GMAIL_OAUTH_SCOPES
+
+        if stored_scopes:
+            try:
+                parsed_scopes = json.loads(
+                    stored_scopes
+                )
+
+                if isinstance(
+                    parsed_scopes,
+                    list
+                ):
+                    scopes = parsed_scopes
+
+            except Exception:
+                pass
+
+        client_config = (
+            _google_oauth_client_config()
+        )
+
+        google_config = (
+            client_config.get("web")
+            or client_config.get("installed")
+        )
+
+        if not google_config:
+            raise RuntimeError(
+                "Google OAuth client configuration missing."
+            )
+
+        credentials = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri=google_config.get(
+                "token_uri",
+                "https://oauth2.googleapis.com/token"
+            ),
+            client_id=google_config[
+                "client_id"
+            ],
+            client_secret=google_config[
+                "client_secret"
+            ],
+            scopes=scopes,
+        )
+
+        # Verify refresh token immediately.
+        credentials.refresh(
+            GoogleAuthRequest()
+        )
+
+        gmail = google_build(
+            "gmail",
+            "v1",
+            credentials=credentials,
+            cache_discovery=False,
+        )
+
+    except Exception as exc:
+        print(
+            "Gmail sync authentication error:",
+            type(exc).__name__,
+            str(exc)[:300]
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_sync_error=auth"
+        )
+
+    # --------------------------------------------------------
+    # Search recent purchase emails
+    # --------------------------------------------------------
+
+    try:
+
+        # ----------------------------------------------------
+        # Search EACH provider separately.
+        #
+        # A single combined Gmail query allowed providers with
+        # many emails (for example Swiggy/Zomato) to dominate
+        # the candidate list before Amazon/Flipkart/etc. were
+        # ever processed.
+        # ----------------------------------------------------
+
+        provider_queries = {
+
+            "amazon": (
+                "newer_than:5y "
+                "{amazon amazon.in amazon.com} "
+                "{order invoice receipt payment paid "
+                "purchase purchased shipped shipment delivered}"
+            ),
+
+            "flipkart": (
+                "newer_than:5y "
+                "{flipkart ekart} "
+                "{order invoice receipt payment paid "
+                "purchase shipped shipment delivered}"
+            ),
+
+            "swiggy": (
+                "newer_than:5y "
+                "{swiggy instamart} "
+                "{order receipt payment paid "
+                "delivered delivery invoice}"
+            ),
+
+            "zomato": (
+                "newer_than:5y "
+                "zomato "
+                "{order receipt payment paid "
+                "delivered delivery invoice}"
+            ),
+
+            "blinkit": (
+                "newer_than:5y "
+                "{blinkit grofers} "
+                "{order receipt payment paid "
+                "delivered delivery invoice}"
+            ),
+
+            "zepto": (
+                "newer_than:5y "
+                "zepto "
+                "{order receipt payment paid "
+                "delivered delivery invoice}"
+            ),
+
+            "myntra": (
+                "newer_than:5y "
+                "myntra "
+                "{order invoice receipt payment paid "
+                "purchase shipped shipment delivered}"
+            ),
+        }
+
+
+        candidate_map = {}
+
+        gmail_search_stats = {}
+
+
+        for (
+            search_provider,
+            provider_query
+        ) in provider_queries.items():
+
+            provider_messages = []
+
+            page_token = None
+
+
+            while True:
+
+                request_args = {
+                    "userId": "me",
+                    "q": provider_query,
+                    "maxResults": 100,
+                }
+
+                if page_token:
+                    request_args[
+                        "pageToken"
+                    ] = page_token
+
+
+                response = (
+                    gmail
+                    .users()
+                    .messages()
+                    .list(
+                        **request_args
+                    )
+                    .execute()
+                )
+
+
+                provider_messages.extend(
+                    response.get(
+                        "messages"
+                    )
+                    or []
+                )
+
+
+                page_token = response.get(
+                    "nextPageToken"
+                )
+
+
+                if (
+                    not page_token
+                    or len(
+                        provider_messages
+                    ) >= 300
+                ):
+                    break
+
+
+            provider_messages = (
+                provider_messages[:300]
+            )
+
+
+            unsynced_provider_messages = [
+                item
+                for item
+                in provider_messages
+                if item.get("id")
+                and item.get("id")
+                    not in already_synced
+            ]
+
+
+            gmail_search_stats[
+                search_provider
+            ] = {
+                "total":
+                    len(provider_messages),
+
+                "unsynced":
+                    len(
+                        unsynced_provider_messages
+                    ),
+            }
+
+
+            # Give every platform its own share of the
+            # processing batch instead of allowing one
+            # provider to consume the entire limit.
+
+            for item in (
+                unsynced_provider_messages[:15]
+            ):
+
+                message_id = item.get(
+                    "id"
+                )
+
+                if (
+                    message_id
+                    and message_id
+                    not in candidate_map
+                ):
+                    candidate_map[
+                        message_id
+                    ] = item
+
+
+        messages = list(
+            candidate_map.values()
+        )
+
+
+        print(
+            "Gmail provider search results:"
+        )
+
+        for (
+            provider_name,
+            stats
+        ) in gmail_search_stats.items():
+
+            print(
+                f"  {provider_name}:",
+                f"total={stats['total']}",
+                f"unsynced={stats['unsynced']}"
+            )
+
+
+        print(
+            "Gmail search:",
+            f"processing={len(messages)}"
+        )
+
+    except Exception as exc:
+        print(
+            "Gmail message search error:",
+            type(exc).__name__,
+            str(exc)[:300]
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_sync_error=search"
+        )
+
+    # --------------------------------------------------------
+    # Parse candidate purchase emails
+    # --------------------------------------------------------
+
+    parsed_expenses = []
+
+    provider_stats = {
+        "amazon": {"found": 0, "amount": 0},
+        "flipkart": {"found": 0, "amount": 0},
+        "swiggy": {"found": 0, "amount": 0},
+        "zomato": {"found": 0, "amount": 0},
+        "blinkit": {"found": 0, "amount": 0},
+        "zepto": {"found": 0, "amount": 0},
+        "myntra": {"found": 0, "amount": 0},
+    }
+
+    for message_number, message_ref in enumerate(
+        messages,
+        start=1
+    ):
+
+        message_id = (
+            message_ref.get("id")
+        )
+
+        if (
+            message_number == 1
+            or message_number % 10 == 0
+            or message_number == len(messages)
+        ):
+            print(
+                "Gmail sync progress:",
+                f"{message_number}/{len(messages)}"
+            )
+
+        if not message_id:
+            continue
+
+        if message_id in already_synced:
+            continue
+
+        try:
+            message = (
+                gmail
+                .users()
+                .messages()
+                .get(
+                    userId="me",
+                    id=message_id,
+                    format="full",
+                    fields="id,snippet,payload"
+                )
+                .execute()
+            )
+
+        except Exception as exc:
+            print(
+                "Skipping Gmail message:",
+                message_id,
+                type(exc).__name__
+            )
+            continue
+
+        headers = _gmail_sync_headers(
+            message
+        )
+
+        subject = headers.get(
+            "subject",
+            ""
+        )
+
+        sender = headers.get(
+            "from",
+            ""
+        )
+
+        body = _gmail_sync_message_body(
+            message.get("payload") or {}
+        )
+
+        snippet = (
+            message.get("snippet")
+            or ""
+        )
+
+        searchable_text = (
+            subject
+            + "\n"
+            + snippet
+            + "\n"
+            + body
+        )
+
+        provider = _gmail_sync_provider(
+            sender,
+            subject,
+            searchable_text
+        )
+
+        if not provider:
+            continue
+
+        if provider in provider_stats:
+            provider_stats[provider]["found"] += 1
+
+        # Require purchase-like context.
+        lowered = searchable_text.lower()
+
+        if not any(
+            keyword in lowered
+            for keyword in (
+                "order",
+                "invoice",
+                "receipt",
+                "payment",
+                "paid",
+                "total",
+                "purchase",
+                "placed",
+                "confirmed",
+                "confirmation",
+                "delivered",
+                "delivery",
+                "shipment",
+                "shipped",
+                "charged",
+                "debited",
+            )
+        ):
+            continue
+
+        amount = _gmail_sync_amount(
+            searchable_text
+        )
+
+        if amount is None:
+            continue
+
+        if provider in provider_stats:
+            provider_stats[provider]["amount"] += 1
+
+        expense_date = (
+            _gmail_sync_expense_date(
+                headers.get("date")
+            )
+        )
+
+        category = (
+            _gmail_sync_category(
+                provider
+            )
+        )
+
+        provider_name = (
+            provider.capitalize()
+        )
+
+        clean_subject = re.sub(
+            r"\s+",
+            " ",
+            subject
+        ).strip()
+
+        description = (
+            f"{provider_name} email sync"
+        )
+
+        if clean_subject:
+            description += (
+                f" • {clean_subject}"
+            )
+
+        parsed_expenses.append(
+            {
+                "message_id": message_id,
+                "provider": provider,
+                "amount": amount,
+                "category": category,
+                "date": expense_date,
+                "description": description,
+            }
+        )
+
+    # --------------------------------------------------------
+    # Save detected expenses
+    # --------------------------------------------------------
+
+    imported = 0
+
+    conn = sqlite3.connect(DB_PATH)
+
+    try:
+        cursor = conn.cursor()
+
+        expense_columns = (
+            _gmail_sync_expense_columns(
+                cursor
+            )
+        )
+
+        for item in parsed_expenses:
+
+            # Double-check dedupe inside transaction.
+            cursor.execute(
+                """
+                SELECT 1
+                FROM gmail_synced_messages
+                WHERE user_id=?
+                  AND gmail_message_id=?
+                """,
+                (
+                    user_id,
+                    item["message_id"],
+                )
+            )
+
+            if cursor.fetchone():
+                continue
+
+            _gmail_sync_insert_expense(
+                cursor=cursor,
+                columns=expense_columns,
+                user_id=user_id,
+                amount=item["amount"],
+                category=item["category"],
+                expense_date=item["date"],
+                description=item["description"],
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO gmail_synced_messages
+                (
+                    user_id,
+                    gmail_message_id,
+                    provider,
+                    amount
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    item["message_id"],
+                    item["provider"],
+                    item["amount"],
+                )
+            )
+
+            # ------------------------------------------------
+            # Record successful Gmail import in Sync Activity
+            # ------------------------------------------------
+
+            activity_provider = item["provider"]
+
+            activity_merchant = (
+                activity_provider
+                .replace("_", " ")
+                .title()
+            )
+
+            activity_description = (
+                item["description"]
+            )
+
+            cursor.execute(
+                """
+                SELECT 1
+                FROM integration_sync_activity
+                WHERE user_id=?
+                  AND provider=?
+                  AND amount=?
+                  AND transaction_date=?
+                  AND description=?
+                LIMIT 1
+                """,
+                (
+                    user_id,
+                    activity_provider,
+                    item["amount"],
+                    item["date"],
+                    activity_description,
+                )
+            )
+
+            existing_activity = (
+                cursor.fetchone()
+            )
+
+            if not existing_activity:
+
+                cursor.execute(
+                    """
+                    INSERT INTO integration_sync_activity
+                    (
+                        user_id,
+                        provider,
+                        merchant,
+                        amount,
+                        category,
+                        description,
+                        transaction_date,
+                        status,
+                        source_type,
+                        created_at
+                    )
+                    VALUES
+                    (
+                        ?, ?, ?, ?, ?, ?,
+                        ?, 'imported',
+                        'gmail',
+                        CURRENT_TIMESTAMP
+                    )
+                    """,
+                    (
+                        user_id,
+                        activity_provider,
+                        activity_merchant,
+                        item["amount"],
+                        item["category"],
+                        activity_description,
+                        item["date"],
+                    )
+                )
+
+            imported += 1
+
+        cursor.execute(
+            """
+            UPDATE integration_connections
+            SET
+                last_sync_at=CURRENT_TIMESTAMP,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE user_id=?
+              AND provider='gmail'
+            """,
+            (user_id,)
+        )
+
+        conn.commit()
+
+    except Exception as exc:
+        conn.rollback()
+
+        print(
+            "Gmail expense import error:",
+            type(exc).__name__,
+            str(exc)[:400]
+        )
+
+        return redirect(
+            "/connected_apps"
+            "?gmail_sync_error=import"
+        )
+
+    finally:
+        conn.close()
+
+    scanned = len(messages)
+
+    skipped = max(
+        scanned - imported,
+        0
+    )
+
+    print(
+        "Gmail sync completed:",
+        f"scanned={scanned}",
+        f"parsed={len(parsed_expenses)}",
+        f"imported={imported}",
+        f"skipped={skipped}",
+    )
+
+    print("Gmail provider diagnostics:")
+
+    for provider_name, stats in provider_stats.items():
+        print(
+            f"  {provider_name}:",
+            f"found={stats['found']}",
+            f"amount_detected={stats['amount']}"
+        )
+
+    return redirect(
+        "/connected_apps"
+        f"?gmail_sync=1"
+        f"&imported={imported}"
+        f"&scanned={scanned}"
+        f"&skipped={skipped}"
+    )
+
+
+# ============================================================
+# GMAIL SYNC ENGINE END
+# ============================================================
+
+
+# ============================================================
+# AUTO EXPENSE SYNC ROUTES END
+# ============================================================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

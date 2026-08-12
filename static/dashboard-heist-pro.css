@@ -1,0 +1,808 @@
+/* ==========================================================
+   EXPENSEX — PROFESSIONAL HEIST / STRATEGY THEME
+   ========================================================== */
+
+/* Keep theme restrained: charcoal + burgundy + muted gold */
+
+.hero {
+    position: relative;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    background:
+        radial-gradient(
+            circle at 82% 28%,
+            rgba(126, 28, 43, .07),
+            transparent 25%
+        ),
+        radial-gradient(
+            circle at 12% 82%,
+            rgba(158, 127, 79, .04),
+            transparent 24%
+        );
+}
+
+
+/* ==========================================================
+   HERO TITLE
+   Default remains monochrome.
+   Professional color appears only on hover.
+   ========================================================== */
+
+.hero-title,
+.hero-title .hero-line {
+    position: relative;
+    z-index: 2;
+}
+
+
+.hero-title .hero-letter {
+    display: inline-block;
+
+    color: inherit;
+
+    transition:
+        color .20s ease,
+        transform .20s ease,
+        text-shadow .20s ease;
+}
+
+
+.hero-title .hero-letter:hover {
+    transform: translateY(-2px);
+}
+
+
+/* TRACK */
+
+.hero-title .hero-line:nth-of-type(1)
+.hero-letter:nth-child(1):hover {
+    color: #a46b73;
+}
+
+.hero-title .hero-line:nth-of-type(1)
+.hero-letter:nth-child(2):hover {
+    color: #9b7d67;
+}
+
+.hero-title .hero-line:nth-of-type(1)
+.hero-letter:nth-child(3):hover {
+    color: #8796a2;
+}
+
+.hero-title .hero-line:nth-of-type(1)
+.hero-letter:nth-child(4):hover {
+    color: #8b7f95;
+}
+
+.hero-title .hero-line:nth-of-type(1)
+.hero-letter:nth-child(5):hover {
+    color: #9c8770;
+}
+
+
+/* ANALYZE */
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(1):hover {
+    color: #8c9a8f;
+}
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(2):hover {
+    color: #a46b73;
+}
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(3):hover {
+    color: #9d866f;
+}
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(4):hover {
+    color: #8495a2;
+}
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(5):hover {
+    color: #927d97;
+}
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(6):hover {
+    color: #a06f76;
+}
+
+.hero-title .hero-line:nth-of-type(2)
+.hero-letter:nth-child(7):hover {
+    color: #89998e;
+}
+
+
+/* GROW */
+
+.hero-title .hero-line:nth-of-type(3)
+.hero-letter:nth-child(1):hover {
+    color: #a36c73;
+}
+
+.hero-title .hero-line:nth-of-type(3)
+.hero-letter:nth-child(2):hover {
+    color: #98826c;
+}
+
+.hero-title .hero-line:nth-of-type(3)
+.hero-letter:nth-child(3):hover {
+    color: #8495a1;
+}
+
+.hero-title .hero-line:nth-of-type(3)
+.hero-letter:nth-child(4):hover {
+    color: #8e8195;
+}
+
+
+/* ==========================================================
+   PROFESSOR STRATEGY PANEL
+   This remains .hero-finance-map so ad replacement still works.
+   ========================================================== */
+
+.hero-finance-map.professor-strategy-panel {
+    position: relative;
+
+    overflow: hidden;
+
+    width: 100%;
+    max-width: 470px;
+
+    padding: 0 !important;
+
+    border:
+        1px solid rgba(255,255,255,.075) !important;
+
+    border-radius: 16px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #11161b,
+            #0d1216
+        ) !important;
+
+    box-shadow:
+        0 18px 45px rgba(0,0,0,.18) !important;
+}
+
+
+.professor-strategy-panel::before {
+    content: "";
+
+    position: absolute;
+
+    width: 170px;
+    height: 170px;
+
+    top: -70px;
+    right: -60px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(131, 31, 46, .09);
+
+    filter: blur(5px);
+
+    pointer-events: none;
+}
+
+
+.professor-panel-inner {
+    position: relative;
+
+    z-index: 2;
+
+    padding: 18px;
+}
+
+
+/* TOP */
+
+.professor-panel-head {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding-bottom: 13px;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.065);
+}
+
+
+.professor-panel-label {
+    display: block;
+
+    color: #707c86;
+
+    font-size: .48rem;
+
+    font-weight: 750;
+
+    letter-spacing: .10em;
+
+    text-transform: uppercase;
+}
+
+
+.professor-panel-title {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #e9edf0;
+
+    font-size: .69rem;
+
+    font-weight: 730;
+}
+
+
+.professor-panel-live {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 7px;
+
+    border:
+        1px solid rgba(107,137,117,.13);
+
+    border-radius: 999px;
+
+    background:
+        rgba(73,99,81,.07);
+
+    color: #8da394;
+
+    font-size: .45rem;
+
+    font-weight: 650;
+}
+
+
+.professor-panel-live::before {
+    content: "";
+
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+
+    background: #718a7a;
+}
+
+
+/* PROFESSOR */
+
+.professor-main {
+    display: grid;
+
+    grid-template-columns: 82px 1fr;
+
+    gap: 15px;
+
+    align-items: center;
+
+    padding: 18px 0 16px;
+}
+
+
+.professor-portrait {
+    position: relative;
+
+    width: 78px;
+    height: 92px;
+
+    overflow: hidden;
+
+    border:
+        1px solid rgba(255,255,255,.08);
+
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            160deg,
+            #20262b,
+            #0c1014
+        );
+}
+
+
+/* head */
+
+.professor-head {
+    position: absolute;
+
+    width: 31px;
+    height: 35px;
+
+    top: 17px;
+    left: 23px;
+
+    border-radius:
+        47% 47% 44% 44%;
+
+    background:
+        #a7a9aa;
+}
+
+
+/* hair */
+
+.professor-head::before {
+    content: "";
+
+    position: absolute;
+
+    width: 31px;
+    height: 11px;
+
+    top: -3px;
+    left: 0;
+
+    border-radius:
+        50% 50% 25% 25%;
+
+    background: #34383c;
+}
+
+
+/* glasses */
+
+.professor-glasses {
+    position: absolute;
+
+    width: 32px;
+    height: 10px;
+
+    top: 29px;
+    left: 22px;
+
+    z-index: 5;
+}
+
+
+.professor-glasses::before,
+.professor-glasses::after {
+    content: "";
+
+    position: absolute;
+
+    width: 11px;
+    height: 8px;
+
+    top: 0;
+
+    border:
+        2px solid #2b2e31;
+
+    border-radius: 3px;
+}
+
+
+.professor-glasses::before {
+    left: 0;
+}
+
+
+.professor-glasses::after {
+    right: 0;
+}
+
+
+.professor-glasses span {
+    position: absolute;
+
+    width: 7px;
+    height: 2px;
+
+    left: 12px;
+    top: 4px;
+
+    background: #2b2e31;
+}
+
+
+/* beard */
+
+.professor-beard {
+    position: absolute;
+
+    width: 20px;
+    height: 10px;
+
+    top: 43px;
+    left: 29px;
+
+    z-index: 4;
+
+    border-radius:
+        0 0 50% 50%;
+
+    background: #55595c;
+}
+
+
+/* body */
+
+.professor-body {
+    position: absolute;
+
+    width: 58px;
+    height: 47px;
+
+    left: 10px;
+    bottom: -6px;
+
+    border-radius:
+        22px 22px 5px 5px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #2b3035,
+            #161b1f
+        );
+}
+
+
+.professor-body::before {
+    content: "";
+
+    position: absolute;
+
+    width: 15px;
+    height: 32px;
+
+    left: 22px;
+    top: 0;
+
+    background:
+        #7a2632;
+
+    clip-path:
+        polygon(
+            50% 0,
+            100% 28%,
+            66% 100%,
+            34% 100%,
+            0 28%
+        );
+}
+
+
+.professor-copy small {
+    display: block;
+
+    color: #8c7767;
+
+    font-size: .46rem;
+
+    font-weight: 740;
+
+    letter-spacing: .09em;
+
+    text-transform: uppercase;
+}
+
+
+.professor-copy h3 {
+    margin: 5px 0 0;
+
+    color: #eef1f3;
+
+    font-size: 1rem;
+
+    line-height: 1.15;
+
+    letter-spacing: -.025em;
+}
+
+
+.professor-copy p {
+    margin: 7px 0 0;
+
+    color: #737f89;
+
+    font-size: .56rem;
+
+    line-height: 1.55;
+}
+
+
+/* STRATEGY */
+
+.professor-strategy-line {
+    position: relative;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap: 5px;
+
+    margin-top: 3px;
+}
+
+
+.professor-strategy-line::before {
+    content: "";
+
+    position: absolute;
+
+    top: 13px;
+    left: 10%;
+
+    width: 80%;
+    height: 1px;
+
+    background:
+        rgba(255,255,255,.07);
+
+    z-index: -1;
+}
+
+
+.professor-step {
+    text-align: center;
+}
+
+
+.professor-step-icon {
+    width: 27px;
+    height: 27px;
+
+    display: grid;
+
+    place-items: center;
+
+    margin: auto;
+
+    border:
+        1px solid rgba(255,255,255,.08);
+
+    border-radius: 50%;
+
+    background: #171d22;
+
+    color: #9da7af;
+
+    font-size: .48rem;
+
+    font-weight: 760;
+}
+
+
+.professor-step span {
+    display: block;
+
+    margin-top: 6px;
+
+    color: #68747e;
+
+    font-size: .43rem;
+
+    font-weight: 620;
+}
+
+
+/* FOOTER */
+
+.professor-panel-footer {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    margin-top: 16px;
+
+    padding-top: 12px;
+
+    border-top:
+        1px solid rgba(255,255,255,.06);
+}
+
+
+.professor-quote {
+    color: #68747e;
+
+    font-size: .48rem;
+
+    font-style: italic;
+}
+
+
+.professor-mode-chip {
+    padding: 5px 7px;
+
+    border:
+        1px solid rgba(153,119,88,.12);
+
+    border-radius: 999px;
+
+    background:
+        rgba(128,91,61,.06);
+
+    color: #9d856f;
+
+    font-size: .43rem;
+
+    font-weight: 690;
+}
+
+
+/* ==========================================================
+   EXPENSEX LOGO
+   Restrained glow
+   ========================================================== */
+
+.nav .logo,
+.workspace-logo {
+    filter:
+        drop-shadow(
+            0 0 8px
+            rgba(131,31,46,.16)
+        )
+        drop-shadow(
+            0 0 12px
+            rgba(255,255,255,.045)
+        );
+}
+
+
+/* ==========================================================
+   LIGHT MODE
+   ========================================================== */
+
+html[data-theme="light"]
+.hero-finance-map.professor-strategy-panel {
+    border-color:
+        rgba(25,35,45,.10) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #f5f7f8
+        ) !important;
+
+    box-shadow:
+        0 12px 35px
+        rgba(30,40,50,.07) !important;
+}
+
+
+html[data-theme="light"]
+.professor-panel-head {
+    border-bottom-color:
+        rgba(25,35,45,.08);
+}
+
+
+html[data-theme="light"]
+.professor-panel-title,
+html[data-theme="light"]
+.professor-copy h3 {
+    color: #20282f;
+}
+
+
+html[data-theme="light"]
+.professor-copy p,
+html[data-theme="light"]
+.professor-panel-label,
+html[data-theme="light"]
+.professor-step span,
+html[data-theme="light"]
+.professor-quote {
+    color: #717d86;
+}
+
+
+html[data-theme="light"]
+.professor-step-icon {
+    border-color:
+        rgba(25,35,45,.09);
+
+    background: #f1f3f5;
+
+    color: #5f6b74;
+}
+
+
+html[data-theme="light"]
+.professor-panel-footer {
+    border-top-color:
+        rgba(25,35,45,.08);
+}
+
+
+/* ==========================================================
+   MOBILE
+   ========================================================== */
+
+@media (max-width: 760px) {
+
+    .hero-finance-map.professor-strategy-panel {
+        max-width: none !important;
+    }
+
+
+    .professor-main {
+        grid-template-columns:
+            72px 1fr;
+
+        gap: 12px;
+    }
+
+
+    .professor-portrait {
+        width: 68px;
+        height: 84px;
+    }
+
+
+    .professor-head {
+        left: 18px;
+    }
+
+
+    .professor-glasses {
+        left: 17px;
+    }
+
+
+    .professor-beard {
+        left: 24px;
+    }
+
+
+    .professor-body {
+        left: 5px;
+    }
+
+
+    .professor-copy h3 {
+        font-size: .9rem;
+    }
+
+
+    .professor-strategy-line {
+        grid-template-columns:
+            repeat(4,minmax(0,1fr));
+    }
+
+
+    .professor-panel-footer {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+}

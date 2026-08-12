@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <script>
+        (() => {
+            const saved =
+                localStorage.getItem(
+                    "expense-manager-theme"
+                );
+
+            const theme =
+                saved === "light" ||
+                saved === "dark"
+                    ? saved
+                    : "dark";
+
+            document.documentElement
+                .setAttribute(
+                    "data-theme",
+                    theme
+                );
+        })();
+    </script>
+
+    <title>
+        Connected Apps · Expense Manager
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='theme.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='connected-apps.css') }}">
+
+    <meta
+        name="theme-color"
+        content="#09090a">
+<link rel="stylesheet" href="/static/workspace-premium.css?v=20260812c">
+<link rel="stylesheet" href="/static/app-professional-final.css?v=20260812-final2">
+</head>
+
+<body class="integration-page">
+
+<div class="integration-shell">
+
+    <!-- ================= TOP BAR ================= -->
+
+    <header class="integration-topbar">
+
+        <a href="/" class="integration-brand">
+
+            <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt=""
+                class="integration-logo">
+
+            <div>
+                <strong>Expense Manager</strong>
+                <span>Auto Expense Sync</span>
+            </div>
+
+        </a>
+
+
+        <nav class="integration-nav">
+
+            <a href="/">
+                Dashboard
+            </a>
+
+            <a href="/groups">
+                Groups
+            </a>
+
+            <a href="/bills">
+                Bills
+            </a>
+
+            <a
+                href="/connected_apps"
+                class="active">
+
+                Connected Apps
+
+            </a>
+
+        </nav>
+
+
+        <a
+            href="/logout"
+            class="integration-logout">
+
+            Logout
+
+        </a>
+
+    </header>
+
+
+    <!-- ================= INTRO ================= -->
+
+    <section class="integration-intro">
+
+        <div>
+
+            <span class="integration-eyebrow">
+                AUTO EXPENSE SYNC
+            </span>
+
+            <h1>
+                Purchases in.
+                Manual entry out.
+            </h1>
+
+            <p>
+                Connect services once and let Expense Manager
+                detect eligible shopping and food purchases,
+                categorize them and prepare them for automatic
+                expense tracking.
+            </p>
+
+        </div>
+
+
+        <div class="integration-security">
+
+            <span class="security-dot"></span>
+
+            <div>
+                <strong>
+                    Privacy-first
+                </strong>
+
+                <span>
+                    Connections stay scoped to your account.
+                </span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= STATS ================= -->
+
+    <section class="integration-stats">
+
+        <article>
+            <span>Available integrations</span>
+            <strong>{{ providers|length }}</strong>
+            <small>
+                Shopping, food and email sources
+            </small>
+        </article>
+
+
+        <article>
+            <span>Connected</span>
+            <strong>{{ connected_count }}</strong>
+            <small>
+                Accounts currently authorized
+            </small>
+        </article>
+
+
+        <article>
+            <span>Auto import enabled</span>
+            <strong>{{ enabled_count }}</strong>
+            <small>
+                Provider monitoring preferences
+            </small>
+        </article>
+
+
+        <article>
+            <span>Imported activity</span>
+            <strong>{{ sync_activity|length }}</strong>
+            <small>
+                Recent Auto Sync events
+            </small>
+        </article>
+
+    </section>
+
+
+    {% if request.args.get('gmail_connected') %}
+
+<section class="integration-notice gmail-success">
+
+    <div>
+        <strong>
+            Gmail connected successfully.
+        </strong>
+
+        <span>
+            Expense Manager can now access the Gmail
+            account you authorized. Automatic purchase
+            scanning will be added in the next phase.
+        </span>
+    </div>
+
+</section>
+
+{% endif %}
+
+
+{% if request.args.get('gmail_error') %}
+
+<section class="integration-notice gmail-error">
+
+    <div>
+        <strong>
+            Gmail could not be connected.
+        </strong>
+
+        <span>
+            {% if request.args.get('gmail_error') == 'denied' %}
+                Google authorization was cancelled.
+            {% elif request.args.get('gmail_error') == 'no_refresh_token' %}
+                Google did not provide offline access.
+                Try connecting Gmail again.
+            {% elif request.args.get('gmail_error') == 'configuration' %}
+                Google OAuth configuration is incomplete.
+            {% else %}
+                The OAuth callback could not be completed.
+                Check the terminal for the safe error type.
+            {% endif %}
+        </span>
+    </div>
+
+</section>
+
+{% endif %}
+
+
+
+    <!-- ================= GMAIL SYNC RESULT ================= -->
+
+    {% if request.args.get('gmail_sync') %}
+
+    <section class="integration-notice">
+
+        <div>
+
+            <strong>
+                Gmail sync completed.
+            </strong>
+
+            <span>
+                Scanned {{ request.args.get('scanned', 0) }}
+                message{{ '' if request.args.get('scanned') == '1' else 's' }}.
+
+                Imported {{ request.args.get('imported', 0) }}
+                expense{{ '' if request.args.get('imported') == '1' else 's' }}.
+
+                {{ request.args.get('review', 0) }}
+                need{{ '' if request.args.get('review') != '1' else 's' }}
+                review.
+
+                {{ request.args.get('skipped', 0) }}
+                skipped.
+            </span>
+
+        </div>
+
+    </section>
+
+    {% endif %}
+
+
+    {% if request.args.get('gmail_sync_error') %}
+
+    <section class="integration-notice gmail-error">
+
+        <div>
+
+            <strong>
+                Gmail sync could not be completed.
+            </strong>
+
+            <span>
+
+                {% if request.args.get('gmail_sync_error') == 'auth' %}
+
+                    Gmail authorization needs attention.
+                    Reconnect Gmail and try again.
+
+                {% elif request.args.get('gmail_sync_error') == 'search' %}
+
+                    Expense Manager could not search Gmail.
+
+                {% else %}
+
+                    A transaction could not be processed.
+                    Check the terminal error type.
+
+                {% endif %}
+
+            </span>
+
+        </div>
+
+    </section>
+
+    {% endif %}
+
+
+    <!-- ================= TOOLBAR ================= -->
+
+    <section class="integration-toolbar">
+
+        <div class="integration-search-wrap">
+
+            <span>
+                ⌕
+            </span>
+
+            <input
+                type="search"
+                id="integrationSearch"
+                placeholder="Search integrations..."
+                autocomplete="off">
+
+        </div>
+
+
+        <div
+            class="integration-filters"
+            id="integrationFilters">
+
+            <button
+                type="button"
+                class="active"
+                data-filter="all">
+                All
+            </button>
+
+            <button
+                type="button"
+                data-filter="connected">
+                Connected
+            </button>
+
+            <button
+                type="button"
+                data-filter="email">
+                Email
+            </button>
+
+            <button
+                type="button"
+                data-filter="direct">
+                Direct
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= APPS ================= -->
+
+    <section class="integration-section-head">
+
+        <div>
+            <span>CONNECTED SERVICES</span>
+            <h2>Apps & platforms</h2>
+        </div>
+
+        <p id="integrationResultCount"></p>
+
+    </section>
+
+
+    <section
+        class="integration-grid"
+        id="integrationGrid">
+
+        {% for provider in providers %}
+
+        <article
+            class="integration-card"
+            data-integration-card
+            data-provider="{{ provider.id }}"
+            data-name="{{ provider.name|lower }}"
+            data-status="{{ provider.status }}"
+            data-method="{{ provider.method }}">
+
+            <div class="integration-card-top">
+
+                <div
+                    class="provider-monogram">
+
+                    {{ provider.name[0]|upper }}
+
+                </div>
+
+
+                <span
+                    class="integration-status
+                    {% if provider.status == 'connected' %}
+                        connected
+                    {% endif %}">
+
+                    {% if provider.status == 'connected' %}
+                        Connected
+                    {% else %}
+                        Not connected
+                    {% endif %}
+
+                </span>
+
+            </div>
+
+
+            <div class="integration-card-body">
+
+                <span class="provider-subtitle">
+                    {{ provider.subtitle }}
+                </span>
+
+                <h3>
+                    {{ provider.name }}
+                </h3>
+
+                {% if provider.status == 'connected'
+                      and provider.account_label %}
+
+                <div class="connected-account-label">
+
+                    <span>Connected account</span>
+
+                    <strong>
+                        {{ provider.account_label }}
+                    </strong>
+
+                </div>
+
+                {% endif %}
+
+
+                <p>
+                    {{ provider.description }}
+                </p>
+
+            </div>
+
+
+            <div class="integration-meta">
+
+                <div>
+                    <span>Connection</span>
+                    <strong>
+                        {{ provider.mode }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Auto import</span>
+
+                    <strong>
+                        {% if provider.auto_import_enabled %}
+                            Enabled
+                        {% else %}
+                            Disabled
+                        {% endif %}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            {% if provider.last_sync_at %}
+
+            <div class="last-sync">
+                Last sync:
+                {{ provider.last_sync_at }}
+            </div>
+
+            {% endif %}
+
+
+            <div class="integration-actions">
+
+                {% if provider.id == 'gmail' %}
+
+                    {% if provider.status == 'connected' %}
+
+                    <form
+                        action="/connected_apps/gmail/sync"
+                        method="POST"
+                        class="gmail-sync-form">
+
+                        <button
+                            type="submit"
+                            class="integration-primary gmail-sync-btn">
+
+                            Sync Gmail Now
+                            <span>↻</span>
+
+                        </button>
+
+                    </form>
+
+                    <form
+                        action="/connected_apps/gmail/disconnect"
+                        method="POST"
+                        class="gmail-disconnect-form"
+                        onsubmit="return confirm(
+                            'Disconnect Gmail from Expense Manager?'
+                        );">
+
+                        <button
+                            type="submit"
+                            class="gmail-disconnect-btn">
+
+                            Disconnect Gmail
+
+                        </button>
+
+                    </form>
+
+
+                    {% else %}
+
+                    <a
+                        href="/connected_apps/gmail/setup"
+                        class="integration-primary">
+
+                        Connect Gmail
+                        <span>→</span>
+
+                    </a>
+
+                    {% endif %}
+
+                {% else %}
+
+                <span class="integration-via-email">
+
+                    {% if provider.method == 'hybrid' %}
+                        Gmail / Direct
+                    {% else %}
+                        Requires Gmail
+                    {% endif %}
+
+                </span>
+
+                {% endif %}
+
+
+                <form
+                    action="/connected_apps/toggle/{{ provider.id }}"
+                    method="POST">
+
+                    <button
+                        type="submit"
+                        class="integration-toggle">
+
+                        {% if provider.auto_import_enabled %}
+                            Disable
+                        {% else %}
+                            Enable
+                        {% endif %}
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </article>
+
+        {% endfor %}
+
+    </section>
+
+
+    <section
+        class="integration-empty"
+        id="integrationEmpty"
+        hidden>
+
+        <strong>
+            No integrations found
+        </strong>
+
+        <span>
+            Try another search or filter.
+        </span>
+
+    </section>
+
+
+    <!-- ================= SYNC ACTIVITY ================= -->
+
+    <section class="sync-section" id="sync-activity">
+
+        <div class="integration-section-head sync-activity-heading">
+
+            <div>
+                <span>IMPORT HISTORY</span>
+                <h2>Sync activity</h2>
+            </div>
+
+            <button
+                type="button"
+                class="sync-activity-toggle"
+                id="syncActivityToggle"
+                aria-expanded="false"
+                aria-controls="syncActivityBody">
+
+                <span class="sync-toggle-label">
+                    Show Sync Activity
+                </span>
+
+                <span
+                    class="sync-toggle-icon"
+                    aria-hidden="true">
+                    ↓
+                </span>
+
+            </button>
+
+        </div>
+
+
+                <div
+            class="sync-activity-body"
+            id="syncActivityBody"
+            hidden>
+
+{% if sync_activity %}
+
+        <div class="sync-list">
+
+            {% for item in sync_activity %}
+
+            <article class="sync-row">
+
+                <div class="sync-provider">
+                    {{ item[1][0]|upper }}
+                </div>
+
+                <div class="sync-main">
+
+                    <strong>
+                        {{ item[2] or item[1]|title }}
+                    </strong>
+
+                    <span>
+                        {{ item[5] or 'Imported transaction' }}
+                    </span>
+
+                </div>
+
+
+                <div class="sync-category">
+
+                    {{ item[4] or 'Uncategorized' }}
+
+                </div>
+
+
+                <div class="sync-date">
+
+                    {{ item[6] or item[9] }}
+
+                </div>
+
+
+                <div class="sync-amount">
+
+                    {% if item[3] is not none %}
+                        ₹{{ '%.2f'|format(item[3]|float) }}
+                    {% else %}
+                        —
+                    {% endif %}
+
+                </div>
+
+
+                <div class="sync-status-actions">
+
+                    <span class="sync-status">
+                        {{ item[7]|replace('_', ' ')|title }}
+                    </span>
+
+                    <div class="sync-actions">
+
+                        <form
+                            method="POST"
+                            action="/connected_apps/activity/{{ item[0] }}/hide">
+
+                            <button
+                                type="submit"
+                                class="sync-action-btn sync-hide-btn">
+                                Hide
+                            </button>
+
+                        </form>
+
+                        <form
+                            method="POST"
+                            action="/connected_apps/activity/{{ item[0] }}/delete"
+                            onsubmit="return confirm('Delete this Sync Activity record? The expense itself will remain in Expense History.');">
+
+                            <button
+                                type="submit"
+                                class="sync-action-btn sync-delete-btn">
+                                Delete
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+            {% endfor %}
+
+        </div>
+
+        {% else %}
+
+        <div class="sync-empty">
+
+            <div class="sync-empty-mark">
+                ↓
+            </div>
+
+            <h3>
+                No imported purchases yet
+            </h3>
+
+            <p>
+                Once Gmail or another supported service is
+                connected, detected purchases will appear
+                here before becoming expenses.
+            </p>
+
+        </div>
+
+        {% endif %}
+
+
+
+        {% if hidden_activity %}
+
+        <details class="sync-hidden-panel">
+
+            <summary>
+
+                <span>
+                    Hidden activity
+                </span>
+
+                <strong>
+                    {{ hidden_activity|length }}
+                </strong>
+
+            </summary>
+
+
+            <div class="sync-hidden-list">
+
+                {% for item in hidden_activity %}
+
+                <article class="sync-hidden-row">
+
+                    <div class="sync-hidden-provider">
+                        {{ item[1][0]|upper }}
+                    </div>
+
+
+                    <div class="sync-hidden-main">
+
+                        <strong>
+                            {{ item[2] or item[1]|title }}
+                        </strong>
+
+                        <span>
+                            {{ item[5] or 'Imported transaction' }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="sync-hidden-meta">
+
+                        <span>
+                            {{ item[4] or 'Uncategorized' }}
+                        </span>
+
+                        <span>
+                            {{ item[6] or item[9] }}
+                        </span>
+
+                        <strong>
+                            {% if item[3] is not none %}
+                                ₹{{ '%.2f'|format(item[3]|float) }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="sync-hidden-actions">
+
+                        <form
+                            method="POST"
+                            action="/connected_apps/activity/{{ item[0] }}/restore">
+
+                            <button
+                                type="submit"
+                                class="sync-action-btn sync-restore-btn">
+                                Restore
+                            </button>
+
+                        </form>
+
+
+                        <form
+                            method="POST"
+                            action="/connected_apps/activity/{{ item[0] }}/delete"
+                            onsubmit="return confirm('Permanently delete this Sync Activity record?');">
+
+                            <button
+                                type="submit"
+                                class="sync-action-btn sync-delete-btn">
+                                Delete
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+            </div>
+
+        </details>
+
+        {% endif %}
+
+
+        </div>
+
+    </section>
+
+</div>
+
+
+
+<script>
+(function () {
+    "use strict";
+
+    const button =
+        document.getElementById(
+            "syncActivityToggle"
+        );
+
+    const body =
+        document.getElementById(
+            "syncActivityBody"
+        );
+
+    if (!button || !body) {
+        return;
+    }
+
+    const label =
+        button.querySelector(
+            ".sync-toggle-label"
+        );
+
+    const icon =
+        button.querySelector(
+            ".sync-toggle-icon"
+        );
+
+
+    function setOpen(open) {
+
+        body.hidden = !open;
+
+        button.setAttribute(
+            "aria-expanded",
+            open ? "true" : "false"
+        );
+
+        if (label) {
+            label.textContent =
+                open
+                    ? "Hide Sync Activity"
+                    : "Show Sync Activity";
+        }
+
+        if (icon) {
+            icon.textContent =
+                open
+                    ? "↑"
+                    : "↓";
+        }
+
+        button.classList.toggle(
+            "is-open",
+            open
+        );
+    }
+
+
+    /*
+     * Normal Connected Apps load:
+     * keep Sync Activity closed.
+     *
+     * Hide/Delete/Restore routes redirect to
+     * #sync-activity, so automatically reopen after
+     * those actions to show the result.
+     */
+
+    const shouldOpen =
+        window.location.hash
+        === "#sync-activity";
+
+    setOpen(shouldOpen);
+
+
+    button.addEventListener(
+        "click",
+        function () {
+
+            setOpen(
+                body.hidden
+            );
+
+        }
+    );
+
+})();
+</script>
+
+<script>
+(function () {
+
+    const search =
+        document.getElementById(
+            "integrationSearch"
+        );
+
+    const cards =
+        Array.from(
+            document.querySelectorAll(
+                "[data-integration-card]"
+            )
+        );
+
+    const buttons =
+        Array.from(
+            document.querySelectorAll(
+                "#integrationFilters button"
+            )
+        );
+
+    const count =
+        document.getElementById(
+            "integrationResultCount"
+        );
+
+    const empty =
+        document.getElementById(
+            "integrationEmpty"
+        );
+
+    let filter = "all";
+
+
+    function matchesFilter(card) {
+
+        if (filter === "all") {
+            return true;
+        }
+
+        if (filter === "connected") {
+            return (
+                card.dataset.status
+                === "connected"
+            );
+        }
+
+        if (filter === "email") {
+            return (
+                card.dataset.method
+                === "email"
+                ||
+                card.dataset.method
+                === "hybrid"
+            );
+        }
+
+        if (filter === "direct") {
+            return (
+                card.dataset.method
+                === "oauth"
+                ||
+                card.dataset.method
+                === "hybrid"
+            );
+        }
+
+        return true;
+    }
+
+
+    function update() {
+
+        const query =
+            (search.value || "")
+            .trim()
+            .toLowerCase();
+
+        let visible = 0;
+
+
+        cards.forEach(function (card) {
+
+            const searchMatch =
+                !query
+                ||
+                card.dataset.name
+                    .includes(query);
+
+            const show =
+                searchMatch
+                &&
+                matchesFilter(card);
+
+            card.hidden =
+                !show;
+
+            if (show) {
+                visible++;
+            }
+
+        });
+
+
+        count.textContent =
+            visible
+            +
+            (
+                visible === 1
+                    ? " service"
+                    : " services"
+            );
+
+
+        empty.hidden =
+            visible !== 0;
+
+    }
+
+
+    search.addEventListener(
+        "input",
+        update
+    );
+
+
+    buttons.forEach(function (button) {
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                filter =
+                    button.dataset.filter;
+
+                buttons.forEach(
+                    item =>
+                        item.classList
+                        .remove("active")
+                );
+
+                button.classList
+                    .add("active");
+
+                update();
+
+            }
+        );
+
+    });
+
+
+    update();
+
+})();
+</script>
+
+
+<script src="/static/js/db.js"></script>
+<script src="/static/js/sync.js"></script>
+<script src="/static/js/offline.js"></script>
+
+<script src="/static/js/connected-apps-branding.js?v=20260812"></script>
+<script src="/static/js/workspace-premium.js?v=20260812c"></script>
+</body>
+</html>

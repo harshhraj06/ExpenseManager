@@ -32,329 +32,1427 @@
     </script>
 
     <title>Bills · Expense Manager</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#0b0b0b">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='theme.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='language.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='mobile.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='secondary-pages.css') }}">
+
+    <link rel="manifest" href="/static/manifest.json">
+
+    <meta name="theme-color" content="#0b0b0b">
 
     <script
         src="{{ url_for('static', filename='js/theme.js') }}"
         defer>
     </script>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='language.css') }}">
-
     <script
         src="{{ url_for('static', filename='js/language.js') }}"
         defer>
     </script>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='mobile.css') }}">
-
+<link rel="stylesheet" href="/static/workspace-premium.css?v=20260812c">
+<link rel="stylesheet" href="/static/notification-center-pro.css?v=20260812b">
+<link rel="stylesheet" href="/static/app-professional-final.css?v=20260812-final2">
+<link rel="stylesheet" href="/static/bill-invoice-studio.css?v=20260812">
 </head>
 
-<body>
-
-<div class="container">
-
-  <div class="nav">
-    <div class="brand">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
-    </div>
-    <div class="nav-links">
-      <span>Welcome {{ session['username'] }}</span>
-      <a href="/">Dashboard</a>
-      <a href="/groups">Groups</a>
-      <a href="/bills">Bills</a>
+<body class="workspace-page bills-workspace">
 
 
+{% set bill_stats = namespace(
+    pending_total=0,
+    paid_total=0,
+    overdue=0,
+    recurring=0
+) %}
 
-      <a href="/ask_ai">Ask Expense Manager</a>
 
-      <div class="notif-bell-wrap">
-        <button type="button" class="notif-bell-btn" id="notifBellBtn" aria-label="Notifications">
-          🔔
-          {% if unread_count and unread_count > 0 %}
-          <span class="notif-badge">{{ unread_count if unread_count <= 9 else '9+' }}</span>
-          {% endif %}
-        </button>
+{% for bill in pending_bills %}
 
-        <div class="notif-dropdown" id="notifDropdown">
-          <div class="notif-dropdown-header">
-            <span>Notifications</span>
-            {% if unread_count and unread_count > 0 %}
-            <button type="button" id="notifMarkAllRead" class="notif-mark-all">Mark all read</button>
-            {% endif %}
-          </div>
+    {% set bill_stats.pending_total =
+        bill_stats.pending_total + (bill[3]|float) %}
 
-          {% if recent_notifications %}
-            {% for n in recent_notifications %}
-            <div class="notif-item{% if not n[4] %} notif-unread{% endif %}" data-notif-id="{{ n[0] }}">
-              <div class="notif-item-title">🔔 {{ n[1] }}</div>
-              <div class="notif-item-msg">{{ n[2] }}</div>
+    {% if bill[5] <= today %}
+        {% set bill_stats.overdue =
+            bill_stats.overdue + 1 %}
+    {% endif %}
+
+    {% if bill[6] != 'none' %}
+        {% set bill_stats.recurring =
+            bill_stats.recurring + 1 %}
+    {% endif %}
+
+{% endfor %}
+
+
+{% for bill in paid_bills %}
+
+    {% set bill_stats.paid_total =
+        bill_stats.paid_total + (bill[3]|float) %}
+
+{% endfor %}
+
+
+<div class="workspace-shell">
+
+    <!-- =====================================================
+         TOP BAR
+         ===================================================== -->
+
+    <header class="workspace-topbar">
+
+        <a href="/" class="workspace-brand">
+
+            <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt=""
+                class="workspace-logo">
+
+            <div>
+                <strong>Expense Manager</strong>
+                <span>Financial workspace</span>
             </div>
-            {% endfor %}
-          {% else %}
-            <div class="notif-empty">No notifications yet.</div>
-          {% endif %}
-        </div>
-      </div>
 
-      <a href="/logout">Logout</a>
-      <a href="#bill-form" class="add-btn">+ Add Bill</a>
-    </div>
-  </div>
-
-  <style>
-    .notif-bell-wrap { position: relative; display: inline-block; }
-    .notif-bell-btn {
-        background: none; border: none; cursor: pointer;
-        font-size: 1.15rem; position: relative; padding: 4px 8px;
-        color: inherit;
-    }
-    .notif-badge {
-        position: absolute; top: -2px; right: -2px;
-        background: #ef4444; color: white; font-size: 0.65rem;
-        font-weight: 700; border-radius: 999px; padding: 1px 5px;
-        line-height: 1.3; min-width: 16px; text-align: center;
-    }
-    .notif-dropdown {
-        display: none; position: absolute; right: 0; top: calc(100% + 8px);
-        width: 320px; max-height: 380px; overflow-y: auto;
-        background: #1a1a1a; border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-        z-index: 50;
-    }
-    .notif-dropdown.open { display: block; }
-    .notif-dropdown-header {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.1);
-        font-size: 0.85rem; font-weight: 600; color: #e5e7eb;
-    }
-    .notif-mark-all {
-        background: none; border: none; color: #60a5fa;
-        font-size: 0.75rem; cursor: pointer; padding: 0;
-    }
-    .notif-item {
-        padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
-        cursor: pointer;
-    }
-    .notif-item:last-child { border-bottom: none; }
-    .notif-item:hover { background: rgba(255,255,255,0.04); }
-    .notif-item-title { font-size: 0.85rem; font-weight: 600; color: #f3f4f6; }
-    .notif-item-msg { font-size: 0.78rem; color: #9ca3af; margin-top: 2px; }
-    .notif-unread { background: rgba(96,165,250,0.07); }
-    .notif-empty { padding: 16px 14px; font-size: 0.85rem; color: #9ca3af; text-align: center; }
-  </style>
-
-  <script>
-    (function () {
-        var btn = document.getElementById('notifBellBtn');
-        var dropdown = document.getElementById('notifDropdown');
-        if (!btn || !dropdown) return;
-
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            dropdown.classList.toggle('open');
-        });
-
-        document.addEventListener('click', function (e) {
-            if (!dropdown.contains(e.target) && e.target !== btn) {
-                dropdown.classList.remove('open');
-            }
-        });
-
-        dropdown.querySelectorAll('.notif-item').forEach(function (item) {
-            item.addEventListener('click', function () {
-                var id = item.getAttribute('data-notif-id');
-                fetch('/notifications/mark_read/' + id, { method: 'POST' }).then(function () {
-                    item.classList.remove('notif-unread');
-                });
-            });
-        });
-
-        var markAllBtn = document.getElementById('notifMarkAllRead');
-        if (markAllBtn) {
-            markAllBtn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                fetch('/notifications/mark_all_read', { method: 'POST' }).then(function () {
-                    window.location.reload();
-                });
-            });
-        }
-    })();
-  </script>
-
-  <div class="hero">
-    <h1>
-      SCHEDULE.<br>
-      AUTOMATE.<br>
-      FORGET.
-    </h1>
-    <p>Add a bill once. We'll turn it into an expense when it's due.</p>
-  </div>
-
-</div>
-
-<!-- ── Add Bill Form ── -->
-<div class="card" id="bill-form">
-  <h2>Add Bill</h2>
-  <form action="/add_bill" method="POST">
-    <input type="text"   name="name"       placeholder="Bill Name (e.g. Electricity)" required>
-    <input type="number" name="amount"     step="0.01" placeholder="Amount" required>
-    <select name="category" required>
-      <option value="">Select Category</option>
-      <option>Food</option>
-      <option>Travel</option>
-      <option>Shopping</option>
-      <option>Bills</option>
-      <option>Entertainment</option>
-      <option>Education</option>
-    </select>
-    <input type="date" name="due_date" required>
-    <select name="recurrence">
-      <option value="none">One-time</option>
-      <option value="weekly">Repeats weekly</option>
-      <option value="monthly">Repeats monthly</option>
-    </select>
-    <button type="submit">Add Bill</button>
-  </form>
-</div>
-
-<!-- ── Pending Bills ── -->
-<div class="card">
-  <h2>Pending Bills</h2>
-
-  <!-- NEW: note for recurring bills that exist but aren't due soon yet -->
-  {% if upcoming_count and upcoming_count > 0 %}
-  <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-              padding:0.9rem 1rem; border-radius:14px; margin-bottom:1rem;
-              font-size:0.9rem; color:#cfcfcf;">
-    📅 {{ upcoming_count }} recurring bill{{ 's' if upcoming_count != 1 else '' }}
-    scheduled but not due yet{% if upcoming_next_date %} — next one due {{ upcoming_next_date }}{% endif %}.
-    It'll appear here automatically once it's within 7 days.
-  </div>
-  {% endif %}
-
-  <table>
-    <tr>
-      <th>Name</th>
-      <th>Amount</th>
-      <th>Category</th>
-      <th>Due Date</th>
-      <th>Repeats</th>
-      <th>Last Paid</th>
-      <th>Action</th>
-      <th>Delete</th>
-    </tr>
-
-    {% for bill in pending_bills %}
-    <tr{% if bill[5] <= today %} class="bill-overdue"{% endif %}>
-      <td>{{ bill[2] }}</td>
-      <td>₹{{ bill[3] }}</td>
-      <td>{{ bill[4] }}</td>
-      <td>
-        {{ bill[5] }}
-        {% if bill[5] <= today %}
-        <span class="bill-tag">Due</span>
-        {% endif %}
-      </td>
-      <td>
-        {% if bill[6] == 'weekly' %}Weekly
-        {% elif bill[6] == 'monthly' %}Monthly
-        {% else %}One-time{% endif %}
-      </td>
-      <td>
-        {% if bill[8] %}
-          <span style="font-size:0.8rem; color:#6b7280;">Last paid: {{ bill[8] }}</span>
-        {% else %}
-          <span style="font-size:0.8rem; color:#9ca3af;">Never paid</span>
-        {% endif %}
-      </td>
-      <td>
-        <a class="pay-btn" href="/pay_bill_page/{{ bill[0] }}">Pay Now</a>
-      </td>
-      <td>
-        <a class="delete-btn" href="/delete_bill/{{ bill[0] }}"
-           onclick="return confirm('Delete this bill?')">Delete</a>
-      </td>
-    </tr>
-    {% endfor %}
-
-    {% if pending_bills|length == 0 %}
-    <tr>
-      <td colspan="8" class="bill-empty">No pending bills. Add one above.</td>
-    </tr>
-    {% endif %}
-  </table>
-</div>
-
-<!-- ── Paid Bills ── -->
-<div class="card">
-  <h2>Paid Bills</h2>
-
-  <!-- Success banner shown after a payment is confirmed -->
-  {% if request.args.get('paid') %}
-  <div style="background:#d1fae5; color:#065f46; padding:0.9rem 1rem;
-              border-radius:8px; margin-bottom:1rem; font-weight:500; line-height:1.5;">
-    ✅ Payment recorded successfully!
-    <div style="font-weight:400; font-size:0.85rem; margin-top:4px; color:#047857;">
-      If it was a recurring bill (weekly/monthly), it moves to "upcoming" above with its next due date until it's within 7 days. One-time bills move here to Paid Bills.
-    </div>
-  </div>
-  {% endif %}
-
-  <table>
-    <tr>
-      <th>Name</th>
-      <th>Amount</th>
-      <th>Category</th>
-      <th>Last Paid</th>
-      <th>Repeats</th>
-      <th>Receipt</th>
-      <th>Delete</th>
-    </tr>
-
-    {% for bill in paid_bills %}
-    <tr>
-      <td>{{ bill[2] }}</td>
-      <td>₹{{ bill[3] }}</td>
-      <td>{{ bill[4] }}</td>
-      <td>{{ bill[8] }}</td>
-      <td>
-        {% if bill[6] == 'weekly' %}Weekly
-        {% elif bill[6] == 'monthly' %}Monthly
-        {% else %}One-time{% endif %}
-      </td>
-      <td>
-        <a class="pay-btn" href="/bill_receipt/{{ bill[0] }}"
-           style="display:inline-block; padding:4px 12px; font-size:0.85rem;">
-          Download Receipt
         </a>
-      </td>
-      <td>
-        <a class="delete-btn" href="/delete_bill/{{ bill[0] }}"
-           onclick="return confirm('Delete this bill?')">Delete</a>
-      </td>
-    </tr>
-    {% endfor %}
 
-    {% if paid_bills|length == 0 %}
-    <tr>
-      <td colspan="7" class="bill-empty">No paid bills yet.</td>
-    </tr>
-    {% endif %}
-  </table>
+
+        <nav class="workspace-nav">
+
+            <a href="/">Dashboard</a>
+
+            <a href="/groups">
+                Groups
+            </a>
+
+            <a href="/bills" class="active">
+                Bills
+            </a>
+
+            <a href="/ask_ai">
+                Ask AI
+            </a>
+
+        </nav>
+
+
+        <div class="workspace-account">
+
+            <span class="workspace-user">
+                {{ session['username'] }}
+            </span>
+
+
+            <!-- NOTIFICATIONS -->
+
+            <div class="workspace-notification-wrap">
+
+                <button
+                    type="button"
+                    class="workspace-notification-btn"
+                    id="notifBellBtn"
+                    aria-label="Notifications">
+
+                    <span>Notifications</span>
+
+                    {% if unread_count and unread_count > 0 %}
+
+                    <strong>
+                        {{ unread_count if unread_count <= 9 else '9+' }}
+                    </strong>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="workspace-notification-menu"
+                    id="notifDropdown">
+
+                    <div class="notification-menu-head">
+
+                        <span>
+                            Notifications
+                        </span>
+
+                        {% if unread_count and unread_count > 0 %}
+
+                        <button
+                            type="button"
+                            id="notifMarkAllRead">
+
+                            Mark all read
+
+                        </button>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    {% if recent_notifications %}
+
+                        {% for n in recent_notifications %}
+
+                        <div
+                            class="workspace-notification-item
+                            {% if not n[4] %}
+                                unread
+                            {% endif %}"
+                            data-notif-id="{{ n[0] }}">
+
+                            <strong>
+                                {{ n[1] }}
+                            </strong>
+
+                            <span>
+                                {{ n[2] }}
+                            </span>
+
+                        </div>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="notification-empty">
+                            No notifications yet.
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <a
+                href="/logout"
+                class="workspace-logout">
+
+                Logout
+
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         INTRO
+         ===================================================== -->
+
+    <section class="workspace-intro">
+
+        <div class="workspace-intro-copy">
+
+            <span class="workspace-eyebrow">
+                BILL CONTROL CENTER
+            </span>
+
+            <h1>
+                Know what is due
+                before it becomes urgent.
+            </h1>
+
+            <p>
+                Track one-time and recurring bills,
+                pay them, record expenses automatically
+                and keep downloadable receipts.
+            </p>
+
+        </div>
+
+
+        <a
+            href="#bill-form"
+            class="workspace-primary-action">
+
+            <span>+</span>
+            Add bill
+
+        </a>
+
+    </section>
+    <!-- =====================================================
+         BILL & INVOICE STUDIO
+         ===================================================== -->
+
+    <section class="bill-invoice-studio">
+
+        <div class="bill-invoice-studio-copy">
+
+            <span>
+                Document Studio
+            </span>
+
+            <h2>
+                Bill & Invoice Editor
+            </h2>
+
+            <p>
+                Build a professional invoice from any bill.
+                Customize the issuer, customer, line items,
+                tax, discount, payment details, notes and
+                document styling without changing the actual
+                financial record.
+            </p>
+
+        </div>
+
+
+        <div class="bill-invoice-launcher">
+
+            <select id="billInvoiceSelect">
+
+                <option value="">
+                    Select a bill…
+                </option>
+
+
+                {% for bill in pending_bills %}
+
+                <option value="{{ bill[0] }}">
+                    Pending · {{ bill[2] }} · ₹{{ "%.2f"|format(bill[3]|float) }}
+                </option>
+
+                {% endfor %}
+
+
+                {% for bill in paid_bills %}
+
+                <option value="{{ bill[0] }}">
+                    Paid · {{ bill[2] }} · ₹{{ "%.2f"|format(bill[3]|float) }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+
+            <button
+                type="button"
+                id="openBillInvoiceEditor">
+
+                Open Editor
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+
+    <!-- =====================================================
+         SUMMARY
+         ===================================================== -->
+
+    <section class="workspace-stats">
+
+        <article class="workspace-stat">
+
+            <span class="workspace-stat-label">
+                Amount pending
+            </span>
+
+            <strong class="money-value">
+                ₹{{ '%.2f'|format(bill_stats.pending_total) }}
+            </strong>
+
+            <small>
+                Across {{ pending_bills|length }}
+                active bill{{ '' if pending_bills|length == 1 else 's' }}
+            </small>
+
+        </article>
+
+
+        <article class="workspace-stat">
+
+            <span class="workspace-stat-label">
+                Due now
+            </span>
+
+            <strong>
+                {{ bill_stats.overdue }}
+            </strong>
+
+            <small>
+                Due today or already overdue
+            </small>
+
+        </article>
+
+
+        <article class="workspace-stat">
+
+            <span class="workspace-stat-label">
+                Paid bills
+            </span>
+
+            <strong>
+                {{ paid_bills|length }}
+            </strong>
+
+            <small>
+                ₹{{ '%.2f'|format(bill_stats.paid_total) }}
+                recorded
+            </small>
+
+        </article>
+
+
+        <article class="workspace-stat">
+
+            <span class="workspace-stat-label">
+                Scheduled later
+            </span>
+
+            <strong>
+                {{ upcoming_count or 0 }}
+            </strong>
+
+            <small>
+                {% if upcoming_next_date %}
+                    Next due {{ upcoming_next_date }}
+                {% else %}
+                    No hidden recurring bills
+                {% endif %}
+            </small>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         SEARCH / FILTER
+         ===================================================== -->
+
+    <section class="workspace-panel bills-toolbar">
+
+        <div class="workspace-search-wrap">
+
+            <span class="workspace-search-icon">
+                ⌕
+            </span>
+
+            <input
+                type="search"
+                id="billSearch"
+                class="workspace-search"
+                placeholder="Search bills, categories or recurrence..."
+                autocomplete="off">
+
+        </div>
+
+
+        <div
+            class="workspace-filter-row"
+            id="billFilters">
+
+            <button
+                type="button"
+                class="workspace-filter active"
+                data-filter="all">
+                All
+            </button>
+
+            <button
+                type="button"
+                class="workspace-filter"
+                data-filter="pending">
+                Pending
+            </button>
+
+            <button
+                type="button"
+                class="workspace-filter"
+                data-filter="due">
+                Due now
+            </button>
+
+            <button
+                type="button"
+                class="workspace-filter"
+                data-filter="paid">
+                Paid
+            </button>
+
+            <button
+                type="button"
+                class="workspace-filter"
+                data-filter="recurring">
+                Recurring
+            </button>
+
+        </div>
+
+
+        <span
+            class="workspace-result-count"
+            id="billResultCount">
+        </span>
+
+    </section>
+
+
+    <!-- =====================================================
+         MAIN LAYOUT
+         ===================================================== -->
+
+    <div class="workspace-layout bills-layout">
+
+        <main class="workspace-main">
+
+
+            <!-- UPCOMING RECURRING INFO -->
+
+            {% if upcoming_count and upcoming_count > 0 %}
+
+            <section class="schedule-notice">
+
+                <div class="schedule-notice-mark">
+                    ↻
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ upcoming_count }}
+                        recurring bill{{ '' if upcoming_count == 1 else 's' }}
+                        scheduled for later
+                    </strong>
+
+                    <span>
+                        These stay out of your active list until
+                        they are within seven days of the due date.
+
+                        {% if upcoming_next_date %}
+                            Next scheduled bill:
+                            {{ upcoming_next_date }}.
+                        {% endif %}
+                    </span>
+
+                </div>
+
+            </section>
+
+            {% endif %}
+
+
+            <!-- SUCCESS -->
+
+            {% if request.args.get('paid') %}
+
+            <section class="payment-success">
+
+                <strong>
+                    Payment recorded
+                </strong>
+
+                <span>
+                    The bill has been added to your expenses.
+                    Recurring bills automatically schedule
+                    their next cycle.
+                </span>
+
+            </section>
+
+            {% endif %}
+
+
+            <!-- =================================================
+                 BILL CARDS
+                 ================================================= -->
+
+            <section
+                class="bill-card-grid"
+                id="billCardGrid">
+
+
+                <!-- PENDING -->
+
+                {% for bill in pending_bills %}
+
+                <article
+                    class="bill-pro-card
+                    {% if bill[5] <= today %}
+                        bill-is-due
+                    {% endif %}"
+                    data-bill-card
+                    data-status="pending"
+                    data-recurring="{% if bill[6] != 'none' %}1{% else %}0{% endif %}"
+                    data-due="{{ bill[5] }}"
+                    data-search="{{ bill[2]|lower }} {{ bill[4]|lower }} {{ bill[6]|lower }}">
+
+                    <div class="bill-card-head">
+
+                        <div>
+
+                            <span class="bill-card-label">
+                                {% if bill[6] == 'weekly' %}
+                                    WEEKLY BILL
+                                {% elif bill[6] == 'monthly' %}
+                                    MONTHLY BILL
+                                {% else %}
+                                    ONE-TIME BILL
+                                {% endif %}
+                            </span>
+
+                            <h2>
+                                {{ bill[2] }}
+                            </h2>
+
+                        </div>
+
+
+                        <span class="bill-status pending">
+                            Pending
+                        </span>
+
+                    </div>
+
+
+                    <div class="bill-amount">
+                        ₹{{ bill[3] }}
+                    </div>
+
+
+                    <div class="bill-detail-grid">
+
+                        <div>
+                            <span>Category</span>
+                            <strong>
+                                {{ bill[4] }}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Due date</span>
+                            <strong>
+                                {{ bill[5] }}
+                            </strong>
+
+                            <small
+                                class="relative-due"
+                                data-relative-due="{{ bill[5] }}">
+                            </small>
+                        </div>
+
+                        <div>
+                            <span>Recurrence</span>
+                            <strong>
+                                {% if bill[6] == 'weekly' %}
+                                    Weekly
+                                {% elif bill[6] == 'monthly' %}
+                                    Monthly
+                                {% else %}
+                                    One-time
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Previous payment</span>
+                            <strong>
+                                {% if bill[8] %}
+                                    {{ bill[8] }}
+                                {% else %}
+                                    Never paid
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="bill-card-footer">
+
+                        <a
+                            href="/pay_bill_page/{{ bill[0] }}"
+                            class="bill-primary-btn">
+
+                            Pay bill
+                            <span>→</span>
+
+                        </a>
+
+                        <a
+                            href="/delete_bill/{{ bill[0] }}"
+                            class="bill-danger-btn"
+                            onclick="return confirm(
+                                'Delete this bill?'
+                            )">
+
+                            Delete
+
+                        </a>
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+
+                <!-- PAID -->
+
+                {% for bill in paid_bills %}
+
+                <article
+                    class="bill-pro-card bill-paid-card"
+                    data-bill-card
+                    data-status="paid"
+                    data-recurring="{% if bill[6] != 'none' %}1{% else %}0{% endif %}"
+                    data-search="{{ bill[2]|lower }} {{ bill[4]|lower }} {{ bill[6]|lower }}">
+
+                    <div class="bill-card-head">
+
+                        <div>
+
+                            <span class="bill-card-label">
+                                PAYMENT HISTORY
+                            </span>
+
+                            <h2>
+                                {{ bill[2] }}
+                            </h2>
+
+                        </div>
+
+
+                        <span class="bill-status paid">
+                            Paid
+                        </span>
+
+                    </div>
+
+
+                    <div class="bill-amount paid-amount">
+                        ₹{{ bill[3] }}
+                    </div>
+
+
+                    <div class="bill-detail-grid">
+
+                        <div>
+                            <span>Category</span>
+                            <strong>
+                                {{ bill[4] }}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Paid on</span>
+                            <strong>
+                                {{ bill[8] or 'Recorded' }}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Recurrence</span>
+                            <strong>
+                                {% if bill[6] == 'weekly' %}
+                                    Weekly
+                                {% elif bill[6] == 'monthly' %}
+                                    Monthly
+                                {% else %}
+                                    One-time
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Status</span>
+                            <strong>
+                                Completed
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="bill-card-footer">
+
+                        <a
+                            href="/bill_receipt/{{ bill[0] }}"
+                            class="bill-secondary-btn">
+
+                            Download receipt
+
+                        </a>
+
+                        <a
+                            href="/delete_bill/{{ bill[0] }}"
+                            class="bill-danger-btn"
+                            onclick="return confirm(
+                                'Delete this bill?'
+                            )">
+
+                            Delete
+
+                        </a>
+
+                    </div>
+
+                </article>
+
+                {% endfor %}
+
+            </section>
+
+
+            <!-- SEARCH EMPTY -->
+
+            <section
+                class="workspace-empty"
+                id="billNoResults"
+                hidden>
+
+                <div class="workspace-empty-icon">
+                    ⌕
+                </div>
+
+                <h3>No bills match this view</h3>
+
+                <p>
+                    Change the filter or search for another
+                    bill or category.
+                </p>
+
+            </section>
+
+
+            {% if pending_bills|length == 0
+                  and paid_bills|length == 0 %}
+
+            <section class="workspace-empty initial-empty">
+
+                <div class="workspace-empty-icon">
+                    +
+                </div>
+
+                <h3>Your bill workspace is empty</h3>
+
+                <p>
+                    Add your first bill and Expense Manager
+                    will keep its due date and recurrence
+                    organized.
+                </p>
+
+                <a
+                    href="#bill-form"
+                    class="workspace-primary-action compact">
+
+                    Add first bill
+
+                </a>
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+
+        <!-- =================================================
+             ADD BILL
+             ================================================= -->
+
+        <aside class="workspace-side">
+
+            <section
+                class="workspace-panel create-panel bill-create-panel"
+                id="bill-form">
+
+                <div class="panel-kicker">
+                    NEW BILL
+                </div>
+
+                <h2>
+                    Add to schedule
+                </h2>
+
+                <p class="panel-description">
+                    Add a one-time payment or create
+                    a recurring weekly/monthly schedule.
+                </p>
+
+
+                <form
+                    action="/add_bill"
+                    method="POST"
+                    class="workspace-form">
+
+
+                    <label>
+                        Bill name
+
+                        <input
+                            type="text"
+                            name="name"
+                            maxlength="80"
+                            placeholder="e.g. Electricity"
+                            required>
+                    </label>
+
+
+                    <label>
+                        Amount
+
+                        <div class="money-input-wrap">
+
+                            <span>₹</span>
+
+                            <input
+                                type="number"
+                                name="amount"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                required>
+
+                        </div>
+
+                    </label>
+
+
+                    <label>
+                        Category
+
+                        <select
+                            name="category"
+                            required>
+
+                            <option value="">
+                                Select category
+                            </option>
+
+                            <option>Food</option>
+                            <option>Travel</option>
+                            <option>Shopping</option>
+                            <option>Bills</option>
+                            <option>Entertainment</option>
+                            <option>Education</option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+                        Due date
+
+                        <input
+                            type="date"
+                            name="due_date"
+                            required>
+                    </label>
+
+
+                    <label>
+                        Schedule
+
+                        <select name="recurrence">
+
+                            <option value="none">
+                                One-time payment
+                            </option>
+
+                            <option value="weekly">
+                                Repeat weekly
+                            </option>
+
+                            <option value="monthly">
+                                Repeat monthly
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <button
+                        type="submit"
+                        class="workspace-submit">
+
+                        Add bill
+
+                    </button>
+
+                </form>
+
+
+                <div class="workspace-side-note">
+
+                    <strong>
+                        Recurring bill logic
+                    </strong>
+
+                    <span>
+                        After payment, the next cycle is
+                        automatically created and stays hidden
+                        until it is within seven days of its
+                        next due date.
+                    </span>
+
+                </div>
+
+            </section>
+
+        </aside>
+
+    </div>
+
 </div>
 
-    <script src="/static/js/db.js"></script>
-    <script src="/static/js/sync.js"></script>
-    <script src="/static/js/offline.js"></script>
+
+<!-- =========================================================
+     BILL FILTER / DUE DATE / NOTIFICATIONS
+     ========================================================= -->
+
+<script>
+(function () {
+
+    /* -----------------------------
+       HUMAN FRIENDLY DUE DATES
+       ----------------------------- */
+
+    document
+        .querySelectorAll("[data-relative-due]")
+        .forEach(function (element) {
+
+            const value =
+                element.dataset.relativeDue;
+
+            if (!value) return;
+
+
+            const due =
+                new Date(value + "T00:00:00");
+
+            const today =
+                new Date();
+
+            today.setHours(0, 0, 0, 0);
+
+
+            const diff =
+                Math.round(
+                    (due - today)
+                    / 86400000
+                );
+
+
+            if (diff < 0) {
+
+                const days =
+                    Math.abs(diff);
+
+                element.textContent =
+                    days
+                    + (
+                        days === 1
+                            ? " day overdue"
+                            : " days overdue"
+                    );
+
+                element.classList.add(
+                    "due-warning"
+                );
+
+            } else if (diff === 0) {
+
+                element.textContent =
+                    "Due today";
+
+                element.classList.add(
+                    "due-warning"
+                );
+
+            } else if (diff === 1) {
+
+                element.textContent =
+                    "Due tomorrow";
+
+            } else {
+
+                element.textContent =
+                    "Due in "
+                    + diff
+                    + " days";
+
+            }
+
+        });
+
+
+    /* -----------------------------
+       SEARCH + FILTERS
+       ----------------------------- */
+
+    const cards =
+        Array.from(
+            document.querySelectorAll(
+                "[data-bill-card]"
+            )
+        );
+
+    const search =
+        document.getElementById(
+            "billSearch"
+        );
+
+    const filters =
+        Array.from(
+            document.querySelectorAll(
+                "#billFilters .workspace-filter"
+            )
+        );
+
+    const count =
+        document.getElementById(
+            "billResultCount"
+        );
+
+    const empty =
+        document.getElementById(
+            "billNoResults"
+        );
+
+    let currentFilter =
+        "all";
+
+
+    function isDue(card) {
+
+        if (
+            card.dataset.status
+            !== "pending"
+        ) {
+            return false;
+        }
+
+
+        const date =
+            card.dataset.due;
+
+        if (!date) {
+            return false;
+        }
+
+
+        const due =
+            new Date(date + "T00:00:00");
+
+        const today =
+            new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+
+        return due <= today;
+    }
+
+
+    function updateBills() {
+
+        const query =
+            (search?.value || "")
+                .trim()
+                .toLowerCase();
+
+        let visible =
+            0;
+
+
+        cards.forEach(function (card) {
+
+            const matchesSearch =
+                !query
+                || card.dataset.search
+                    .includes(query);
+
+
+            let matchesFilter =
+                true;
+
+
+            if (
+                currentFilter
+                === "pending"
+            ) {
+
+                matchesFilter =
+                    card.dataset.status
+                    === "pending";
+
+            }
+
+
+            else if (
+                currentFilter
+                === "paid"
+            ) {
+
+                matchesFilter =
+                    card.dataset.status
+                    === "paid";
+
+            }
+
+
+            else if (
+                currentFilter
+                === "due"
+            ) {
+
+                matchesFilter =
+                    isDue(card);
+
+            }
+
+
+            else if (
+                currentFilter
+                === "recurring"
+            ) {
+
+                matchesFilter =
+                    card.dataset.recurring
+                    === "1";
+
+            }
+
+
+            const show =
+                matchesSearch
+                && matchesFilter;
+
+
+            card.hidden =
+                !show;
+
+
+            if (show) {
+                visible += 1;
+            }
+
+        });
+
+
+        if (count) {
+
+            count.textContent =
+                visible
+                + (
+                    visible === 1
+                        ? " bill"
+                        : " bills"
+                );
+
+        }
+
+
+        if (empty) {
+
+            empty.hidden =
+                visible !== 0
+                || cards.length === 0;
+
+        }
+
+    }
+
+
+    search?.addEventListener(
+        "input",
+        updateBills
+    );
+
+
+    filters.forEach(function (button) {
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                currentFilter =
+                    button.dataset.filter;
+
+
+                filters.forEach(
+                    item =>
+                        item.classList
+                            .remove("active")
+                );
+
+
+                button.classList.add(
+                    "active"
+                );
+
+
+                updateBills();
+
+            }
+        );
+
+    });
+
+
+    updateBills();
+
+
+    /* -----------------------------
+       NOTIFICATIONS
+       ----------------------------- */
+
+    const notifBtn =
+        document.getElementById(
+            "notifBellBtn"
+        );
+
+    const notifMenu =
+        document.getElementById(
+            "notifDropdown"
+        );
+
+
+    if (
+        notifBtn
+        && notifMenu
+    ) {
+
+        notifBtn.addEventListener(
+            "click",
+            function (event) {
+
+                event.stopPropagation();
+
+                notifMenu.classList.toggle(
+                    "open"
+                );
+
+            }
+        );
+
+
+        document.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    !notifMenu.contains(
+                        event.target
+                    )
+                    && !notifBtn.contains(
+                        event.target
+                    )
+                ) {
+
+                    notifMenu.classList
+                        .remove("open");
+
+                }
+
+            }
+        );
+
+
+        notifMenu
+            .querySelectorAll(
+                ".workspace-notification-item"
+            )
+            .forEach(function (item) {
+
+                item.addEventListener(
+                    "click",
+                    function () {
+
+                        const id =
+                            item.dataset.notifId;
+
+                        fetch(
+                            "/notifications/mark_read/"
+                            + id,
+                            {
+                                method: "POST"
+                            }
+                        )
+                        .then(function () {
+
+                            item.classList
+                                .remove("unread");
+
+                        });
+
+                    }
+                );
+
+            });
+
+
+        const markAll =
+            document.getElementById(
+                "notifMarkAllRead"
+            );
+
+
+        markAll?.addEventListener(
+            "click",
+            function (event) {
+
+                event.stopPropagation();
+
+                fetch(
+                    "/notifications/mark_all_read",
+                    {
+                        method: "POST"
+                    }
+                )
+                .then(function () {
+
+                    window.location.reload();
+
+                });
+
+            }
+        );
+
+    }
+
+})();
+</script>
+
+
+<script src="/static/js/db.js"></script>
+<script src="/static/js/sync.js"></script>
+<script src="/static/js/offline.js"></script>
+
+<script src="/static/js/bill-schedule-theme.js?v=20260812"></script>
+<script src="/static/js/workspace-premium.js?v=20260812c"></script>
+<script src="/static/js/notification-center-pro.js?v=20260812b"></script>
+<script src="/static/js/bill-invoice-studio.js?v=20260812"></script>
 </body>
 </html>

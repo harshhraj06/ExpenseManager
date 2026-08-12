@@ -163,6 +163,48 @@ CREATE TABLE IF NOT EXISTS bills (
 )
 """)
 
+
+# ================= BILL / INVOICE SETTINGS =================
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS bill_invoice_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bill_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+
+    document_title TEXT,
+    business_name TEXT,
+    business_email TEXT,
+    business_phone TEXT,
+    business_address TEXT,
+
+    bill_to_name TEXT,
+    bill_to_email TEXT,
+    bill_to_address TEXT,
+
+    invoice_number TEXT,
+    issue_date TEXT,
+
+    items_json TEXT,
+
+    tax_percent REAL DEFAULT 0,
+    discount_amount REAL DEFAULT 0,
+    extra_charges REAL DEFAULT 0,
+
+    payment_method TEXT,
+    notes TEXT,
+    footer_text TEXT,
+    accent TEXT DEFAULT 'slate',
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(bill_id, user_id),
+
+    FOREIGN KEY(bill_id) REFERENCES bills(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+)
+""")
+
 # ================= NOTIFICATIONS =================
 
 cursor.execute("""
@@ -405,6 +447,108 @@ def ensure_recurring_transactions_table():
 ensure_recurring_transactions_table()
 
 
+
+
+# ============================================================
+# AUTO EXPENSE SYNC / CONNECTED APPS
+# ============================================================
+
+def ensure_integration_tables():
+    """
+    Foundation for external purchase integrations.
+
+    integration_connections:
+        Stores connection/preference state for each provider.
+
+    integration_sync_activity:
+        Stores orders/transactions discovered by integrations.
+
+    OAuth tokens will be handled separately when Gmail OAuth
+    is added. This table intentionally does not store secrets.
+    """
+
+    if DATABASE_URL:
+        conn = sqlite3.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS integration_connections (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                provider TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'disconnected',
+                account_label TEXT,
+                auth_method TEXT NOT NULL DEFAULT 'email',
+                auto_import_enabled INTEGER NOT NULL DEFAULT 1,
+                last_sync_at TEXT,
+                connected_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, provider)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS integration_sync_activity (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                provider TEXT NOT NULL,
+                external_id TEXT,
+                merchant TEXT,
+                amount REAL,
+                category TEXT,
+                description TEXT,
+                transaction_date TEXT,
+                status TEXT NOT NULL DEFAULT 'detected',
+                source_type TEXT NOT NULL DEFAULT 'email',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS integration_oauth_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                provider TEXT NOT NULL,
+                encrypted_refresh_token TEXT NOT NULL,
+                scopes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, provider)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_integrations_user_provider
+            ON integration_connections(user_id, provider)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_sync_activity_user_created
+            ON integration_sync_activity(user_id, created_at)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_sync_activity_user_provider
+            ON integration_sync_activity(user_id, provider)
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+ensure_integration_tables()
+
+
 # ============================================================
 # PERFORMANCE INDEXES
 # ============================================================
@@ -482,3 +626,19 @@ try:
     conn.close()
 except Exception:
     pass
+
+# ============================================================
+# USER PROFILE IMAGE
+# ============================================================
+
+try:
+    if not _column_exists("users", "profile_image"):
+        cursor.execute(
+            "ALTER TABLE users ADD COLUMN profile_image TEXT"
+        )
+        conn.commit()
+except Exception:
+    try:
+        conn.rollback()
+    except Exception:
+        pass

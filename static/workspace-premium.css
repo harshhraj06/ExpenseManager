@@ -1,0 +1,1301 @@
+
+/* ==========================================================
+   EXPENSE MANAGER — PREMIUM SECONDARY WORKSPACE
+   Bills · Groups · Connected Apps
+   ========================================================== */
+
+:root {
+    --pw-bg: #080a0d;
+    --pw-panel: #10141a;
+    --pw-panel-2: #151a21;
+    --pw-panel-3: #1a2028;
+
+    --pw-border: rgba(255, 255, 255, .08);
+    --pw-border-strong: rgba(255, 255, 255, .14);
+
+    --pw-text: #f3f5f7;
+    --pw-soft: #c5ccd4;
+    --pw-muted: #7f8995;
+
+    --pw-shadow:
+        0 24px 70px rgba(0, 0, 0, .26);
+
+    --pw-shadow-soft:
+        0 12px 32px rgba(0, 0, 0, .20);
+
+    --pw-groups: #7986b7;
+    --pw-bills: #b88a62;
+    --pw-connected: #648f7a;
+
+    --pw-green: #69a47f;
+    --pw-green-bg: #14281d;
+}
+
+
+/* ==========================================================
+   PAGE FOUNDATION
+   ========================================================== */
+
+body.workspace-premium {
+    min-height: 100vh;
+
+    background:
+        radial-gradient(
+            circle at 12% 0%,
+            rgba(108, 124, 178, .11),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 92% 14%,
+            rgba(162, 118, 79, .07),
+            transparent 30%
+        ),
+        #080a0d !important;
+
+    color: var(--pw-text);
+}
+
+
+.workspace-premium .container {
+    width: min(1220px, calc(100% - 32px));
+
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* ==========================================================
+   NAV
+   ========================================================== */
+
+.workspace-premium .nav {
+    border:
+        1px solid
+        rgba(255, 255, 255, .075) !important;
+
+    border-radius:
+        16px !important;
+
+    background:
+        rgba(14, 17, 22, .88) !important;
+
+    box-shadow:
+        0 12px 40px
+        rgba(0, 0, 0, .18) !important;
+
+    backdrop-filter:
+        blur(16px);
+}
+
+
+.workspace-premium .nav-links a {
+    border-radius:
+        8px;
+
+    transition:
+        background .18s ease,
+        color .18s ease;
+}
+
+
+.workspace-premium .nav-links a:hover {
+    background:
+        rgba(255, 255, 255, .055);
+
+    color:
+        #ffffff;
+}
+
+
+/* ==========================================================
+   GENERIC PREMIUM CARD
+   ========================================================== */
+
+.workspace-premium
+.pw-card {
+    position: relative;
+
+    border:
+        1px solid
+        var(--pw-border) !important;
+
+    border-radius:
+        18px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(22, 27, 34, .96),
+            rgba(13, 16, 21, .98)
+        ) !important;
+
+    box-shadow:
+        var(--pw-shadow-soft) !important;
+
+    overflow: hidden;
+
+    transition:
+        transform .22s ease,
+        border-color .22s ease,
+        box-shadow .22s ease;
+}
+
+
+.workspace-premium
+.pw-card:hover {
+    border-color:
+        rgba(255, 255, 255, .12) !important;
+
+    box-shadow:
+        0 18px 46px
+        rgba(0, 0, 0, .27) !important;
+}
+
+
+/* ==========================================================
+   PAGE HERO / HEADER
+   ========================================================== */
+
+.workspace-premium
+.pw-masthead {
+    position: relative;
+
+    margin-top:
+        18px !important;
+
+    margin-bottom:
+        22px !important;
+
+    padding:
+        30px 32px !important;
+
+    border:
+        1px solid
+        var(--pw-border) !important;
+
+    border-radius:
+        22px !important;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            135deg,
+            #171c23 0%,
+            #0e1217 72%
+        ) !important;
+
+    box-shadow:
+        var(--pw-shadow) !important;
+}
+
+
+.workspace-premium
+.pw-masthead::before {
+    content: "";
+
+    position: absolute;
+
+    top: -80px;
+    right: -40px;
+
+    width: 260px;
+    height: 260px;
+
+    border-radius:
+        50%;
+
+    background:
+        var(--pw-page-glow);
+
+    filter:
+        blur(4px);
+
+    pointer-events: none;
+}
+
+
+.workspace-premium
+.pw-masthead::after {
+    content: "";
+
+    position: absolute;
+
+    bottom: 0;
+    left: 32px;
+
+    width: 86px;
+    height: 3px;
+
+    border-radius:
+        999px;
+
+    background:
+        var(--pw-page-accent);
+}
+
+
+.workspace-premium
+.pw-masthead h1 {
+    position: relative;
+    z-index: 1;
+
+    margin:
+        0 0 7px !important;
+
+    color:
+        #ffffff !important;
+
+    font-size:
+        clamp(1.8rem, 4vw, 2.8rem) !important;
+
+    font-weight:
+        780 !important;
+
+    letter-spacing:
+        -.035em;
+}
+
+
+.workspace-premium
+.pw-masthead p {
+    position: relative;
+    z-index: 1;
+
+    max-width:
+        620px;
+
+    margin:
+        0 !important;
+
+    color:
+        #929ca8 !important;
+
+    line-height:
+        1.65;
+}
+
+
+/* ==========================================================
+   GROUPS PALETTE
+   ========================================================== */
+
+.workspace-premium.pw-groups {
+    --pw-page-accent:
+        var(--pw-groups);
+
+    --pw-page-glow:
+        rgba(121, 134, 183, .16);
+}
+
+
+/* ==========================================================
+   BILLS PALETTE
+   ========================================================== */
+
+.workspace-premium.pw-bills {
+    --pw-page-accent:
+        var(--pw-bills);
+
+    --pw-page-glow:
+        rgba(184, 138, 98, .15);
+}
+
+
+/* ==========================================================
+   CONNECTED APPS PALETTE
+   ========================================================== */
+
+.workspace-premium.pw-connected-apps {
+    --pw-page-accent:
+        var(--pw-connected);
+
+    --pw-page-glow:
+        rgba(100, 143, 122, .14);
+}
+
+
+/* ==========================================================
+   STAT CARDS
+   ========================================================== */
+
+.workspace-premium
+[class*="stat"] {
+    border-color:
+        var(--pw-border) !important;
+}
+
+
+.workspace-premium
+.pw-stat {
+    position: relative;
+
+    overflow: hidden;
+
+    padding:
+        20px !important;
+
+    border:
+        1px solid
+        var(--pw-border) !important;
+
+    border-radius:
+        16px !important;
+
+    background:
+        linear-gradient(
+            150deg,
+            #171c23,
+            #11151a
+        ) !important;
+
+    box-shadow:
+        0 9px 28px
+        rgba(0, 0, 0, .16);
+}
+
+
+.workspace-premium
+.pw-stat::after {
+    content: "";
+
+    position: absolute;
+
+    right: -26px;
+    bottom: -36px;
+
+    width: 110px;
+    height: 110px;
+
+    border-radius:
+        50%;
+
+    background:
+        var(--stat-accent);
+
+    opacity:
+        .075;
+}
+
+
+.workspace-premium
+.pw-stat:nth-child(1) {
+    --stat-accent:
+        #7890b0;
+}
+
+
+.workspace-premium
+.pw-stat:nth-child(2) {
+    --stat-accent:
+        #b68a67;
+}
+
+
+.workspace-premium
+.pw-stat:nth-child(3) {
+    --stat-accent:
+        #6f9b82;
+}
+
+
+.workspace-premium
+.pw-stat:nth-child(4) {
+    --stat-accent:
+        #8d7aa5;
+}
+
+
+/* ==========================================================
+   GROUPS — CREATE PANEL
+   ========================================================== */
+
+.workspace-premium.pw-groups
+.pw-create-panel {
+    border-color:
+        rgba(121, 134, 183, .23) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(35, 40, 58, .96),
+            rgba(17, 20, 27, .98)
+        ) !important;
+}
+
+
+.workspace-premium.pw-groups
+.pw-create-panel::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    width: 3px;
+
+    background:
+        #7986b7;
+
+    opacity:
+        .75;
+}
+
+
+/* ==========================================================
+   GROUPS — GROUP CARDS / ROWS
+   ========================================================== */
+
+.workspace-premium.pw-groups
+.group-card,
+.workspace-premium.pw-groups
+[class*="group-card"] {
+    border:
+        1px solid
+        rgba(121, 134, 183, .13) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #171b23,
+            #101319
+        ) !important;
+
+    border-radius:
+        16px !important;
+
+    box-shadow:
+        0 12px 30px
+        rgba(0, 0, 0, .18) !important;
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease !important;
+}
+
+
+.workspace-premium.pw-groups
+.group-card:hover,
+.workspace-premium.pw-groups
+[class*="group-card"]:hover {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        rgba(121, 134, 183, .35) !important;
+}
+
+
+/* ==========================================================
+   BILLS — NEW BILL
+   ========================================================== */
+
+.workspace-premium.pw-bills
+#bill-form,
+.workspace-premium.pw-bills
+.pw-new-bill {
+    border:
+        1px solid
+        rgba(184, 138, 98, .27) !important;
+
+    border-radius:
+        20px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #211c18 0%,
+            #17191d 52%,
+            #111419 100%
+        ) !important;
+
+    box-shadow:
+        0 20px 48px
+        rgba(0, 0, 0, .25) !important;
+}
+
+
+.workspace-premium.pw-bills
+#bill-form::before,
+.workspace-premium.pw-bills
+.pw-new-bill::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 3px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #b88a62,
+            #7b6552,
+            transparent
+        );
+}
+
+
+/* ==========================================================
+   BILLS — PENDING
+   ========================================================== */
+
+.workspace-premium.pw-bills
+.pw-pending {
+    border-color:
+        rgba(188, 147, 99, .18) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #191714,
+            #111418
+        ) !important;
+}
+
+
+/* ==========================================================
+   BILLS — PAID
+   ========================================================== */
+
+.workspace-premium.pw-bills
+.pw-paid {
+    border-color:
+        rgba(105, 164, 127, .18) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #141b17,
+            #101417
+        ) !important;
+}
+
+
+/* ==========================================================
+   FORM CONTROLS
+   ========================================================== */
+
+.workspace-premium
+input,
+.workspace-premium
+select,
+.workspace-premium
+textarea {
+    min-height:
+        44px;
+
+    border:
+        1px solid
+        rgba(255, 255, 255, .105) !important;
+
+    border-radius:
+        10px !important;
+
+    background:
+        rgba(5, 7, 10, .62) !important;
+
+    color:
+        #edf1f5 !important;
+
+    box-shadow:
+        inset 0 1px 0
+        rgba(255, 255, 255, .018) !important;
+
+    transition:
+        border-color .18s ease,
+        background .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.workspace-premium
+input:hover,
+.workspace-premium
+select:hover,
+.workspace-premium
+textarea:hover {
+    border-color:
+        rgba(255, 255, 255, .17) !important;
+}
+
+
+.workspace-premium
+input:focus,
+.workspace-premium
+select:focus,
+.workspace-premium
+textarea:focus {
+    outline:
+        none !important;
+
+    border-color:
+        rgba(145, 157, 172, .58) !important;
+
+    background:
+        #0e1217 !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(145, 157, 172, .085) !important;
+}
+
+
+.workspace-premium
+input::placeholder {
+    color:
+        #65707b !important;
+}
+
+
+.workspace-premium
+label {
+    color:
+        #b8c0c9 !important;
+
+    font-size:
+        .75rem;
+
+    font-weight:
+        650;
+}
+
+
+/* ==========================================================
+   PRIMARY BUTTONS
+   ========================================================== */
+
+.workspace-premium
+button[type="submit"],
+.workspace-premium
+.add-btn,
+.workspace-premium
+.integration-primary {
+    border:
+        1px solid
+        rgba(255, 255, 255, .16) !important;
+
+    border-radius:
+        9px !important;
+
+    background:
+        #e3e7eb !important;
+
+    color:
+        #15191e !important;
+
+    font-weight:
+        740 !important;
+
+    box-shadow:
+        0 8px 20px
+        rgba(0, 0, 0, .16) !important;
+
+    transition:
+        transform .18s ease,
+        background .18s ease !important;
+}
+
+
+.workspace-premium
+button[type="submit"]:hover,
+.workspace-premium
+.add-btn:hover,
+.workspace-premium
+.integration-primary:hover {
+    transform:
+        translateY(-1px);
+
+    background:
+        #f1f3f5 !important;
+}
+
+
+/* ==========================================================
+   FILTER / SEARCH CONTROLS
+   ========================================================== */
+
+.workspace-premium
+[class*="filter"],
+.workspace-premium
+[class*="toolbar"] {
+    border-color:
+        var(--pw-border) !important;
+}
+
+
+.workspace-premium
+button[class*="filter"],
+.workspace-premium
+button[class*="tab"] {
+    border:
+        1px solid
+        rgba(255, 255, 255, .08) !important;
+
+    border-radius:
+        999px !important;
+
+    background:
+        #12171d !important;
+
+    color:
+        #929ca7 !important;
+}
+
+
+.workspace-premium
+button[class*="filter"]:hover,
+.workspace-premium
+button[class*="tab"]:hover {
+    border-color:
+        rgba(255, 255, 255, .15) !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* ==========================================================
+   TABLES
+   ========================================================== */
+
+.workspace-premium
+table {
+    width:
+        100%;
+
+    border-collapse:
+        separate !important;
+
+    border-spacing:
+        0 8px !important;
+}
+
+
+.workspace-premium
+th {
+    padding:
+        9px 14px !important;
+
+    border:
+        0 !important;
+
+    background:
+        transparent !important;
+
+    color:
+        #66717d !important;
+
+    font-size:
+        .67rem !important;
+
+    font-weight:
+        700 !important;
+
+    letter-spacing:
+        .06em;
+
+    text-transform:
+        uppercase;
+}
+
+
+.workspace-premium
+tbody tr,
+.workspace-premium
+table tr:not(:first-child) {
+    background:
+        rgba(255, 255, 255, .025);
+
+    transition:
+        background .16s ease;
+}
+
+
+.workspace-premium
+tbody tr:hover,
+.workspace-premium
+table tr:not(:first-child):hover {
+    background:
+        rgba(255, 255, 255, .045);
+}
+
+
+.workspace-premium
+td {
+    padding:
+        13px 14px !important;
+
+    border-top:
+        1px solid
+        rgba(255, 255, 255, .055) !important;
+
+    border-bottom:
+        1px solid
+        rgba(255, 255, 255, .055) !important;
+
+    color:
+        #c9d0d7;
+}
+
+
+.workspace-premium
+td:first-child {
+    border-left:
+        1px solid
+        rgba(255, 255, 255, .055) !important;
+
+    border-radius:
+        10px 0 0 10px;
+}
+
+
+.workspace-premium
+td:last-child {
+    border-right:
+        1px solid
+        rgba(255, 255, 255, .055) !important;
+
+    border-radius:
+        0 10px 10px 0;
+}
+
+
+/* ==========================================================
+   CONNECTED APPS
+   ========================================================== */
+
+.workspace-premium.pw-connected-apps
+.integration-card,
+.workspace-premium.pw-connected-apps
+.provider-card,
+.workspace-premium.pw-connected-apps
+.app-card,
+.workspace-premium.pw-connected-apps
+.pw-provider {
+    position: relative;
+
+    border:
+        1px solid
+        rgba(255, 255, 255, .075) !important;
+
+    border-radius:
+        18px !important;
+
+    background:
+        linear-gradient(
+            150deg,
+            #171b21,
+            #101318
+        ) !important;
+
+    box-shadow:
+        0 14px 36px
+        rgba(0, 0, 0, .22) !important;
+
+    overflow: hidden;
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.workspace-premium.pw-connected-apps
+.integration-card::before,
+.workspace-premium.pw-connected-apps
+.provider-card::before,
+.workspace-premium.pw-connected-apps
+.app-card::before,
+.workspace-premium.pw-connected-apps
+.pw-provider::before {
+    content: "";
+
+    position: absolute;
+
+    top: 14px;
+    bottom: 14px;
+    left: 0;
+
+    width: 3px;
+
+    border-radius:
+        0 999px 999px 0;
+
+    background:
+        var(
+            --provider-accent,
+            #68737f
+        );
+
+    opacity:
+        .82;
+}
+
+
+.workspace-premium.pw-connected-apps
+.integration-card:hover,
+.workspace-premium.pw-connected-apps
+.provider-card:hover,
+.workspace-premium.pw-connected-apps
+.app-card:hover,
+.workspace-premium.pw-connected-apps
+.pw-provider:hover {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--provider-accent) 32%,
+            rgba(255, 255, 255, .08)
+        ) !important;
+
+    box-shadow:
+        0 20px 44px
+        rgba(0, 0, 0, .28) !important;
+}
+
+
+/* official-logo tile */
+
+.workspace-premium
+.platform-brand-logo {
+    width:
+        42px !important;
+
+    height:
+        42px !important;
+
+    border:
+        1px solid
+        rgba(255, 255, 255, .10) !important;
+
+    border-radius:
+        12px !important;
+
+    background:
+        #f8fafc !important;
+
+    box-shadow:
+        0 8px 22px
+        rgba(0, 0, 0, .20) !important;
+}
+
+
+.workspace-premium
+.platform-brand-logo img {
+    width:
+        24px !important;
+
+    height:
+        24px !important;
+}
+
+
+/* ==========================================================
+   CONNECTED STATUS = GREEN
+   ========================================================== */
+
+.workspace-premium
+.connection-connected,
+.workspace-premium
+.pw-connected-state {
+    display:
+        inline-flex !important;
+
+    align-items:
+        center;
+
+    gap:
+        7px;
+
+    width:
+        fit-content;
+
+    padding:
+        6px 10px !important;
+
+    border:
+        1px solid
+        #315941 !important;
+
+    border-radius:
+        999px !important;
+
+    background:
+        #14281d !important;
+
+    color:
+        #93caaa !important;
+
+    font-size:
+        .65rem !important;
+
+    font-weight:
+        720 !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+.workspace-premium
+.pw-connected-state::before {
+    content: "";
+
+    width:
+        6px;
+
+    height:
+        6px;
+
+    border-radius:
+        50%;
+
+    background:
+        #65a47b;
+}
+
+
+/* ==========================================================
+   SYNC ACTIVITY
+   ========================================================== */
+
+.workspace-premium.pw-connected-apps
+.pw-activity {
+    border-color:
+        rgba(100, 143, 122, .15) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #121816,
+            #101317
+        ) !important;
+}
+
+
+/* ==========================================================
+   SECONDARY BUTTONS
+   ========================================================== */
+
+.workspace-premium
+a[href*="delete"],
+.workspace-premium
+.delete-btn {
+    border:
+        1px solid
+        rgba(181, 96, 96, .18) !important;
+
+    border-radius:
+        8px !important;
+
+    background:
+        rgba(125, 57, 57, .09) !important;
+
+    color:
+        #b98787 !important;
+}
+
+
+.workspace-premium
+a[href*="delete"]:hover,
+.workspace-premium
+.delete-btn:hover {
+    border-color:
+        rgba(181, 96, 96, .34) !important;
+
+    background:
+        rgba(125, 57, 57, .16) !important;
+
+    color:
+        #d5a3a3 !important;
+}
+
+
+.workspace-premium
+.pay-btn,
+.workspace-premium
+a[href*="/group/"],
+.workspace-premium
+a[href*="receipt"] {
+    border-radius:
+        8px !important;
+}
+
+
+/* ==========================================================
+   RECURRING LOGIC BOX
+   ========================================================== */
+
+.workspace-premium
+.recurring-logic-professional,
+.workspace-premium
+.pw-recurring-note {
+    border:
+        1px solid
+        rgba(184, 138, 98, .20) !important;
+
+    border-radius:
+        12px !important;
+
+    background:
+        rgba(184, 138, 98, .065) !important;
+
+    color:
+        #aeb6bf !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* ==========================================================
+   MOBILE
+   ========================================================== */
+
+@media (max-width: 760px) {
+
+    .workspace-premium
+    .container {
+        width:
+            min(100% - 20px, 1220px);
+    }
+
+
+    .workspace-premium
+    .pw-masthead {
+        padding:
+            24px 20px !important;
+
+        border-radius:
+            17px !important;
+    }
+
+
+    .workspace-premium
+    .pw-masthead h1 {
+        font-size:
+            1.85rem !important;
+    }
+
+
+    .workspace-premium
+    .pw-card {
+        border-radius:
+            15px !important;
+    }
+
+
+    .workspace-premium
+    table {
+        min-width:
+            650px;
+    }
+
+
+    .workspace-premium
+    .pw-table-container {
+        overflow-x:
+            auto;
+    }
+}
+
+
+/* ==========================================================
+   LIGHT MODE
+   ========================================================== */
+
+[data-theme="light"]
+body.workspace-premium {
+    --pw-bg:
+        #eef1f4;
+
+    --pw-panel:
+        #ffffff;
+
+    --pw-panel-2:
+        #f8fafb;
+
+    --pw-text:
+        #17202a;
+
+    --pw-soft:
+        #485561;
+
+    --pw-muted:
+        #76828e;
+
+    --pw-border:
+        rgba(18, 28, 38, .09);
+
+    background:
+        radial-gradient(
+            circle at 10% 0%,
+            rgba(111, 128, 177, .08),
+            transparent 30%
+        ),
+        #eef1f4 !important;
+}
+
+
+[data-theme="light"]
+.workspace-premium
+.pw-card,
+[data-theme="light"]
+.workspace-premium
+.pw-masthead,
+[data-theme="light"]
+.workspace-premium
+.pw-provider,
+[data-theme="light"]
+.workspace-premium
+.integration-card,
+[data-theme="light"]
+.workspace-premium
+.provider-card {
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #f5f7f9
+        ) !important;
+
+    border-color:
+        rgba(18, 28, 38, .09) !important;
+
+    color:
+        #17202a;
+}
+
+
+[data-theme="light"]
+.workspace-premium
+.pw-masthead h1 {
+    color:
+        #17202a !important;
+}
+
+
+[data-theme="light"]
+.workspace-premium
+input,
+[data-theme="light"]
+.workspace-premium
+select {
+    border-color:
+        #ccd3da !important;
+
+    background:
+        #ffffff !important;
+
+    color:
+        #17202a !important;
+}

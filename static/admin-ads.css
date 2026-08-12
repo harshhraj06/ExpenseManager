@@ -1,0 +1,1329 @@
+/* ==========================================================
+   EXPENSEX — PROFESSIONAL ADVERTISING ADMIN
+   ========================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    --aa-bg: #090d11;
+    --aa-panel: #11171d;
+    --aa-panel-soft: #151c23;
+    --aa-field: #0d1217;
+
+    --aa-text: #eef2f5;
+    --aa-soft: #a6b0b9;
+    --aa-muted: #707c86;
+
+    --aa-border: rgba(255,255,255,.075);
+
+    background: var(--aa-bg);
+    color: var(--aa-text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    -webkit-font-smoothing: antialiased;
+}
+
+
+/* ==========================================================
+   SHELL
+   ========================================================== */
+
+.ad-admin-shell {
+    width: min(1480px, calc(100% - 30px));
+
+    margin: 0 auto;
+
+    padding: 16px 0 55px;
+}
+
+
+/* ==========================================================
+   TOPBAR
+   ========================================================== */
+
+.ad-admin-topbar {
+    min-height: 68px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 10px 13px;
+
+    border: 1px solid var(--aa-border);
+    border-radius: 14px;
+
+    background: rgba(16,21,26,.97);
+
+    box-shadow:
+        0 12px 35px rgba(0,0,0,.18);
+}
+
+
+.ad-admin-brand {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    color: inherit;
+    text-decoration: none;
+}
+
+
+.ad-admin-brand img {
+    width: 145px;
+    height: 42px;
+
+    object-fit: contain;
+
+    border-radius: 7px;
+
+    box-shadow:
+        0 0 16px rgba(255,255,255,.09);
+}
+
+
+.ad-admin-brand div {
+    display: grid;
+    gap: 2px;
+}
+
+
+.ad-admin-brand strong {
+    font-size: .78rem;
+    font-weight: 760;
+}
+
+
+.ad-admin-brand span {
+    color: var(--aa-muted);
+
+    font-size: .54rem;
+}
+
+
+.ad-admin-top-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.admin-private-label,
+.ad-admin-top-actions a {
+    min-height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 7px 11px;
+
+    border: 1px solid var(--aa-border);
+    border-radius: 9px;
+
+    font-size: .58rem;
+    font-weight: 650;
+}
+
+
+.admin-private-label {
+    background: #151b21;
+
+    color: #8e9aa4;
+}
+
+
+.ad-admin-top-actions a {
+    background: #e8ebed;
+
+    color: #171c21;
+
+    text-decoration: none;
+
+    font-weight: 720;
+}
+
+
+/* ==========================================================
+   INTRO
+   ========================================================== */
+
+.ad-admin-intro {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 30px;
+
+    padding: 42px 5px 27px;
+}
+
+
+.admin-eyebrow {
+    display: inline-block;
+
+    color: #9a816c;
+
+    font-size: .57rem;
+    font-weight: 760;
+
+    letter-spacing: .11em;
+
+    text-transform: uppercase;
+}
+
+
+.ad-admin-intro h1 {
+    margin: 7px 0 0;
+
+    font-size: clamp(2.3rem, 5vw, 4rem);
+
+    line-height: .97;
+
+    letter-spacing: -.055em;
+}
+
+
+.ad-admin-intro p {
+    max-width: 680px;
+
+    margin: 13px 0 0;
+
+    color: var(--aa-muted);
+
+    font-size: .7rem;
+
+    line-height: 1.65;
+}
+
+
+.admin-live-indicator {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    white-space: nowrap;
+
+    padding: 9px 12px;
+
+    border:
+        1px solid rgba(95,132,108,.19);
+
+    border-radius: 999px;
+
+    background:
+        rgba(69,99,79,.08);
+
+    color: #98ac9e;
+
+    font-size: .58rem;
+
+    font-weight: 680;
+}
+
+
+.admin-live-indicator span {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #779181;
+
+    box-shadow:
+        0 0 0 4px rgba(119,145,129,.08);
+}
+
+
+/* ==========================================================
+   STATS
+   ========================================================== */
+
+.ad-admin-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0,1fr));
+
+    gap: 9px;
+
+    margin-bottom: 14px;
+}
+
+
+.ad-admin-stats article {
+    min-height: 116px;
+
+    padding: 16px;
+
+    border: 1px solid var(--aa-border);
+    border-radius: 12px;
+
+    background: var(--aa-panel);
+
+    box-shadow:
+        0 10px 26px rgba(0,0,0,.09);
+}
+
+
+.ad-admin-stats span,
+.ad-admin-stats strong,
+.ad-admin-stats small {
+    display: block;
+}
+
+
+.ad-admin-stats span {
+    color: var(--aa-muted);
+
+    font-size: .52rem;
+
+    font-weight: 650;
+}
+
+
+.ad-admin-stats strong {
+    margin-top: 12px;
+
+    color: var(--aa-text);
+
+    font-size: 1.55rem;
+
+    line-height: 1;
+
+    letter-spacing: -.035em;
+}
+
+
+.ad-admin-stats small {
+    margin-top: 10px;
+
+    color: #66717b;
+
+    font-size: .49rem;
+}
+
+
+/* ==========================================================
+   SUCCESS
+   ========================================================== */
+
+.admin-success {
+    margin-bottom: 13px;
+
+    padding: 10px 13px;
+
+    border:
+        1px solid rgba(98,137,112,.18);
+
+    border-radius: 9px;
+
+    background:
+        rgba(74,105,86,.07);
+
+    color: #9bb0a0;
+
+    font-size: .61rem;
+}
+
+
+/* ==========================================================
+   MAIN GRID
+   ========================================================== */
+
+.ad-admin-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0,1.35fr)
+        minmax(360px,.65fr);
+
+    gap: 11px;
+
+    align-items: start;
+}
+
+
+.ad-admin-editor,
+.ad-admin-campaigns {
+    padding: 20px;
+
+    border: 1px solid var(--aa-border);
+    border-radius: 13px;
+
+    background: var(--aa-panel);
+
+    box-shadow:
+        0 12px 32px rgba(0,0,0,.10);
+}
+
+
+/* ==========================================================
+   SECTION HEAD
+   ========================================================== */
+
+.admin-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 20px;
+}
+
+
+.admin-section-head span {
+    color: #75818b;
+
+    font-size: .50rem;
+
+    font-weight: 730;
+
+    letter-spacing: .09em;
+
+    text-transform: uppercase;
+}
+
+
+.admin-section-head h2 {
+    margin: 5px 0 0;
+
+    font-size: 1.05rem;
+
+    letter-spacing: -.02em;
+}
+
+
+.admin-new-campaign {
+    padding: 7px 9px;
+
+    border: 1px solid var(--aa-border);
+    border-radius: 7px;
+
+    color: #9da8b1;
+
+    font-size: .54rem;
+
+    text-decoration: none;
+}
+
+
+/* ==========================================================
+   FORM
+   ========================================================== */
+
+.admin-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2,minmax(0,1fr));
+
+    gap: 11px;
+}
+
+
+.admin-full-field {
+    grid-column: 1 / -1;
+}
+
+
+.admin-form-grid label {
+    display: grid;
+
+    gap: 6px;
+
+    color: #abb4bc;
+
+    font-size: .57rem;
+
+    font-weight: 650;
+}
+
+
+.admin-form-grid input,
+.admin-form-grid select,
+.admin-form-grid textarea {
+    width: 100%;
+
+    min-height: 43px;
+
+    padding: 9px 11px;
+
+    border: 1px solid var(--aa-border);
+    border-radius: 8px;
+
+    outline: none;
+
+    background: var(--aa-field);
+
+    color: var(--aa-text);
+
+    font: inherit;
+
+    font-size: .65rem;
+
+    transition:
+        border-color .18s ease,
+        background .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.admin-form-grid textarea {
+    min-height: 92px;
+
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+.admin-form-grid input::placeholder,
+.admin-form-grid textarea::placeholder {
+    color: #515c66;
+}
+
+
+.admin-form-grid input:focus,
+.admin-form-grid select:focus,
+.admin-form-grid textarea:focus {
+    border-color:
+        rgba(128,149,165,.38);
+
+    background: #10161b;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(112,134,151,.055);
+}
+
+
+.admin-form-grid label small {
+    color: #606c76;
+
+    font-size: .47rem;
+
+    font-weight: 450;
+
+    line-height: 1.4;
+}
+
+
+/* ==========================================================
+   DASHBOARD PREVIEW
+   ========================================================== */
+
+.admin-preview-label {
+    margin: 22px 0 8px;
+
+    color: #6c7882;
+
+    font-size: .5rem;
+
+    font-weight: 740;
+
+    letter-spacing: .1em;
+
+    text-transform: uppercase;
+}
+
+
+.admin-ad-preview {
+    display: grid;
+
+    grid-template-columns:
+        minmax(190px,.8fr)
+        minmax(280px,1.2fr);
+
+    overflow: hidden;
+
+    min-height: 250px;
+
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px;
+
+    background: #0c1116;
+}
+
+
+.admin-ad-preview-media {
+    min-height: 250px;
+
+    position: relative;
+
+    background:
+        linear-gradient(
+            145deg,
+            #161d23,
+            #10161b
+        );
+}
+
+
+.admin-ad-preview-media::before {
+    content: "Campaign creative";
+
+    position: absolute;
+
+    inset: 0;
+
+    display: grid;
+    place-items: center;
+
+    color: #4f5c66;
+
+    font-size: .52rem;
+
+    letter-spacing: .06em;
+
+    text-transform: uppercase;
+}
+
+
+.admin-ad-preview-media:has(img:not([hidden]))::before {
+    display: none;
+}
+
+
+.admin-ad-preview-media img {
+    width: 100%;
+    height: 100%;
+
+    min-height: 250px;
+
+    display: block;
+
+    object-fit: cover;
+}
+
+
+.admin-ad-preview-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 24px;
+}
+
+
+.admin-preview-sponsor-row {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+.admin-preview-sponsor-row img {
+    width: 34px;
+    height: 34px;
+
+    border-radius: 8px;
+
+    object-fit: contain;
+
+    background: #fff;
+}
+
+
+.admin-preview-sponsor-row div {
+    display: grid;
+    gap: 2px;
+}
+
+
+.admin-preview-sponsor-row span {
+    color: #6f7b85;
+
+    font-size: .46rem;
+
+    font-weight: 720;
+
+    letter-spacing: .08em;
+
+    text-transform: uppercase;
+}
+
+
+.admin-preview-sponsor-row strong {
+    color: #ccd3d9;
+
+    font-size: .62rem;
+}
+
+
+.admin-ad-preview-content h3 {
+    max-width: 430px;
+
+    margin: 17px 0 0;
+
+    color: #f0f3f5;
+
+    font-size: clamp(1.4rem,2.7vw,2rem);
+
+    line-height: 1.08;
+
+    letter-spacing: -.042em;
+}
+
+
+.admin-ad-preview-content p {
+    max-width: 420px;
+
+    margin: 10px 0 0;
+
+    color: #77838d;
+
+    font-size: .6rem;
+
+    line-height: 1.58;
+}
+
+
+.admin-preview-cta {
+    align-self: flex-start;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 34px;
+
+    margin-top: 17px;
+
+    padding: 7px 11px;
+
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 7px;
+
+    background: #181f26;
+
+    color: #d7dde2;
+
+    font-size: .54rem;
+
+    font-weight: 680;
+}
+
+
+/* ==========================================================
+   SUBMIT
+   ========================================================== */
+
+.admin-form-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    margin-top: 13px;
+}
+
+
+.admin-save-campaign {
+    min-width: 170px;
+    min-height: 42px;
+
+    padding: 8px 16px;
+
+    border: 1px solid #e6e9eb;
+    border-radius: 8px;
+
+    background: #e9ecee;
+
+    color: #171c21;
+
+    font: inherit;
+
+    font-size: .61rem;
+
+    font-weight: 750;
+
+    cursor: pointer;
+
+    transition:
+        transform .16s ease,
+        background .16s ease;
+}
+
+
+.admin-save-campaign:hover {
+    transform: translateY(-1px);
+
+    background: #ffffff;
+}
+
+
+/* ==========================================================
+   CAMPAIGN LIST
+   ========================================================== */
+
+.admin-campaign-list {
+    display: grid;
+
+    gap: 8px;
+}
+
+
+.admin-campaign-card {
+    padding: 14px;
+
+    border: 1px solid rgba(255,255,255,.065);
+    border-radius: 10px;
+
+    background: #0d1217;
+}
+
+
+.admin-campaign-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 7px;
+}
+
+
+.campaign-status,
+.campaign-type {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 24px;
+
+    padding: 4px 7px;
+
+    border-radius: 999px;
+
+    font-size: .44rem;
+
+    font-weight: 700;
+
+    letter-spacing: .055em;
+
+    text-transform: uppercase;
+}
+
+
+.status-active {
+    background:
+        rgba(76,108,86,.10);
+
+    color: #91a999;
+}
+
+
+.status-paused {
+    background:
+        rgba(116,91,67,.10);
+
+    color: #ad967e;
+}
+
+
+.status-draft {
+    background:
+        rgba(98,111,123,.10);
+
+    color: #828e98;
+}
+
+
+.campaign-type {
+    color: #727f89;
+
+    background:
+        rgba(255,255,255,.025);
+}
+
+
+.admin-campaign-brand {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 13px;
+}
+
+
+.admin-campaign-brand img {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 9px;
+
+    object-fit: contain;
+
+    background: #fff;
+}
+
+
+.admin-campaign-brand div {
+    min-width: 0;
+}
+
+
+.admin-campaign-brand small,
+.admin-campaign-brand strong {
+    display: block;
+}
+
+
+.admin-campaign-brand small {
+    color: #6b7781;
+
+    font-size: .48rem;
+}
+
+
+.admin-campaign-brand strong {
+    margin-top: 4px;
+
+    color: #d8dde1;
+
+    font-size: .66rem;
+
+    line-height: 1.4;
+}
+
+
+.admin-campaign-metrics {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,minmax(0,1fr));
+
+    gap: 5px;
+
+    margin-top: 13px;
+}
+
+
+.admin-campaign-metrics div {
+    min-width: 0;
+
+    padding: 8px;
+
+    border-radius: 7px;
+
+    background: #141a20;
+}
+
+
+.admin-campaign-metrics span,
+.admin-campaign-metrics strong {
+    display: block;
+}
+
+
+.admin-campaign-metrics span {
+    color: #64707a;
+
+    font-size: .42rem;
+}
+
+
+.admin-campaign-metrics strong {
+    margin-top: 4px;
+
+    color: #c8cfd5;
+
+    font-size: .59rem;
+}
+
+
+.admin-campaign-schedule {
+    margin-top: 10px;
+
+    padding: 8px 9px;
+
+    border-radius: 7px;
+
+    background:
+        rgba(255,255,255,.022);
+
+    color: #67737d;
+
+    font-size: .47rem;
+
+    line-height: 1.5;
+}
+
+
+/* ==========================================================
+   CAMPAIGN ACTIONS
+   ========================================================== */
+
+.admin-campaign-actions {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 5px;
+
+    margin-top: 12px;
+}
+
+
+.admin-campaign-actions form {
+    margin: 0;
+}
+
+
+.admin-campaign-actions a,
+.admin-campaign-actions button {
+    min-height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 5px 9px;
+
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 7px;
+
+    background: #161c22;
+
+    color: #9ba6af;
+
+    font: inherit;
+
+    font-size: .49rem;
+
+    font-weight: 640;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+
+.admin-campaign-actions a:hover,
+.admin-campaign-actions button:hover {
+    background: #1b2229;
+
+    color: #d2d8dd;
+}
+
+
+.admin-delete-campaign {
+    color: #ad8083 !important;
+
+    border-color:
+        rgba(155,86,90,.12) !important;
+}
+
+
+/* ==========================================================
+   EMPTY STATE
+   ========================================================== */
+
+.admin-empty-campaigns {
+    display: grid;
+
+    place-items: center;
+
+    gap: 7px;
+
+    min-height: 180px;
+
+    padding: 25px;
+
+    border:
+        1px dashed rgba(255,255,255,.08);
+
+    border-radius: 10px;
+
+    text-align: center;
+}
+
+
+.admin-empty-campaigns strong {
+    color: #aab3ba;
+
+    font-size: .68rem;
+}
+
+
+.admin-empty-campaigns span {
+    max-width: 280px;
+
+    color: #65717b;
+
+    font-size: .52rem;
+
+    line-height: 1.5;
+}
+
+
+/* ==========================================================
+   LIGHT MODE
+   ========================================================== */
+
+html[data-theme="light"] body {
+    --aa-bg: #f1f3f5;
+    --aa-panel: #ffffff;
+    --aa-panel-soft: #f7f8f9;
+    --aa-field: #f7f8f9;
+
+    --aa-text: #1c2329;
+    --aa-soft: #56616a;
+    --aa-muted: #78838c;
+
+    --aa-border:
+        rgba(26,37,47,.10);
+
+    background: #f1f3f5;
+}
+
+
+html[data-theme="light"]
+.ad-admin-topbar {
+    background: #ffffff;
+
+    box-shadow:
+        0 10px 28px rgba(28,38,48,.06);
+}
+
+
+html[data-theme="light"]
+.admin-private-label {
+    background: #f3f5f6;
+
+    color: #626e78;
+}
+
+
+html[data-theme="light"]
+.admin-form-grid input,
+html[data-theme="light"]
+.admin-form-grid select,
+html[data-theme="light"]
+.admin-form-grid textarea {
+    background: #f7f8f9;
+
+    color: #20272d;
+}
+
+
+html[data-theme="light"]
+.admin-form-grid input:focus,
+html[data-theme="light"]
+.admin-form-grid select:focus,
+html[data-theme="light"]
+.admin-form-grid textarea:focus {
+    background: #ffffff;
+}
+
+
+html[data-theme="light"]
+.admin-campaign-card {
+    background: #f8f9fa;
+}
+
+
+html[data-theme="light"]
+.admin-campaign-metrics div {
+    background: #f1f3f5;
+}
+
+
+html[data-theme="light"]
+.admin-campaign-brand strong,
+html[data-theme="light"]
+.admin-campaign-metrics strong {
+    color: #263039;
+}
+
+
+/* Preview intentionally stays dark */
+
+html[data-theme="light"]
+.admin-ad-preview {
+    background: #0c1116;
+}
+
+
+/* ==========================================================
+   TABLET
+   ========================================================== */
+
+@media (max-width: 1100px) {
+
+    .ad-admin-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .ad-admin-stats {
+        grid-template-columns:
+            repeat(3,minmax(0,1fr));
+    }
+
+
+    .ad-admin-campaigns {
+        order: 2;
+    }
+}
+
+
+/* ==========================================================
+   MOBILE
+   ========================================================== */
+
+@media (max-width: 700px) {
+
+    .ad-admin-shell {
+        width: calc(100% - 14px);
+
+        padding-top: 7px;
+    }
+
+
+    .ad-admin-topbar {
+        flex-direction: column;
+        align-items: stretch;
+
+        padding: 11px;
+
+        border-radius: 11px;
+    }
+
+
+    .ad-admin-brand {
+        justify-content: center;
+    }
+
+
+    .ad-admin-brand img {
+        width: 135px;
+    }
+
+
+    .ad-admin-top-actions {
+        display: grid;
+
+        grid-template-columns:
+            1fr 1fr;
+    }
+
+
+    .ad-admin-intro {
+        flex-direction: column;
+        align-items: stretch;
+
+        padding:
+            27px 3px 20px;
+    }
+
+
+    .ad-admin-intro h1 {
+        font-size: 2.45rem;
+    }
+
+
+    .admin-live-indicator {
+        align-self: flex-start;
+    }
+
+
+    .ad-admin-stats {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+
+        gap: 7px;
+    }
+
+
+    .ad-admin-stats article {
+        min-height: 100px;
+
+        padding: 13px;
+    }
+
+
+    .ad-admin-stats strong {
+        font-size: 1.3rem;
+    }
+
+
+    .ad-admin-editor,
+    .ad-admin-campaigns {
+        padding: 15px;
+    }
+
+
+    .admin-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .admin-full-field {
+        grid-column: auto;
+    }
+
+
+    .admin-ad-preview {
+        grid-template-columns: 1fr;
+    }
+
+
+    .admin-ad-preview-media {
+        min-height: 170px;
+    }
+
+
+    .admin-ad-preview-media img {
+        min-height: 170px;
+    }
+
+
+    .admin-ad-preview-content {
+        padding: 17px;
+    }
+
+
+    .admin-campaign-metrics {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+    }
+
+
+    .admin-save-campaign {
+        width: 100%;
+    }
+}
+
+
+@media (max-width: 390px) {
+
+    .ad-admin-stats {
+        grid-template-columns: 1fr;
+    }
+
+
+    .ad-admin-top-actions {
+        grid-template-columns: 1fr;
+    }
+}

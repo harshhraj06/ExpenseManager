@@ -1,0 +1,118 @@
+.profile-settings-link {
+    display: flex !important;
+
+    align-items: center;
+
+    gap: 9px;
+
+    margin-top: 7px;
+
+    padding: 9px !important;
+
+    border-top:
+        1px solid rgba(255,255,255,.07);
+
+    color: inherit !important;
+
+    text-decoration: none !important;
+}
+
+
+.profile-settings-icon {
+    width: 30px;
+    height: 30px;
+
+    display: grid;
+
+    place-items: center;
+
+    border:
+        1px solid rgba(255,255,255,.07);
+
+    border-radius: 8px;
+
+    background:
+        rgba(255,255,255,.03);
+}
+
+
+.profile-settings-icon svg {
+    width: 15px;
+    height: 15px;
+
+    fill: none;
+
+    stroke: currentColor;
+
+    stroke-width: 1.8;
+}
+
+
+.profile-settings-link strong,
+.profile-settings-link small {
+    display: block;
+}
+
+
+.profile-settings-link strong {
+    font-size: .66rem;
+}
+
+
+.profile-settings-link small {
+    margin-top: 2px;
+
+    opacity: .55;
+
+    font-size: .54rem;
+}
+
+
+html[data-theme="light"]
+.profile-settings-link {
+    border-top-color:
+        rgba(30,40,50,.09);
+}
+
+
+html[data-theme="light"]
+.profile-settings-icon {
+    border-color:
+        rgba(30,40,50,.10);
+
+    background:
+        rgba(30,40,50,.035);
+}
+
+
+/* Dashboard profile picture */
+
+.profile-btn-has-photo {
+    display: inline-flex !important;
+
+    align-items: center !important;
+
+    gap: 7px !important;
+}
+
+
+.nav-profile-photo {
+    width: 27px;
+    height: 27px;
+
+    flex: 0 0 27px;
+
+    object-fit: cover;
+
+    border:
+        1px solid rgba(255,255,255,.10);
+
+    border-radius: 8px;
+}
+
+
+html[data-theme="light"]
+.nav-profile-photo {
+    border-color:
+        rgba(30,40,50,.12);
+}

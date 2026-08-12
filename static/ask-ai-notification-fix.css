@@ -1,0 +1,197 @@
+/* ==========================================================
+   ASK AI — NOTIFICATION CENTER
+   ========================================================== */
+
+.ai-page .notif-bell-wrap {
+    position: static !important;
+}
+
+.ai-page .notif-dropdown {
+    position: fixed !important;
+
+    top: 82px !important;
+    right: 24px !important;
+    left: auto !important;
+
+    width: 380px !important;
+    max-width:
+        calc(100vw - 30px) !important;
+
+    max-height:
+        min(520px, calc(100vh - 105px)) !important;
+
+    overflow-y: auto !important;
+
+    border:
+        1px solid
+        rgba(157,132,184,.20) !important;
+
+    border-radius:
+        18px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #1c1824 0%,
+            #14131b 42%,
+            #0d1015 100%
+        ) !important;
+
+    box-shadow:
+        0 28px 90px
+        rgba(0,0,0,.56) !important;
+
+    backdrop-filter:
+        blur(22px);
+
+    z-index:
+        99999 !important;
+}
+
+.ai-page .notif-dropdown.open {
+    display: block !important;
+
+    animation:
+        aiNotifOpen
+        .17s ease-out;
+}
+
+@keyframes aiNotifOpen {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(-7px)
+            scale(.985);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+}
+
+
+/* header */
+
+.ai-page
+.notif-dropdown-header {
+    position: sticky !important;
+
+    top: 0;
+
+    z-index: 2;
+
+    min-height: 72px;
+
+    padding:
+        14px 16px !important;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.065) !important;
+
+    background:
+        rgba(24,21,31,.97) !important;
+}
+
+
+/* empty state */
+
+.ai-page
+.notif-empty {
+    padding:
+        42px 24px !important;
+
+    background:
+        transparent !important;
+}
+
+
+/* bell */
+
+.ai-page
+.notif-bell-btn {
+    width:
+        38px !important;
+
+    height:
+        38px !important;
+
+    border:
+        1px solid
+        rgba(157,132,184,.18) !important;
+
+    background:
+        rgba(110,83,137,.09) !important;
+
+    color:
+        #b4a3c6 !important;
+
+    box-shadow:
+        none !important;
+}
+
+.ai-page
+.notif-bell-btn:hover {
+    border-color:
+        rgba(157,132,184,.36) !important;
+
+    background:
+        rgba(110,83,137,.15) !important;
+
+    color:
+        #ded3e8 !important;
+}
+
+
+/* item */
+
+.ai-page
+.notif-item:hover {
+    background:
+        rgba(125,98,151,.07) !important;
+}
+
+.ai-page
+.notif-unread {
+    background:
+        rgba(125,98,151,.075) !important;
+}
+
+.ai-page
+.notif-unread::after {
+    background:
+        #9b83b3 !important;
+}
+
+
+/* mobile */
+
+@media (max-width: 600px) {
+
+    .ai-page
+    .notif-dropdown {
+        top:
+            70px !important;
+
+        left:
+            10px !important;
+
+        right:
+            10px !important;
+
+        width:
+            auto !important;
+
+        max-width:
+            none !important;
+
+        max-height:
+            calc(100vh - 88px) !important;
+    }
+}

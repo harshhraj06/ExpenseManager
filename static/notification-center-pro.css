@@ -1,0 +1,470 @@
+/* ==========================================================
+   PROFESSIONAL NOTIFICATION CENTER
+   ========================================================== */
+
+.notif-bell-wrap {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.notif-bell-btn {
+    position: relative !important;
+
+    width: 39px !important;
+    height: 39px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    padding: 0 !important;
+
+    border: 1px solid rgba(255,255,255,.09) !important;
+    border-radius: 11px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #1a2028,
+            #11161c
+        ) !important;
+
+    color: #a5b0bc !important;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 7px 20px rgba(0,0,0,.18);
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease,
+        color .18s ease;
+}
+
+.notif-bell-btn:hover {
+    transform: translateY(-1px);
+
+    border-color:
+        rgba(144,159,177,.30) !important;
+
+    color: #f0f3f6 !important;
+}
+
+.pro-notif-bell {
+    display: grid;
+    place-items: center;
+}
+
+.pro-notif-bell svg {
+    width: 18px;
+    height: 18px;
+
+    fill: none;
+
+    stroke: currentColor;
+    stroke-width: 1.8;
+
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.notif-badge {
+    position: absolute !important;
+
+    top: -5px !important;
+    right: -5px !important;
+
+    min-width: 17px !important;
+    height: 17px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    padding: 0 4px !important;
+
+    border: 2px solid #0b0e12 !important;
+    border-radius: 999px !important;
+
+    background: #a8565c !important;
+    color: white !important;
+
+    font-size: .56rem !important;
+    font-weight: 800 !important;
+}
+
+.notif-dropdown {
+    display: none;
+
+    position: absolute !important;
+
+    right: 0 !important;
+    top: calc(100% + 12px) !important;
+
+    width: 370px !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 470px !important;
+
+    overflow-y: auto !important;
+
+    border:
+        1px solid rgba(255,255,255,.095) !important;
+
+    border-radius: 17px !important;
+
+    background:
+        linear-gradient(
+            150deg,
+            #171c23,
+            #0d1116
+        ) !important;
+
+    box-shadow:
+        0 28px 75px rgba(0,0,0,.44) !important;
+
+    backdrop-filter: blur(18px);
+
+    z-index: 5000 !important;
+}
+
+.notif-dropdown.open {
+    display: block !important;
+}
+
+.notif-dropdown-header {
+    min-height: 68px;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 14px;
+
+    padding: 13px 15px !important;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.065) !important;
+
+    background:
+        rgba(20,25,32,.97) !important;
+}
+
+.pro-notif-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.pro-notif-heading strong {
+    color: #eef2f5;
+    font-size: .83rem;
+    font-weight: 720;
+}
+
+.pro-notif-heading small {
+    color: #697683;
+    font-size: .61rem;
+}
+
+.notif-mark-all {
+    padding: 6px 9px !important;
+
+    border:
+        1px solid rgba(255,255,255,.08) !important;
+
+    border-radius: 8px !important;
+
+    background:
+        rgba(255,255,255,.035) !important;
+
+    color: #9da8b4 !important;
+
+    font-size: .62rem !important;
+    font-weight: 650 !important;
+
+    cursor: pointer;
+}
+
+.notif-item {
+    position: relative;
+
+    display: grid !important;
+
+    grid-template-columns:
+        36px minmax(0,1fr);
+
+    column-gap: 10px;
+
+    padding: 13px 15px !important;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.05) !important;
+
+    background: transparent !important;
+
+    cursor: pointer;
+}
+
+.notif-item:hover {
+    background:
+        rgba(255,255,255,.035) !important;
+}
+
+.pro-notif-item-icon {
+    grid-row: 1 / span 2;
+
+    width: 36px;
+    height: 36px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid rgba(255,255,255,.07);
+
+    border-radius: 10px;
+
+    background: #1a222b;
+
+    color: #8799aa;
+}
+
+.pro-notif-item-icon svg {
+    width: 16px;
+    height: 16px;
+
+    fill: none;
+
+    stroke: currentColor;
+    stroke-width: 1.8;
+}
+
+.notif-item-title {
+    color: #e1e6ea !important;
+
+    font-size: .75rem !important;
+    font-weight: 680 !important;
+}
+
+.notif-item-msg {
+    margin-top: 3px !important;
+
+    color: #7a8794 !important;
+
+    font-size: .68rem !important;
+    line-height: 1.45;
+}
+
+.notif-unread {
+    background:
+        rgba(102,126,153,.075) !important;
+}
+
+.notif-unread::after {
+    content: "";
+
+    position: absolute;
+
+    top: 19px;
+    right: 14px;
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #7890aa;
+}
+
+.notif-empty {
+    padding: 34px 20px !important;
+
+    text-align: center !important;
+
+    color: #697582 !important;
+}
+
+.pro-notif-empty-icon {
+    width: 43px;
+    height: 43px;
+
+    display: grid;
+    place-items: center;
+
+    margin: 0 auto 11px;
+
+    border:
+        1px solid rgba(255,255,255,.07);
+
+    border-radius: 13px;
+
+    background: #181e26;
+
+    color: #7b8998;
+}
+
+.pro-notif-empty-icon svg {
+    width: 20px;
+    height: 20px;
+
+    fill: none;
+
+    stroke: currentColor;
+    stroke-width: 1.7;
+}
+
+.pro-notif-empty-title {
+    display: block;
+
+    color: #cfd6dd;
+
+    font-size: .77rem;
+    font-weight: 680;
+}
+
+.pro-notif-empty-copy {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #66727e;
+
+    font-size: .63rem;
+}
+
+
+/* ==========================================================
+   ASK AI — DIFFERENT INDIGO / PLUM IDENTITY
+   ========================================================== */
+
+body.ai-page {
+    background:
+        radial-gradient(
+            circle at 8% 0%,
+            rgba(91,76,126,.24),
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at 94% 12%,
+            rgba(55,82,110,.18),
+            transparent 31%
+        ),
+        #09090e !important;
+}
+
+.ai-hero {
+    border-color:
+        rgba(137,119,168,.24) !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #201b2b,
+            #171823 48%,
+            #10151c
+        ) !important;
+}
+
+.ai-hero::before {
+    background:
+        rgba(127,101,157,.18) !important;
+}
+
+.ai-mark {
+    border-color:
+        rgba(159,136,190,.22) !important;
+
+    background:
+        rgba(117,91,145,.13) !important;
+
+    color:
+        #b8a7cb !important;
+}
+
+.ai-eyebrow {
+    color:
+        #a08bb9 !important;
+}
+
+.ai-context-status {
+    border-color:
+        rgba(121,153,138,.22) !important;
+
+    background:
+        rgba(73,112,90,.12) !important;
+}
+
+.ai-side-card {
+    background:
+        linear-gradient(
+            145deg,
+            #181620,
+            #101218
+        ) !important;
+}
+
+.ai-prompt:hover {
+    border-color:
+        rgba(144,116,176,.30) !important;
+
+    background:
+        rgba(113,84,146,.10) !important;
+}
+
+.ai-chat-panel {
+    border-color:
+        rgba(131,112,154,.14) !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #15141c,
+            #0b0d12
+        ) !important;
+}
+
+.ai-message.user .ai-bubble {
+    border-color:
+        rgba(146,119,176,.22) !important;
+
+    background:
+        #272032 !important;
+
+    color:
+        #e3ddea !important;
+}
+
+.ai-avatar,
+.ai-chat-title-icon {
+    background:
+        #211b2a !important;
+
+    color:
+        #ae9cbe !important;
+}
+
+.ai-composer:focus-within {
+    border-color:
+        rgba(153,127,184,.42) !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(128,99,158,.08) !important;
+}
+
+@media (max-width: 560px) {
+
+    .notif-dropdown {
+        position: fixed !important;
+
+        left: 12px !important;
+        right: 12px !important;
+
+        top: 68px !important;
+
+        width: auto !important;
+
+        max-height: 72vh !important;
+    }
+}

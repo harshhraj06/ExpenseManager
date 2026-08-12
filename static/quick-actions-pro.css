@@ -1,0 +1,299 @@
+/* ==========================================================
+   FINANCIAL CONTROL CENTER
+   ACTION-SPECIFIC QUICK ACTION CARDS
+   ========================================================== */
+
+.dashboard-premium-v2
+.pro-actions {
+    display: grid !important;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        ) !important;
+
+    gap:
+        10px !important;
+}
+
+
+.dashboard-premium-v2
+.pro-action.qa-action {
+    --qa-accent: #7d8996;
+
+    position: relative;
+
+    min-height:
+        105px;
+
+    display:
+        flex !important;
+
+    flex-direction:
+        column;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        flex-start !important;
+
+    gap:
+        13px;
+
+    padding:
+        14px !important;
+
+    overflow:
+        hidden;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075) !important;
+
+    border-radius:
+        14px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            color-mix(
+                in srgb,
+                var(--qa-accent) 10%,
+                #171c23
+            ),
+            #101419 78%
+        ) !important;
+
+    color:
+        #d8dee4 !important;
+
+    box-shadow:
+        0 10px 26px
+        rgba(0,0,0,.17) !important;
+
+    text-decoration:
+        none !important;
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease,
+        background .18s ease !important;
+}
+
+
+.dashboard-premium-v2
+.pro-action.qa-action::before {
+    content: "";
+
+    position: absolute;
+
+    left: 13px;
+    right: 13px;
+    top: 0;
+
+    height:
+        2px;
+
+    border-radius:
+        0 0 999px 999px;
+
+    background:
+        var(--qa-accent);
+
+    opacity:
+        .65;
+}
+
+
+.dashboard-premium-v2
+.pro-action.qa-action:hover {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--qa-accent) 32%,
+            rgba(255,255,255,.08)
+        ) !important;
+}
+
+
+.qa-action-icon {
+    width:
+        33px;
+
+    height:
+        33px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--qa-accent) 30%,
+            rgba(255,255,255,.07)
+        );
+
+    border-radius:
+        9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--qa-accent) 12%,
+            #171d24
+        );
+
+    color:
+        color-mix(
+            in srgb,
+            var(--qa-accent) 74%,
+            #e7ebef
+        );
+}
+
+
+.qa-action-icon svg {
+    width:
+        17px;
+
+    height:
+        17px;
+
+    fill:
+        none;
+
+    stroke:
+        currentColor;
+
+    stroke-width:
+        1.75;
+
+    stroke-linecap:
+        round;
+
+    stroke-linejoin:
+        round;
+}
+
+
+.qa-action-copy {
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        3px;
+}
+
+
+.qa-action-title {
+    color:
+        #e3e7eb;
+
+    font-size:
+        .75rem;
+
+    font-weight:
+        700;
+}
+
+
+.qa-action-description {
+    color:
+        #6f7a86;
+
+    font-size:
+        .57rem;
+
+    line-height:
+        1.35;
+}
+
+
+/* ==========================================================
+   EACH ACTION HAS ITS OWN IDENTITY
+   ========================================================== */
+
+.qa-expense {
+    --qa-accent:
+        #a77b7d !important;
+}
+
+.qa-income {
+    --qa-accent:
+        #78947f !important;
+}
+
+.qa-bills {
+    --qa-accent:
+        #a48a6e !important;
+}
+
+.qa-budget {
+    --qa-accent:
+        #778ca3 !important;
+}
+
+.qa-goals {
+    --qa-accent:
+        #8d7e9e !important;
+}
+
+.qa-subscription {
+    --qa-accent:
+        #728f8b !important;
+}
+
+.qa-reports {
+    --qa-accent:
+        #7a8898 !important;
+}
+
+.qa-recurring {
+    --qa-accent:
+        #967f6e !important;
+}
+
+.qa-split {
+    --qa-accent:
+        #7d809e !important;
+}
+
+.qa-apps {
+    --qa-accent:
+        #748f7a !important;
+}
+
+
+@media (max-width: 900px) {
+
+    .dashboard-premium-v2
+    .pro-actions {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            ) !important;
+    }
+}
+
+
+@media (max-width: 520px) {
+
+    .dashboard-premium-v2
+    .pro-action.qa-action {
+        min-height:
+            96px;
+    }
+}

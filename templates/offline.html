@@ -1,120 +1,1902 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
-    <script>
-        (() => {
-            const saved =
-                localStorage.getItem(
-                    "expense-manager-theme"
-                );
 
-            const theme =
-                saved === "light" ||
-                saved === "dark"
-                    ? saved
-                    : (
-                        window.matchMedia(
-                            "(prefers-color-scheme: light)"
-                        ).matches
-                            ? "light"
-                            : "dark"
-                    );
+<meta charset="UTF-8">
 
-            document.documentElement.setAttribute(
-                "data-theme",
-                theme
-            );
-        })();
-    </script>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
 
-  <meta charset="UTF-8">
-  <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Offline — Expense Manager</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <style>
-    .offline-page {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
+<title>
+    Offline · Expense Manager
+</title>
+
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+
+:root {
+    --bg: #090c10;
+    --panel: #12171d;
+    --panel-2: #171d24;
+    --border: rgba(255,255,255,.075);
+
+    --text: #edf1f4;
+    --soft: #aab4be;
+    --muted: #6f7b87;
+
+    --accent: #91a69b;
+    --accent-rgb: 145,166,155;
+
+    --warm: #aa947c;
+}
+
+
+html,
+body {
+    min-height: 100%;
+}
+
+
+body {
+    margin: 0;
+
+    background:
+        radial-gradient(
+            circle at 12% 0%,
+            rgba(108,129,119,.17),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 90% 15%,
+            rgba(104,91,76,.10),
+            transparent 30%
+        ),
+        var(--bg);
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+
+.offline-shell {
+    width:
+        min(1120px, calc(100% - 28px));
+
+    margin:
+        0 auto;
+
+    padding:
+        26px 0 40px;
+}
+
+
+/* ======================================================
+   TOP STATUS
+   ====================================================== */
+
+.offline-topbar {
+    display: flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    gap:
+        15px;
+
+    padding:
+        9px 12px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        13px;
+
+    background:
+        rgba(14,18,23,.88);
+}
+
+
+.offline-brand {
+    display: flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+
+    font-size:
+        .75rem;
+
+    font-weight:
+        720;
+}
+
+
+.brand-mark {
+    width: 30px;
+    height: 30px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), .23);
+
+    border-radius:
+        9px;
+
+    background:
+        rgba(var(--accent-rgb), .08);
+
+    color:
+        var(--accent);
+
+    font-size:
+        .78rem;
+
+    font-weight:
+        800;
+}
+
+
+.offline-pill {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        7px;
+
+    padding:
+        6px 9px;
+
+    border:
+        1px solid
+        rgba(177,126,126,.16);
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(129,80,80,.08);
+
+    color:
+        #b69595;
+
+    font-size:
+        .6rem;
+
+    font-weight:
+        650;
+}
+
+
+.offline-pill::before {
+    content: "";
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background:
+        #9c7777;
+}
+
+
+/* ======================================================
+   HERO
+   ====================================================== */
+
+.offline-hero {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        300px;
+
+    gap:
+        20px;
+
+    align-items:
+        center;
+
+    margin-top:
+        16px;
+
+    padding:
+        31px;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), .18);
+
+    border-radius:
+        21px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #18201d,
+            #12171d 55%,
+            #0e1217
+        );
+
+    box-shadow:
+        0 25px 65px
+        rgba(0,0,0,.26);
+}
+
+
+.offline-eyebrow {
+    color:
+        var(--accent);
+
+    font-size:
+        .62rem;
+
+    font-weight:
+        760;
+
+    letter-spacing:
+        .1em;
+
+    text-transform:
+        uppercase;
+}
+
+
+.offline-hero h1 {
+    margin:
+        7px 0 0;
+
+    font-size:
+        clamp(2rem, 5vw, 3.2rem);
+
+    letter-spacing:
+        -.05em;
+
+    line-height:
+        1;
+}
+
+
+.offline-hero p {
+    max-width:
+        650px;
+
+    margin:
+        13px 0 0;
+
+    color:
+        #87938f;
+
+    font-size:
+        .76rem;
+
+    line-height:
+        1.65;
+}
+
+
+.offline-actions {
+    display: flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        8px;
+
+    margin-top:
+        20px;
+}
+
+
+.offline-primary,
+.offline-secondary {
+    min-height:
+        37px;
+
+    padding:
+        7px 12px;
+
+    border-radius:
+        9px;
+
+    font:
+        inherit;
+
+    font-size:
+        .66rem;
+
+    font-weight:
+        680;
+
+    cursor:
+        pointer;
+}
+
+
+.offline-primary {
+    border:
+        1px solid
+        rgba(var(--accent-rgb), .34);
+
+    background:
+        rgba(var(--accent-rgb), .14);
+
+    color:
+        #b9cbc2;
+}
+
+
+.offline-primary:hover {
+    background:
+        rgba(var(--accent-rgb), .20);
+}
+
+
+.offline-secondary {
+    border:
+        1px solid
+        rgba(255,255,255,.075);
+
+    background:
+        rgba(255,255,255,.025);
+
+    color:
+        #929da8;
+}
+
+
+/* ======================================================
+   HERO DIAGRAM
+   ====================================================== */
+
+.offline-visual {
+    height:
+        210px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), .14);
+
+    border-radius:
+        17px;
+
+    background:
+        rgba(8,11,14,.48);
+}
+
+
+.offline-visual svg {
+    width:
+        230px;
+
+    height:
+        160px;
+}
+
+
+.ov-line {
+    fill: none;
+
+    stroke:
+        rgba(var(--accent-rgb), .58);
+
+    stroke-width:
+        1.5;
+
+    stroke-linecap:
+        round;
+
+    stroke-linejoin:
+        round;
+}
+
+
+.ov-soft {
+    fill: none;
+
+    stroke:
+        rgba(var(--accent-rgb), .20);
+
+    stroke-width:
+        1;
+}
+
+
+.ov-fill {
+    fill:
+        rgba(var(--accent-rgb), .10);
+
+    stroke:
+        rgba(var(--accent-rgb), .46);
+
+    stroke-width:
+        1.2;
+}
+
+
+/* ======================================================
+   OFFLINE CAPABILITIES
+   ====================================================== */
+
+.offline-capabilities {
+    display: flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        7px;
+
+    margin-top:
+        14px;
+}
+
+
+.offline-capability {
+    padding:
+        5px 8px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.06);
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(255,255,255,.02);
+
+    color:
+        #727f8a;
+
+    font-size:
+        .58rem;
+}
+
+
+/* ======================================================
+   LOUNGE
+   ====================================================== */
+
+.offline-lounge {
+    display: grid;
+
+    grid-template-columns:
+        .9fr 1.35fr;
+
+    gap:
+        15px;
+
+    margin-top:
+        15px;
+}
+
+
+.offline-card {
+    padding:
+        20px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        17px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #141920,
+            #0e1217
+        );
+
+    box-shadow:
+        0 14px 36px
+        rgba(0,0,0,.18);
+}
+
+
+.card-eyebrow {
+    display: block;
+
+    margin-bottom:
+        6px;
+
+    color:
+        #6f7c86;
+
+    font-size:
+        .57rem;
+
+    font-weight:
+        760;
+
+    letter-spacing:
+        .09em;
+
+    text-transform:
+        uppercase;
+}
+
+
+.offline-card h2 {
+    margin:
+        0;
+
+    color:
+        #dfe5e9;
+
+    font-size:
+        .95rem;
+}
+
+
+.offline-card > p {
+    color:
+        #707d87;
+
+    font-size:
+        .67rem;
+
+    line-height:
+        1.5;
+}
+
+
+/* ======================================================
+   QUOTE
+   ====================================================== */
+
+.quote-box {
+    position:
+        relative;
+
+    min-height:
+        155px;
+
+    display: flex;
+
+    flex-direction:
+        column;
+
+    justify-content:
+        space-between;
+
+    margin-top:
+        15px;
+
+    padding:
+        17px;
+
+    border:
+        1px solid
+        rgba(170,148,124,.15);
+
+    border-radius:
+        13px;
+
+    background:
+        rgba(170,148,124,.055);
+}
+
+
+.quote-symbol {
+    color:
+        var(--warm);
+
+    font-family:
+        Georgia, serif;
+
+    font-size:
+        2.1rem;
+
+    line-height:
+        .7;
+
+    opacity:
+        .75;
+}
+
+
+#moneyQuote {
+    margin:
+        10px 0 15px;
+
+    color:
+        #c6cdd2;
+
+    font-family:
+        Georgia, serif;
+
+    font-size:
+        .92rem;
+
+    line-height:
+        1.55;
+}
+
+
+.quote-footer {
+    display: flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    gap:
+        10px;
+}
+
+
+.quote-footer span {
+    color:
+        #6d7881;
+
+    font-size:
+        .57rem;
+}
+
+
+.quote-button {
+    padding:
+        5px 8px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    border-radius:
+        7px;
+
+    background:
+        rgba(255,255,255,.025);
+
+    color:
+        #8c98a1;
+
+    font:
+        inherit;
+
+    font-size:
+        .58rem;
+
+    cursor:
+        pointer;
+}
+
+
+/* ======================================================
+   MONEY GAME
+   ====================================================== */
+
+.game-head {
+    display: flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        15px;
+}
+
+
+.game-score {
+    display: flex;
+
+    align-items:
+        center;
+
+    gap:
+        6px;
+
+    padding:
+        6px 9px;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), .16);
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(var(--accent-rgb), .06);
+
+    color:
+        #9eafa6;
+
+    font-size:
+        .61rem;
+
+    font-weight:
+        680;
+}
+
+
+.game-progress-track {
+    height:
+        4px;
+
+    margin:
+        16px 0 20px;
+
+    overflow:
+        hidden;
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(255,255,255,.055);
+}
+
+
+#gameProgress {
+    width:
+        0%;
+
+    height:
+        100%;
+
+    border-radius:
+        inherit;
+
+    background:
+        #84988e;
+
+    transition:
+        width .25s ease;
+}
+
+
+.game-question {
+    min-height:
+        105px;
+
+    display: grid;
+
+    place-items:
+        center;
+
+    padding:
+        18px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.065);
+
+    border-radius:
+        13px;
+
+    background:
+        #10151a;
+
+    text-align:
+        center;
+}
+
+
+.game-question small {
+    display: block;
+
+    color:
+        #65717a;
+
+    font-size:
+        .59rem;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        .08em;
+}
+
+
+#gameExpense {
+    display: block;
+
+    margin-top:
+        7px;
+
+    color:
+        #e1e5e8;
+
+    font-size:
+        1rem;
+
+    font-weight:
+        720;
+}
+
+
+.game-options {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap:
+        8px;
+
+    margin-top:
+        11px;
+}
+
+
+.game-option {
+    min-height:
+        44px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    border-radius:
+        9px;
+
+    background:
+        #151b21;
+
+    color:
+        #929da6;
+
+    font:
+        inherit;
+
+    font-size:
+        .65rem;
+
+    font-weight:
+        680;
+
+    cursor:
+        pointer;
+
+    transition:
+        background .16s ease,
+        border-color .16s ease,
+        transform .16s ease;
+}
+
+
+.game-option:hover {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        rgba(var(--accent-rgb), .27);
+
+    color:
+        #dce2e5;
+}
+
+
+.game-option:disabled {
+    cursor:
+        default;
+
+    transform:
+        none;
+}
+
+
+.game-feedback {
+    min-height:
+        38px;
+
+    margin-top:
+        11px;
+
+    color:
+        #79858e;
+
+    font-size:
+        .64rem;
+
+    line-height:
+        1.5;
+}
+
+
+.game-feedback.correct {
+    color:
+        #91aa9d;
+}
+
+
+.game-feedback.wrong {
+    color:
+        #b09393;
+}
+
+
+.game-next {
+    display:
+        none;
+
+    width:
+        100%;
+
+    min-height:
+        38px;
+
+    border:
+        1px solid
+        rgba(var(--accent-rgb), .21);
+
+    border-radius:
+        8px;
+
+    background:
+        rgba(var(--accent-rgb), .08);
+
+    color:
+        #a6b7ae;
+
+    font:
+        inherit;
+
+    font-size:
+        .64rem;
+
+    font-weight:
+        680;
+
+    cursor:
+        pointer;
+}
+
+
+.game-next.visible {
+    display:
+        block;
+}
+
+
+/* ======================================================
+   RESPONSIVE
+   ====================================================== */
+
+@media (max-width: 780px) {
+
+    .offline-hero {
+        grid-template-columns:
+            1fr;
     }
 
-    .offline-card {
-      max-width: 520px;
-      width: 100%;
-      text-align: center;
-      padding: 42px 28px;
-      border-radius: 24px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.1);
+
+    .offline-visual {
+        height:
+            180px;
     }
 
-    .offline-card img {
-      width: 82px;
-      height: 82px;
-      object-fit: contain;
-      margin-bottom: 20px;
+
+    .offline-lounge {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+
+@media (max-width: 520px) {
+
+    .offline-shell {
+        width:
+            calc(100% - 16px);
+
+        padding-top:
+            8px;
     }
 
-    .offline-card h1 {
-      margin-bottom: 12px;
+
+    .offline-hero {
+        padding:
+            23px 17px;
     }
 
-    .offline-card p {
-      opacity: .7;
-      line-height: 1.6;
+
+    .game-options {
+        grid-template-columns:
+            1fr;
     }
+}
 
-    .offline-card button {
-      margin-top: 20px;
-      padding: 12px 22px;
-      border: 0;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-  </style>
-    <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#0b0b0b">
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='theme.css') }}">
-
-    <script
-        src="{{ url_for('static', filename='js/theme.js') }}"
-        defer>
-    </script>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='language.css') }}">
-
-    <script
-        src="{{ url_for('static', filename='js/language.js') }}"
-        defer>
-    </script>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='mobile.css') }}">
+</style>
 
 </head>
+
+
 <body>
-  <main class="offline-page">
-    <section class="offline-card">
-      <img src="/static/logo.png" alt="Expense Manager">
-      <h1>You're offline</h1>
-      <p>
-        Expense Manager is available offline for locally stored data.
-        Reconnect to sync your pending changes.
-      </p>
-      <button onclick="location.reload()">Try Again</button>
+
+
+<div class="offline-shell">
+
+
+    <header class="offline-topbar">
+
+        <div class="offline-brand">
+
+            <span class="brand-mark">
+                ₹
+            </span>
+
+            <span>
+                Expense Manager
+            </span>
+
+        </div>
+
+
+        <div class="offline-pill">
+            Offline mode
+        </div>
+
+    </header>
+
+
+
+    <!-- ==================================================
+         HERO
+         ================================================== -->
+
+    <section class="offline-hero">
+
+
+        <div>
+
+            <span class="offline-eyebrow">
+                Local finance mode
+            </span>
+
+
+            <h1>
+                You're offline
+            </h1>
+
+
+            <p>
+                Expense Manager is available offline for
+                locally stored data. Reconnect to sync your
+                pending changes. While the server is away,
+                sharpen your money instincts below.
+            </p>
+
+
+            <div class="offline-capabilities">
+
+                <span class="offline-capability">
+                    Local records
+                </span>
+
+                <span class="offline-capability">
+                    Cached pages
+                </span>
+
+                <span class="offline-capability">
+                    Money game
+                </span>
+
+                <span class="offline-capability">
+                    Finance quotes
+                </span>
+
+            </div>
+
+
+            <div class="offline-actions">
+
+                <button
+                    type="button"
+                    class="offline-primary"
+                    onclick="window.location.href='/'">
+
+                    Try Again
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="offline-secondary"
+                    onclick="
+                        document
+                        .getElementById('offlineLounge')
+                        .scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    ">
+
+                    Play Offline
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="offline-visual">
+
+            <svg viewBox="0 0 230 160">
+
+                <rect
+                    x="48"
+                    y="49"
+                    width="134"
+                    height="75"
+                    rx="14"
+                    class="ov-fill">
+                </rect>
+
+                <path
+                    d="M65 49
+                       V40
+                       C65 31 72 25 81 25
+                       H156
+                       C165 25 172 31 172 40
+                       V49"
+                    class="ov-line">
+                </path>
+
+                <rect
+                    x="132"
+                    y="72"
+                    width="50"
+                    height="29"
+                    rx="8"
+                    class="ov-fill">
+                </rect>
+
+                <circle
+                    cx="148"
+                    cy="86.5"
+                    r="3.5"
+                    class="ov-line">
+                </circle>
+
+                <circle
+                    cx="186"
+                    cy="37"
+                    r="25"
+                    class="ov-soft">
+                </circle>
+
+                <path
+                    d="M174 36
+                       C181 29 191 29 198 36"
+                    class="ov-line">
+                </path>
+
+                <path
+                    d="M179 42
+                       C184 37 190 37 195 42"
+                    class="ov-line">
+                </path>
+
+                <path
+                    d="M168 20
+                       L204 55"
+                    class="ov-line">
+                </path>
+
+                <path
+                    d="M76 77H106"
+                    class="ov-soft">
+                </path>
+
+                <path
+                    d="M76 88H113"
+                    class="ov-soft">
+                </path>
+
+                <path
+                    d="M76 99H100"
+                    class="ov-soft">
+                </path>
+
+            </svg>
+
+        </div>
+
     </section>
-  </main>
-    <script src="/static/js/db.js"></script>
-    <script src="/static/js/sync.js"></script>
-    <script src="/static/js/offline.js"></script>
+
+
+
+    <!-- ==================================================
+         OFFLINE LOUNGE
+         ================================================== -->
+
+    <section
+        class="offline-lounge"
+        id="offlineLounge">
+
+
+        <!-- QUOTE -->
+
+        <article class="offline-card">
+
+            <span class="card-eyebrow">
+                Money thought
+            </span>
+
+            <h2>
+                Read while you wait
+            </h2>
+
+
+            <p>
+                A short reminder to keep your money
+                decisions intentional.
+            </p>
+
+
+            <div class="quote-box">
+
+                <div>
+
+                    <div class="quote-symbol">
+                        “
+                    </div>
+
+                    <div id="moneyQuote">
+                        Small money decisions become large
+                        financial patterns.
+                    </div>
+
+                </div>
+
+
+                <div class="quote-footer">
+
+                    <span>
+                        Expense Manager
+                    </span>
+
+                    <button
+                        type="button"
+                        class="quote-button"
+                        id="newQuote">
+
+                        New thought
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- GAME -->
+
+        <article class="offline-card">
+
+
+            <div class="game-head">
+
+                <div>
+
+                    <span class="card-eyebrow">
+                        Offline money game
+                    </span>
+
+                    <h2>
+                        ₹ Budget Challenge
+                    </h2>
+
+                </div>
+
+
+                <div class="game-score">
+
+                    Score
+
+                    <span id="gameScore">
+                        0
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <p>
+                Classify each expense as a
+                <strong>Need</strong>,
+                <strong>Want</strong> or
+                <strong>Save</strong>.
+            </p>
+
+
+            <div class="game-progress-track">
+
+                <div id="gameProgress"></div>
+
+            </div>
+
+
+            <div class="game-question">
+
+                <div>
+
+                    <small>
+                        Where should this money go?
+                    </small>
+
+                    <span id="gameExpense">
+                        Monthly house rent
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="game-options">
+
+                <button
+                    class="game-option"
+                    data-answer="need">
+
+                    Need
+
+                </button>
+
+
+                <button
+                    class="game-option"
+                    data-answer="want">
+
+                    Want
+
+                </button>
+
+
+                <button
+                    class="game-option"
+                    data-answer="save">
+
+                    Save
+
+                </button>
+
+            </div>
+
+
+            <div
+                class="game-feedback"
+                id="gameFeedback">
+
+                Choose the best category.
+
+            </div>
+
+
+            <button
+                type="button"
+                class="game-next"
+                id="gameNext">
+
+                Next expense →
+
+            </button>
+
+
+        </article>
+
+
+    </section>
+
+
+</div>
+
+
+
+<script>
+
+(() => {
+    "use strict";
+
+
+    /* ======================================================
+       QUOTES
+       ====================================================== */
+
+    const quotes = [
+
+        "Small money decisions become large financial patterns.",
+
+        "Saving gets easier when every rupee has a purpose.",
+
+        "A calm budget gives tomorrow fewer surprises.",
+
+        "Track first. Understand second. Improve third.",
+
+        "Money grows quieter when your plan becomes clearer.",
+
+        "A useful budget is not a restriction; it is a direction.",
+
+        "Consistency usually matters more than one perfect financial month.",
+
+        "The expense you notice today is easier to control tomorrow."
+
+    ];
+
+
+    const quoteElement =
+        document.getElementById(
+            "moneyQuote"
+        );
+
+    const quoteButton =
+        document.getElementById(
+            "newQuote"
+        );
+
+    let quoteIndex = 0;
+
+
+    function showNextQuote() {
+
+        quoteIndex =
+            (
+                quoteIndex + 1
+            )
+            %
+            quotes.length;
+
+        quoteElement.textContent =
+            quotes[
+                quoteIndex
+            ];
+
+    }
+
+
+    quoteButton.addEventListener(
+        "click",
+        showNextQuote
+    );
+
+
+    setInterval(
+        showNextQuote,
+        9000
+    );
+
+
+    /* ======================================================
+       BUDGET GAME
+       ====================================================== */
+
+    const rounds = [
+
+        {
+            item:
+                "Monthly house rent",
+
+            answer:
+                "need",
+
+            explanation:
+                "Housing is a core living expense."
+        },
+
+        {
+            item:
+                "Transfer to your emergency fund",
+
+            answer:
+                "save",
+
+            explanation:
+                "Emergency-fund money strengthens your financial safety net."
+        },
+
+        {
+            item:
+                "Impulse headphone upgrade",
+
+            answer:
+                "want",
+
+            explanation:
+                "An optional upgrade is normally discretionary spending."
+        },
+
+        {
+            item:
+                "Electricity bill",
+
+            answer:
+                "need",
+
+            explanation:
+                "Utilities are essential household expenses."
+        },
+
+        {
+            item:
+                "Streaming subscription",
+
+            answer:
+                "want",
+
+            explanation:
+                "Entertainment subscriptions are generally optional."
+        },
+
+        {
+            item:
+                "Monthly savings or SIP contribution",
+
+            answer:
+                "save",
+
+            explanation:
+                "This money is being directed toward future wealth."
+        },
+
+        {
+            item:
+                "Basic groceries",
+
+            answer:
+                "need",
+
+            explanation:
+                "Essential food purchases belong in necessary spending."
+        },
+
+        {
+            item:
+                "Food delivery just for a treat",
+
+            answer:
+                "want",
+
+            explanation:
+                "A discretionary food treat is usually a want."
+        },
+
+        {
+            item:
+                "Required medicine",
+
+            answer:
+                "need",
+
+            explanation:
+                "Necessary healthcare spending is an essential expense."
+        },
+
+        {
+            item:
+                "Deposit toward a future laptop fund",
+
+            answer:
+                "save",
+
+            explanation:
+                "Setting money aside for a future goal is saving."
+        }
+
+    ];
+
+
+    let roundIndex = 0;
+    let score = 0;
+    let answered = false;
+
+
+    const expense =
+        document.getElementById(
+            "gameExpense"
+        );
+
+    const scoreElement =
+        document.getElementById(
+            "gameScore"
+        );
+
+    const feedback =
+        document.getElementById(
+            "gameFeedback"
+        );
+
+    const progress =
+        document.getElementById(
+            "gameProgress"
+        );
+
+    const nextButton =
+        document.getElementById(
+            "gameNext"
+        );
+
+    const options =
+        [
+            ...document.querySelectorAll(
+                ".game-option"
+            )
+        ];
+
+
+    function renderRound() {
+
+        answered =
+            false;
+
+        const round =
+            rounds[
+                roundIndex
+            ];
+
+
+        expense.textContent =
+            round.item;
+
+
+        feedback.textContent =
+            "Choose the best category.";
+
+        feedback.className =
+            "game-feedback";
+
+
+        nextButton.classList.remove(
+            "visible"
+        );
+
+
+        options.forEach(
+            button => {
+
+                button.disabled =
+                    false;
+
+            }
+        );
+
+
+        progress.style.width =
+            (
+                roundIndex /
+                rounds.length *
+                100
+            )
+            + "%";
+
+    }
+
+
+    function answerRound(
+        choice
+    ) {
+
+        if (answered) {
+            return;
+        }
+
+
+        answered =
+            true;
+
+
+        const round =
+            rounds[
+                roundIndex
+            ];
+
+
+        options.forEach(
+            button => {
+
+                button.disabled =
+                    true;
+
+            }
+        );
+
+
+        if (
+            choice ===
+            round.answer
+        ) {
+
+            score +=
+                10;
+
+            scoreElement.textContent =
+                score;
+
+            feedback.textContent =
+                "Correct — "
+                +
+                round.explanation;
+
+            feedback.className =
+                "game-feedback correct";
+
+        } else {
+
+            const pretty =
+                round.answer
+                .charAt(0)
+                .toUpperCase()
+                +
+                round.answer
+                .slice(1);
+
+
+            feedback.textContent =
+                "Best answer: "
+                +
+                pretty
+                +
+                ". "
+                +
+                round.explanation;
+
+            feedback.className =
+                "game-feedback wrong";
+        }
+
+
+        progress.style.width =
+            (
+                (
+                    roundIndex + 1
+                )
+                /
+                rounds.length
+                *
+                100
+            )
+            + "%";
+
+
+        nextButton.textContent =
+            roundIndex ===
+            rounds.length - 1
+                ? "Play again"
+                : "Next expense →";
+
+
+        nextButton.classList.add(
+            "visible"
+        );
+
+    }
+
+
+    options.forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    answerRound(
+                        button.dataset.answer
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    nextButton.addEventListener(
+        "click",
+        () => {
+
+            if (
+                roundIndex ===
+                rounds.length - 1
+            ) {
+
+                roundIndex =
+                    0;
+
+                score =
+                    0;
+
+                scoreElement.textContent =
+                    "0";
+
+            } else {
+
+                roundIndex +=
+                    1;
+
+            }
+
+
+            renderRound();
+
+        }
+    );
+
+
+    renderRound();
+
+
+    /* ======================================================
+       ONLINE STATUS
+       ====================================================== */
+
+    window.addEventListener(
+        "online",
+        () => {
+
+            const pill =
+                document.querySelector(
+                    ".offline-pill"
+                );
+
+            if (pill) {
+
+                pill.textContent =
+                    "Connection restored";
+
+                pill.style.color =
+                    "#9fb8aa";
+
+                pill.style.borderColor =
+                    "rgba(145,166,155,.24)";
+            }
+
+        }
+    );
+
+})();
+
+</script>
+
+
 </body>
+
 </html>

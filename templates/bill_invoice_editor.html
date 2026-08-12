@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
+
+<title>
+    Invoice Studio · Expense Manager
+</title>
+
+
+<script>
+(() => {
+    const saved =
+        localStorage.getItem(
+            "expense-manager-theme"
+        );
+
+    const theme =
+        saved === "light"
+            ? "light"
+            : "dark";
+
+    document.documentElement
+        .setAttribute(
+            "data-theme",
+            theme
+        );
+})();
+</script>
+
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}">
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='theme.css') }}">
+
+<link
+    rel="stylesheet"
+    href="/static/invoice-editor.css?v=20260812">
+
+</head>
+
+
+<body class="invoice-editor-page">
+
+
+<div class="invoice-editor-shell">
+
+
+    <header class="invoice-editor-topbar">
+
+        <a
+            href="/bills"
+            class="invoice-editor-brand">
+
+            <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt="Expense Manager">
+
+            <span>
+
+                <strong>
+                    Bill & Invoice Studio
+                </strong>
+
+                <small>
+                    Document editor
+                </small>
+
+            </span>
+
+        </a>
+
+
+        <div class="invoice-editor-actions">
+
+            <a href="/bills">
+                Bills
+            </a>
+
+            <a
+                href="/bill_invoice/{{ bill.id }}"
+                class="invoice-download-link">
+
+                Download current PDF
+
+            </a>
+
+        </div>
+
+    </header>
+
+
+
+    {% if request.args.get('saved') %}
+
+    <div class="invoice-save-message">
+        Invoice design saved successfully.
+    </div>
+
+    {% endif %}
+
+
+
+    <section class="invoice-editor-intro">
+
+        <div>
+
+            <span>
+                Invoice workspace
+            </span>
+
+            <h1>
+                Customize your bill
+            </h1>
+
+            <p>
+                Change how the generated invoice looks
+                without changing the actual transaction
+                stored in Expense Manager.
+            </p>
+
+        </div>
+
+
+        <div class="invoice-record-chip">
+
+            <small>
+                Recorded bill
+            </small>
+
+            <strong>
+                {{ bill.name }}
+            </strong>
+
+            <span>
+                ₹{{ "%.2f"|format(bill.amount) }}
+            </span>
+
+        </div>
+
+    </section>
+
+
+
+    <form
+        method="POST"
+        id="invoiceEditorForm">
+
+
+        <div class="invoice-workspace">
+
+
+            <!-- ==========================================
+                 EDITOR
+                 ========================================== -->
+
+            <div class="invoice-controls">
+
+
+                <section class="invoice-control-card">
+
+                    <div class="invoice-control-head">
+
+                        <span>01</span>
+
+                        <div>
+                            <h2>
+                                Document identity
+                            </h2>
+
+                            <p>
+                                Header and invoice reference.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-form-grid">
+
+                        <label>
+
+                            Document title
+
+                            <select
+                                name="document_title"
+                                data-preview="documentTitle">
+
+                                {% for option in [
+                                    'INVOICE',
+                                    'PAYMENT RECEIPT',
+                                    'BILL',
+                                    'TAX INVOICE'
+                                ] %}
+
+                                <option
+                                    value="{{ option }}"
+                                    {% if settings.document_title == option %}
+                                        selected
+                                    {% endif %}>
+
+                                    {{ option }}
+
+                                </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </label>
+
+
+                        <label>
+
+                            Invoice / Receipt number
+
+                            <input
+                                type="text"
+                                name="invoice_number"
+                                value="{{ settings.invoice_number }}"
+                                maxlength="80"
+                                data-preview="invoiceNumber">
+
+                        </label>
+
+
+                        <label>
+
+                            Issue date
+
+                            <input
+                                type="date"
+                                name="issue_date"
+                                value="{{ settings.issue_date }}"
+                                data-preview="issueDate">
+
+                        </label>
+
+
+                        <label>
+
+                            Accent
+
+                            <select
+                                name="accent"
+                                id="accentSelect">
+
+                                <option
+                                    value="slate"
+                                    {% if settings.accent == 'slate' %}selected{% endif %}>
+                                    Slate
+                                </option>
+
+                                <option
+                                    value="blue"
+                                    {% if settings.accent == 'blue' %}selected{% endif %}>
+                                    Steel blue
+                                </option>
+
+                                <option
+                                    value="sage"
+                                    {% if settings.accent == 'sage' %}selected{% endif %}>
+                                    Sage
+                                </option>
+
+                                <option
+                                    value="copper"
+                                    {% if settings.accent == 'copper' %}selected{% endif %}>
+                                    Copper
+                                </option>
+
+                                <option
+                                    value="plum"
+                                    {% if settings.accent == 'plum' %}selected{% endif %}>
+                                    Plum
+                                </option>
+
+                            </select>
+
+                        </label>
+
+                    </div>
+
+                </section>
+
+
+
+                <section class="invoice-control-card">
+
+                    <div class="invoice-control-head">
+
+                        <span>02</span>
+
+                        <div>
+                            <h2>
+                                Business / issuer
+                            </h2>
+
+                            <p>
+                                Details shown at the top of the invoice.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-form-grid">
+
+                        <label>
+
+                            Business / issuer name
+
+                            <input
+                                type="text"
+                                name="business_name"
+                                value="{{ settings.business_name }}"
+                                data-preview="businessName">
+
+                        </label>
+
+
+                        <label>
+
+                            Email
+
+                            <input
+                                type="email"
+                                name="business_email"
+                                value="{{ settings.business_email }}"
+                                data-preview="businessEmail">
+
+                        </label>
+
+
+                        <label>
+
+                            Phone
+
+                            <input
+                                type="text"
+                                name="business_phone"
+                                value="{{ settings.business_phone }}"
+                                data-preview="businessPhone">
+
+                        </label>
+
+
+                        <label class="invoice-full-field">
+
+                            Address
+
+                            <textarea
+                                name="business_address"
+                                data-preview="businessAddress">{{ settings.business_address }}</textarea>
+
+                        </label>
+
+                    </div>
+
+                </section>
+
+
+
+                <section class="invoice-control-card">
+
+                    <div class="invoice-control-head">
+
+                        <span>03</span>
+
+                        <div>
+                            <h2>
+                                Bill to
+                            </h2>
+
+                            <p>
+                                Customer or recipient details.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-form-grid">
+
+                        <label>
+
+                            Name
+
+                            <input
+                                type="text"
+                                name="bill_to_name"
+                                value="{{ settings.bill_to_name }}"
+                                data-preview="billToName">
+
+                        </label>
+
+
+                        <label>
+
+                            Email
+
+                            <input
+                                type="email"
+                                name="bill_to_email"
+                                value="{{ settings.bill_to_email }}"
+                                data-preview="billToEmail">
+
+                        </label>
+
+
+                        <label class="invoice-full-field">
+
+                            Address
+
+                            <textarea
+                                name="bill_to_address"
+                                data-preview="billToAddress">{{ settings.bill_to_address }}</textarea>
+
+                        </label>
+
+                    </div>
+
+                </section>
+
+
+
+                <section class="invoice-control-card">
+
+                    <div class="invoice-control-head invoice-items-head">
+
+                        <div class="invoice-control-head-main">
+
+                            <span>04</span>
+
+                            <div>
+                                <h2>
+                                    Line items
+                                </h2>
+
+                                <p>
+                                    Build an itemized invoice.
+                                </p>
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            id="addInvoiceItem"
+                            class="invoice-add-item">
+
+                            + Add item
+
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        id="invoiceItems"
+                        class="invoice-items-editor">
+
+                        {% for item in settings["items"] %}
+
+                        <div class="invoice-item-editor">
+
+                            <label class="invoice-item-description">
+
+                                Description
+
+                                <input
+                                    name="item_description"
+                                    type="text"
+                                    value="{{ item.description }}"
+                                    maxlength="180">
+
+                            </label>
+
+
+                            <label>
+
+                                Qty
+
+                                <input
+                                    name="item_quantity"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value="{{ item.quantity }}">
+
+                            </label>
+
+
+                            <label>
+
+                                Rate
+
+                                <input
+                                    name="item_rate"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value="{{ item.rate }}">
+
+                            </label>
+
+
+                            <button
+                                type="button"
+                                class="invoice-remove-item"
+                                aria-label="Remove item">
+
+                                ×
+
+                            </button>
+
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </section>
+
+
+
+                <section class="invoice-control-card">
+
+                    <div class="invoice-control-head">
+
+                        <span>05</span>
+
+                        <div>
+                            <h2>
+                                Totals & payment
+                            </h2>
+
+                            <p>
+                                Tax, discount and payment information.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-form-grid invoice-three-grid">
+
+                        <label>
+
+                            Tax %
+
+                            <input
+                                name="tax_percent"
+                                id="invoiceTax"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="{{ settings.tax_percent }}">
+
+                        </label>
+
+
+                        <label>
+
+                            Discount ₹
+
+                            <input
+                                name="discount_amount"
+                                id="invoiceDiscount"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="{{ settings.discount_amount }}">
+
+                        </label>
+
+
+                        <label>
+
+                            Additional charges ₹
+
+                            <input
+                                name="extra_charges"
+                                id="invoiceCharges"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="{{ settings.extra_charges }}">
+
+                        </label>
+
+
+                        <label class="invoice-full-field">
+
+                            Payment method
+
+                            <input
+                                name="payment_method"
+                                type="text"
+                                value="{{ settings.payment_method }}"
+                                data-preview="paymentMethod">
+
+                        </label>
+
+                    </div>
+
+                </section>
+
+
+
+                <section class="invoice-control-card">
+
+                    <div class="invoice-control-head">
+
+                        <span>06</span>
+
+                        <div>
+                            <h2>
+                                Notes & footer
+                            </h2>
+
+                            <p>
+                                Final message shown on the document.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <label>
+
+                        Notes
+
+                        <textarea
+                            name="notes"
+                            data-preview="invoiceNotes">{{ settings.notes }}</textarea>
+
+                    </label>
+
+
+                    <label>
+
+                        Footer
+
+                        <textarea
+                            name="footer_text"
+                            data-preview="invoiceFooter">{{ settings.footer_text }}</textarea>
+
+                    </label>
+
+                </section>
+
+
+
+                <div class="invoice-save-actions">
+
+                    <button
+                        type="submit"
+                        name="after_save"
+                        value="save"
+                        class="invoice-save-button">
+
+                        Save invoice
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        name="after_save"
+                        value="download"
+                        class="invoice-save-download">
+
+                        Save & Download PDF
+
+                    </button>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- ==========================================
+                 LIVE PREVIEW
+                 ========================================== -->
+
+            <aside class="invoice-preview-column">
+
+                <div class="invoice-preview-sticky">
+
+                    <div class="invoice-preview-label">
+                        Live preview
+                    </div>
+
+
+                    <article
+                        class="invoice-paper accent-{{ settings.accent }}"
+                        id="invoicePaper">
+
+
+                        <header class="invoice-paper-head">
+
+                            <div>
+
+                                <strong
+                                    id="previewBusinessName">
+
+                                    {{ settings.business_name }}
+
+                                </strong>
+
+
+                                <small
+                                    id="previewBusinessMeta">
+
+                                    {{ settings.business_email }}
+
+                                </small>
+
+                            </div>
+
+
+                            <div class="invoice-paper-title">
+
+                                <h2
+                                    id="previewDocumentTitle">
+
+                                    {{ settings.document_title }}
+
+                                </h2>
+
+
+                                <span
+                                    id="previewInvoiceNumber">
+
+                                    {{ settings.invoice_number }}
+
+                                </span>
+
+                            </div>
+
+                        </header>
+
+
+                        <div class="invoice-paper-rule"></div>
+
+
+                        <div class="invoice-paper-info">
+
+                            <div>
+
+                                <small>
+                                    BILL TO
+                                </small>
+
+                                <strong
+                                    id="previewBillTo">
+
+                                    {{ settings.bill_to_name }}
+
+                                </strong>
+
+                                <span
+                                    id="previewBillToEmail">
+
+                                    {{ settings.bill_to_email }}
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="invoice-paper-meta">
+
+                                <span>
+                                    Issue date
+
+                                    <strong
+                                        id="previewIssueDate">
+
+                                        {{ settings.issue_date }}
+
+                                    </strong>
+                                </span>
+
+
+                                <span>
+                                    Status
+
+                                    <strong>
+
+                                        {% if bill.status == 'paid' %}
+                                            PAID
+                                        {% else %}
+                                            PENDING
+                                        {% endif %}
+
+                                    </strong>
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="invoice-preview-table">
+
+                            <div class="invoice-preview-table-head">
+
+                                <span>Description</span>
+                                <span>Qty</span>
+                                <span>Rate</span>
+                                <span>Total</span>
+
+                            </div>
+
+
+                            <div id="previewItems"></div>
+
+                        </div>
+
+
+                        <div class="invoice-preview-total-wrap">
+
+                            <div></div>
+
+                            <div class="invoice-preview-totals">
+
+                                <span>
+
+                                    Subtotal
+
+                                    <strong id="previewSubtotal">
+                                        ₹0.00
+                                    </strong>
+
+                                </span>
+
+
+                                <span id="previewTaxRow">
+
+                                    Tax
+
+                                    <strong id="previewTax">
+                                        ₹0.00
+                                    </strong>
+
+                                </span>
+
+
+                                <span id="previewDiscountRow">
+
+                                    Discount
+
+                                    <strong id="previewDiscount">
+                                        ₹0.00
+                                    </strong>
+
+                                </span>
+
+
+                                <span id="previewChargesRow">
+
+                                    Charges
+
+                                    <strong id="previewCharges">
+                                        ₹0.00
+                                    </strong>
+
+                                </span>
+
+
+                                <span class="invoice-preview-grand-total">
+
+                                    Total
+
+                                    <strong id="previewTotal">
+                                        ₹0.00
+                                    </strong>
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            class="invoice-paper-notes"
+                            id="previewNotesBlock">
+
+                            <small>
+                                NOTES
+                            </small>
+
+                            <p id="previewNotes"></p>
+
+                        </div>
+
+
+                        <footer id="previewFooter">
+                            {{ settings.footer_text }}
+                        </footer>
+
+
+                    </article>
+
+                </div>
+
+            </aside>
+
+
+        </div>
+
+    </form>
+
+
+</div>
+
+
+<script src="/static/js/invoice-editor.js?v=20260812"></script>
+
+</body>
+
+</html>

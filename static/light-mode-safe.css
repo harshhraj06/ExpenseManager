@@ -1,0 +1,559 @@
+/* ==========================================================
+   EXPENSE MANAGER — SAFE LIGHT MODE
+   Light outer background.
+   Intentionally dark/black workspaces remain dark.
+   ========================================================== */
+
+
+/* ==========================================================
+   FEATURE PAGES
+   subscriptions / budgets / goals / reports / recurring
+   ========================================================== */
+
+html[data-theme="light"]
+body.finance-feature-ui {
+    --fp-bg: #f2f4f6 !important;
+
+    /*
+     * IMPORTANT:
+     * dark workspace surfaces stay dark even in light mode.
+     */
+    --fp-surface: #11161c !important;
+    --fp-surface-2: #161c23 !important;
+    --fp-surface-3: #0d1217 !important;
+
+    --fp-text: #edf1f4 !important;
+    --fp-soft: #a9b3bd !important;
+    --fp-muted: #737f8a !important;
+
+    --fp-border:
+        rgba(255,255,255,.075) !important;
+
+    background:
+        radial-gradient(
+            circle at 8% 0%,
+            rgba(var(--fp-accent-rgb), .09),
+            transparent 30%
+        ),
+        #f2f4f6 !important;
+
+    color:
+        #edf1f4 !important;
+}
+
+
+/* HERO REMAINS BLACK */
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-hero {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(var(--fp-accent-rgb), .10),
+            #151b22 46%,
+            #0c1116
+        ) !important;
+
+    border-color:
+        rgba(var(--fp-accent-rgb), .20) !important;
+
+    color:
+        #edf1f4 !important;
+
+    box-shadow:
+        0 16px 38px
+        rgba(34,45,55,.13) !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-hero h1 {
+    color:
+        #edf1f4 !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-description {
+    color:
+        #7f8b96 !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-back {
+    color:
+        #84909b !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-back:hover {
+    color:
+        var(--fp-accent) !important;
+}
+
+
+/* DIAGRAM REMAINS DARK */
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-visual {
+    background:
+        #0d1217 !important;
+
+    border-color:
+        rgba(var(--fp-accent-rgb), .15) !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-node {
+    fill:
+        #11161c !important;
+}
+
+
+/* CONTENT CARDS REMAIN BLACK */
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel {
+    background:
+        #11161c !important;
+
+    color:
+        #edf1f4 !important;
+
+    border-color:
+        rgba(255,255,255,.075) !important;
+
+    box-shadow:
+        0 12px 30px
+        rgba(35,45,55,.10) !important;
+}
+
+
+/* Preserve each page's subtle identity */
+
+html[data-theme="light"]
+body.fp-subscriptions
+.feature-panel {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(127,169,161,.045),
+            #11161c 48%
+        ) !important;
+}
+
+
+html[data-theme="light"]
+body.fp-reports
+.feature-panel {
+    background-color:
+        #11161c !important;
+
+    background-image:
+        linear-gradient(
+            rgba(179,148,120,.025) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(179,148,120,.025) 1px,
+            transparent 1px
+        ) !important;
+}
+
+
+/* HEADINGS */
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel h1,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel h2,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel h3,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel h4 {
+    color:
+        #e9edf1 !important;
+}
+
+
+/* PARAGRAPHS */
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel p,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel span,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel label {
+    color:
+        #a4afb9;
+}
+
+
+/* INPUTS STAY DARK INSIDE DARK CARDS */
+
+html[data-theme="light"]
+body.finance-feature-ui
+input,
+
+html[data-theme="light"]
+body.finance-feature-ui
+select,
+
+html[data-theme="light"]
+body.finance-feature-ui
+textarea {
+    background:
+        #0d1217 !important;
+
+    color:
+        #edf1f4 !important;
+
+    border-color:
+        rgba(255,255,255,.085) !important;
+
+    color-scheme:
+        dark;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+input::placeholder,
+
+html[data-theme="light"]
+body.finance-feature-ui
+textarea::placeholder {
+    color:
+        #596570 !important;
+}
+
+
+/* SELECT OPTIONS */
+
+html[data-theme="light"]
+body.finance-feature-ui
+select option {
+    background:
+        #11161c;
+
+    color:
+        #edf1f4;
+}
+
+
+/* TABLES STAY DARK */
+
+html[data-theme="light"]
+body.finance-feature-ui
+table {
+    background:
+        #10151a !important;
+
+    border-color:
+        rgba(255,255,255,.07) !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+th {
+    background:
+        rgba(var(--fp-accent-rgb), .075) !important;
+
+    color:
+        #aeb8c2 !important;
+
+    border-color:
+        rgba(255,255,255,.07) !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+td {
+    background:
+        transparent !important;
+
+    color:
+        #9da8b3 !important;
+
+    border-color:
+        rgba(255,255,255,.05) !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+tr:hover td {
+    background:
+        rgba(var(--fp-accent-rgb), .035) !important;
+}
+
+
+/* ==========================================================
+   PROFILE PAGE
+   Outer page goes light.
+   Account cards remain dark.
+   ========================================================== */
+
+html[data-theme="light"]
+body.profile-page {
+    --pp-bg: #f2f4f6 !important;
+
+    --pp-surface: #12171d !important;
+    --pp-input: #0d1217 !important;
+
+    --pp-text: #edf1f4 !important;
+    --pp-soft: #a4afb9 !important;
+    --pp-muted: #6f7b86 !important;
+
+    --pp-border:
+        rgba(255,255,255,.075) !important;
+
+    background:
+        radial-gradient(
+            circle at 8% 0%,
+            rgba(130,150,170,.09),
+            transparent 30%
+        ),
+        #f2f4f6 !important;
+
+    color:
+        #edf1f4 !important;
+}
+
+
+/* profile navigation remains black */
+
+html[data-theme="light"]
+body.profile-page
+.profile-topbar {
+    background:
+        #11161c !important;
+
+    color:
+        #edf1f4 !important;
+
+    border-color:
+        rgba(255,255,255,.075) !important;
+
+    box-shadow:
+        0 10px 28px
+        rgba(35,45,55,.10) !important;
+}
+
+
+/* profile hero remains black */
+
+html[data-theme="light"]
+body.profile-page
+.profile-hero {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(130,150,170,.10),
+            #12171d
+        ) !important;
+
+    color:
+        #edf1f4 !important;
+}
+
+
+/* profile cards remain black */
+
+html[data-theme="light"]
+body.profile-page
+.profile-card,
+
+html[data-theme="light"]
+body.profile-page
+.profile-account-strip {
+    background:
+        #12171d !important;
+
+    color:
+        #edf1f4 !important;
+
+    border-color:
+        rgba(255,255,255,.075) !important;
+
+    box-shadow:
+        0 10px 28px
+        rgba(35,45,55,.09) !important;
+}
+
+
+html[data-theme="light"]
+body.profile-page
+.profile-card h1,
+
+html[data-theme="light"]
+body.profile-page
+.profile-card h2,
+
+html[data-theme="light"]
+body.profile-page
+.profile-card h3,
+
+html[data-theme="light"]
+body.profile-page
+.profile-hero h1 {
+    color:
+        #edf1f4 !important;
+}
+
+
+/* profile inputs */
+
+html[data-theme="light"]
+body.profile-page
+.profile-form input {
+    background:
+        #0d1217 !important;
+
+    color:
+        #edf1f4 !important;
+
+    border-color:
+        rgba(255,255,255,.08) !important;
+
+    color-scheme:
+        dark;
+}
+
+
+html[data-theme="light"]
+body.profile-page
+.profile-form input::placeholder {
+    color:
+        #596570 !important;
+}
+
+
+html[data-theme="light"]
+body.profile-page
+.profile-form label {
+    color:
+        #a4afb9 !important;
+}
+
+
+/* Profile picture stays visually correct */
+
+html[data-theme="light"]
+body.profile-page
+.profile-avatar {
+    background:
+        #171e25 !important;
+
+    border-color:
+        rgba(130,150,170,.25) !important;
+
+    box-shadow:
+        0 8px 22px
+        rgba(35,45,55,.12) !important;
+}
+
+
+/* Buttons stay dark / subtle */
+
+html[data-theme="light"]
+body.profile-page
+.profile-theme-button,
+
+html[data-theme="light"]
+body.profile-page
+.profile-dashboard-link,
+
+html[data-theme="light"]
+body.profile-page
+.profile-save,
+
+html[data-theme="light"]
+body.profile-page
+.profile-photo-change {
+    background:
+        #171d24 !important;
+
+    border-color:
+        rgba(255,255,255,.09) !important;
+
+    color:
+        #abb7c1 !important;
+}
+
+
+/* ==========================================================
+   PREVENT OLD THEME RULES FROM CREATING OVERLAYS
+   ========================================================== */
+
+html[data-theme="light"]
+body.finance-feature-ui
+.card::before,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.card::after {
+    pointer-events:
+        none !important;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.fp-hero,
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel,
+
+html[data-theme="light"]
+body.profile-page
+.profile-hero,
+
+html[data-theme="light"]
+body.profile-page
+.profile-card {
+    isolation:
+        isolate;
+}
+
+
+html[data-theme="light"]
+body.finance-feature-ui
+.feature-panel > *,
+
+html[data-theme="light"]
+body.profile-page
+.profile-card > * {
+    position:
+        relative;
+
+    z-index:
+        1;
+}
