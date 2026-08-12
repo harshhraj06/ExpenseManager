@@ -303,348 +303,77 @@ conn.commit()
 conn.close()
 
 print("Database created successfully")
-# =========================================================
-# Monthly Budgets
-# =========================================================
-
-def ensure_budgets_table():
-    if DATABASE_URL:
-        conn = sqlite3.connect(DATABASE_URL)
-    else:
-        conn = sqlite3.connect()
-
-    try:
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS budgets (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                category TEXT NOT NULL,
-                monthly_limit REAL NOT NULL,
-                month TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, category, month)
-            )
-        """)
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-ensure_budgets_table()
-
-
-# =========================================================
-# Savings Goals
-# =========================================================
-
-def ensure_savings_goals_table():
-    if DATABASE_URL:
-        conn = sqlite3.connect(DATABASE_URL)
-    else:
-        conn = sqlite3.connect()
-
-    try:
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS savings_goals (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                target_amount REAL NOT NULL,
-                saved_amount REAL NOT NULL DEFAULT 0,
-                target_date TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-ensure_savings_goals_table()
-
-
-# =========================================================
-# Subscriptions
-# =========================================================
-
-def ensure_subscriptions_table():
-    if DATABASE_URL:
-        conn = sqlite3.connect(DATABASE_URL)
-    else:
-        conn = sqlite3.connect()
-
-    try:
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS subscriptions (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                amount REAL NOT NULL,
-                billing_cycle TEXT NOT NULL DEFAULT 'monthly',
-                category TEXT NOT NULL DEFAULT 'Other',
-                next_renewal TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'active',
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-ensure_subscriptions_table()
-
-
-# =========================================================
-# Recurring Transactions
-# =========================================================
-
-def ensure_recurring_transactions_table():
-    if DATABASE_URL:
-        conn = sqlite3.connect(DATABASE_URL)
-    else:
-        conn = sqlite3.connect()
-
-    try:
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS recurring_transactions (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                transaction_type TEXT NOT NULL,
-                amount REAL NOT NULL,
-                category TEXT,
-                source TEXT,
-                description TEXT,
-                frequency TEXT NOT NULL DEFAULT 'monthly',
-                next_run TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'active',
-                last_generated_at TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-ensure_recurring_transactions_table()
-
-
-
 
 # ============================================================
-# AUTO EXPENSE SYNC / CONNECTED APPS
+# PROFILE IMAGE COLUMN — SAFE PRODUCTION MIGRATION
 # ============================================================
 
-def ensure_integration_tables():
+def _ensure_profile_image_column_prod():
     """
-    Foundation for external purchase integrations.
-
-    integration_connections:
-        Stores connection/preference state for each provider.
-
-    integration_sync_activity:
-        Stores orders/transactions discovered by integrations.
-
-    OAuth tokens will be handled separately when Gmail OAuth
-    is added. This table intentionally does not store secrets.
+    Ensure users.profile_image exists on both PostgreSQL
+    production and local SQLite databases.
     """
 
-    if DATABASE_URL:
-        conn = sqlite3.connect(DATABASE_URL)
-    else:
-        conn = sqlite3.connect()
+    profile_conn = sqlite3.connect(
+        DATABASE_URL if DATABASE_URL else None
+    )
 
     try:
-        cursor = conn.cursor()
+        profile_cursor = profile_conn.cursor()
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS integration_connections (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id),
-                provider TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'disconnected',
-                account_label TEXT,
-                auth_method TEXT NOT NULL DEFAULT 'email',
-                auto_import_enabled INTEGER NOT NULL DEFAULT 1,
-                last_sync_at TEXT,
-                connected_at TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, provider)
+        if DATABASE_URL and str(DATABASE_URL).startswith(
+            ("postgres://", "postgresql://")
+        ):
+            # PostgreSQL / Render
+            profile_cursor.execute(
+                """
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS profile_image TEXT
+                """
             )
-        """)
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS integration_sync_activity (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id),
-                provider TEXT NOT NULL,
-                external_id TEXT,
-                merchant TEXT,
-                amount REAL,
-                category TEXT,
-                description TEXT,
-                transaction_date TEXT,
-                status TEXT NOT NULL DEFAULT 'detected',
-                source_type TEXT NOT NULL DEFAULT 'email',
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        else:
+            # Local SQLite
+            profile_cursor.execute(
+                "PRAGMA table_info(users)"
             )
-        """)
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS integration_oauth_tokens (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id),
-                provider TEXT NOT NULL,
-                encrypted_refresh_token TEXT NOT NULL,
-                scopes TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, provider)
-            )
-        """)
+            columns = [
+                row[1]
+                for row in profile_cursor.fetchall()
+            ]
 
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS
-            idx_integrations_user_provider
-            ON integration_connections(user_id, provider)
-        """)
+            if "profile_image" not in columns:
+                profile_cursor.execute(
+                    """
+                    ALTER TABLE users
+                    ADD COLUMN profile_image TEXT
+                    """
+                )
 
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS
-            idx_sync_activity_user_created
-            ON integration_sync_activity(user_id, created_at)
-        """)
+        profile_conn.commit()
 
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS
-            idx_sync_activity_user_provider
-            ON integration_sync_activity(user_id, provider)
-        """)
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-ensure_integration_tables()
-
-
-# ============================================================
-# PERFORMANCE INDEXES
-# ============================================================
-
-def _ensure_performance_indexes():
-    """
-    Index common Expense Manager query patterns.
-
-    CREATE INDEX IF NOT EXISTS is safe to run repeatedly.
-    """
-
-    if DATABASE_URL:
-        perf_conn = sqlite3.connect(
-            DATABASE_URL
-        )
-    else:
-        perf_conn = sqlite3.connect()
-
-    perf_cursor = perf_conn.cursor()
-
-    indexes = [
-        """
-        CREATE INDEX IF NOT EXISTS
-        idx_expenses_user_date
-        ON expenses(user_id, date)
-        """,
-
-        """
-        CREATE INDEX IF NOT EXISTS
-        idx_income_user_date
-        ON income(user_id, date)
-        """,
-
-        """
-        CREATE INDEX IF NOT EXISTS
-        idx_bills_user_status_due
-        ON bills(user_id, status, due_date)
-        """,
-
-        """
-        CREATE INDEX IF NOT EXISTS
-        idx_notifications_user_read
-        ON notifications(user_id, is_read)
-        """,
-
-        """
-        CREATE INDEX IF NOT EXISTS
-        idx_notifications_user_created
-        ON notifications(user_id, created_at)
-        """,
-
-        """
-        CREATE INDEX IF NOT EXISTS
-        idx_group_members_user
-        ON group_members(user_id)
-        """
-    ]
-
-    for statement in indexes:
-        perf_cursor.execute(statement)
-
-    perf_conn.commit()
-    perf_conn.close()
-
-
-_ensure_performance_indexes()
-
-# ============================================================
-# USER PROFILE IMAGE
-# ============================================================
-
-try:
-    if not _column_exists(
-        "users",
-        "profile_image"
-    ):
-        cursor.execute(
-            """
-            ALTER TABLE users
-            ADD COLUMN profile_image TEXT
-            """
+        print(
+            "Profile schema ready:"
+            " users.profile_image"
         )
 
-    conn.commit()
+    except Exception as exc:
+        try:
+            profile_conn.rollback()
+        except Exception:
+            pass
 
-except Exception:
-    try:
-        conn.rollback()
-    except Exception:
-        pass
+        print(
+            "Profile schema migration error:",
+            type(exc).__name__,
+            str(exc)
+        )
 
-    raise
+        raise
 
-finally:
-    try:
-        conn.close()
-    except Exception:
-        pass
+    finally:
+        profile_conn.close()
 
+
+_ensure_profile_image_column_prod()
