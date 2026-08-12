@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-manager-v22-ui-20260812";
+const CACHE_NAME = "expense-manager-v23-prod-fix-20260812";
 
 const STATIC_ASSETS = [
     "/offline",

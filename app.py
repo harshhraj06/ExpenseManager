@@ -7465,16 +7465,17 @@ def _google_oauth_client_config():
 
 def _gmail_oauth_callback_url():
     """
-    Use whichever local hostname opened Expense Manager.
+    Use the configured production application URL on Render.
 
-    127.0.0.1 -> 127.0.0.1 callback
-    localhost -> localhost callback
-
-    Both are already registered in Google Cloud.
+    Local development continues to use the current request host.
     """
+    base_url = (
+        os.environ.get("APP_BASE_URL")
+        or request.host_url.rstrip("/")
+    ).rstrip("/")
 
     return (
-        request.host_url.rstrip("/")
+        base_url
         + "/connected_apps/gmail/callback"
     )
 

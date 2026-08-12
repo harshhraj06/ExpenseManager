@@ -617,28 +617,34 @@ def _ensure_performance_indexes():
 _ensure_performance_indexes()
 
 # ============================================================
-# STARTUP CONNECTION CLEANUP
-# ============================================================
-# database.py only uses its module-level connection while
-# creating/upgrading tables during startup. Return it to the
-# PostgreSQL pool afterwards.
-try:
-    conn.close()
-except Exception:
-    pass
-
-# ============================================================
 # USER PROFILE IMAGE
 # ============================================================
 
 try:
-    if not _column_exists("users", "profile_image"):
+    if not _column_exists(
+        "users",
+        "profile_image"
+    ):
         cursor.execute(
-            "ALTER TABLE users ADD COLUMN profile_image TEXT"
+            """
+            ALTER TABLE users
+            ADD COLUMN profile_image TEXT
+            """
         )
-        conn.commit()
+
+    conn.commit()
+
 except Exception:
     try:
         conn.rollback()
     except Exception:
         pass
+
+    raise
+
+finally:
+    try:
+        conn.close()
+    except Exception:
+        pass
+
