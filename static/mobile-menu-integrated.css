@@ -1,0 +1,275 @@
+/* ==========================================================
+   EXPENSEX MOBILE HEADER MENU — FINAL
+   Hamburger belongs to navbar, never floats
+   ========================================================== */
+
+@media screen and (max-width: 768px) {
+
+    /* Navbar owns the hamburger positioning */
+    body .nav {
+        position: relative !important;
+        overflow: visible !important;
+    }
+
+
+    /* ======================================================
+       HAMBURGER
+       ====================================================== */
+
+    body .nav > #mobile-sidebar-toggle.mobile-sidebar-toggle {
+        position: absolute !important;
+
+        top: 18px !important;
+        left: 18px !important;
+
+        right: auto !important;
+        bottom: auto !important;
+
+        z-index: 50 !important;
+
+        width: 38px !important;
+        height: 38px !important;
+
+        min-width: 38px !important;
+        min-height: 38px !important;
+
+        display: flex !important;
+        flex-direction: column !important;
+
+        align-items: center !important;
+        justify-content: center !important;
+
+        gap: 5px !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        /*
+         * IMPORTANT:
+         * no floating card appearance
+         */
+        background: transparent !important;
+
+        border: 0 !important;
+        border-radius: 0 !important;
+
+        box-shadow: none !important;
+
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+
+        opacity: 1 !important;
+
+        transform: none !important;
+
+        cursor: pointer !important;
+
+        transition: none !important;
+
+        -webkit-tap-highlight-color: transparent;
+    }
+
+
+    /* Hamburger lines */
+
+    body .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle
+    span {
+        display: block !important;
+
+        width: 23px !important;
+        height: 2.5px !important;
+
+        margin: 0 !important;
+
+        border: 0 !important;
+        border-radius: 999px !important;
+
+        background: #e5e7eb !important;
+
+        box-shadow: none !important;
+
+        transform: none !important;
+
+        transition: none !important;
+    }
+
+
+    /* ======================================================
+       NO HOVER / NO FLOAT / NO ANIMATION
+       ====================================================== */
+
+    body .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle:hover,
+
+    body .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle:active,
+
+    body .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle:focus {
+        position: absolute !important;
+
+        top: 18px !important;
+        left: 18px !important;
+
+        background: transparent !important;
+
+        border: 0 !important;
+
+        box-shadow: none !important;
+
+        transform: none !important;
+
+        opacity: 1 !important;
+
+        transition: none !important;
+    }
+
+
+    /*
+     * Old mobile.css adds these classes while scrolling.
+     * They must NEVER move or hide the hamburger.
+     */
+
+    body .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle.scroll-hidden,
+
+    body .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle.near-top {
+        position: absolute !important;
+
+        top: 18px !important;
+        left: 18px !important;
+
+        opacity: 1 !important;
+
+        transform: none !important;
+
+        pointer-events: auto !important;
+
+        transition: none !important;
+    }
+
+
+    /*
+     * While sidebar is open, the drawer has its own close
+     * button, so hide hamburger without animation.
+     */
+
+    body.mobile-sidebar-open
+    .nav >
+    #mobile-sidebar-toggle.mobile-sidebar-toggle {
+        visibility: hidden !important;
+
+        opacity: 0 !important;
+
+        transform: none !important;
+
+        transition: none !important;
+
+        pointer-events: none !important;
+    }
+
+
+    /* ======================================================
+       CENTER LOGO
+       ====================================================== */
+
+    body .nav .brand {
+        width: 100% !important;
+
+        min-height: 50px !important;
+
+        display: flex !important;
+
+        align-items: center !important;
+        justify-content: center !important;
+
+        padding-left: 58px !important;
+        padding-right: 58px !important;
+
+        margin: 0 !important;
+
+        box-sizing: border-box !important;
+    }
+
+
+    body .nav .brand img,
+    body .nav .logo {
+        display: block !important;
+
+        width: 145px !important;
+        max-width: 145px !important;
+
+        height: auto !important;
+
+        margin: 0 auto !important;
+
+        object-fit: contain !important;
+    }
+
+
+    /* ======================================================
+       NOTIFICATION
+       ====================================================== */
+
+    body .nav > .mobile-rearranged-notif {
+        position: absolute !important;
+
+        top: 17px !important;
+        right: 18px !important;
+
+        left: auto !important;
+        bottom: auto !important;
+
+        z-index: 50 !important;
+
+        margin: 0 !important;
+
+        transform: none !important;
+    }
+
+
+    body .nav >
+    .mobile-rearranged-notif
+    .notif-bell-btn {
+        width: 38px !important;
+        height: 38px !important;
+
+        padding: 0 !important;
+
+        border-radius: 9px !important;
+
+        box-shadow: none !important;
+
+        transform: none !important;
+
+        transition:
+            background .15s ease,
+            border-color .15s ease !important;
+    }
+
+
+    body .nav >
+    .mobile-rearranged-notif
+    .notif-bell-btn:hover,
+
+    body .nav >
+    .mobile-rearranged-notif
+    .notif-bell-btn:active {
+        transform: none !important;
+
+        box-shadow: none !important;
+    }
+
+}
+
+
+/* Desktop */
+@media screen and (min-width: 769px) {
+
+    #mobile-sidebar-toggle {
+        display: none !important;
+    }
+
+}

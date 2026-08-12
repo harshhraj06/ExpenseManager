@@ -1,0 +1,53 @@
+
+/* ==========================================================
+   GROW — PERMANENT HERO COLORS
+
+   TRACK and ANALYZE retain their existing hover behavior.
+   Only GROW keeps its palette permanently.
+   ========================================================== */
+
+.hero .hero-letter.grow-static.c1 {
+    color: #6f91b2 !important;
+}
+
+.hero .hero-letter.grow-static.c2 {
+    color: #7f9b8c !important;
+}
+
+.hero .hero-letter.grow-static.c3 {
+    color: #b28d6e !important;
+}
+
+.hero .hero-letter.grow-static.c5 {
+    color: #a67d81 !important;
+}
+
+.hero .hero-letter.grow-static.c6 {
+    color: #768e99 !important;
+}
+
+
+/*
+   On hover keep exactly the same colors.
+   Existing movement/animation is untouched.
+*/
+
+.hero .hero-letter.grow-static.c1:hover {
+    color: #6f91b2 !important;
+}
+
+.hero .hero-letter.grow-static.c2:hover {
+    color: #7f9b8c !important;
+}
+
+.hero .hero-letter.grow-static.c3:hover {
+    color: #b28d6e !important;
+}
+
+.hero .hero-letter.grow-static.c5:hover {
+    color: #a67d81 !important;
+}
+
+.hero .hero-letter.grow-static.c6:hover {
+    color: #768e99 !important;
+}

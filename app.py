@@ -9253,7 +9253,7 @@ def gmail_auto_sync():
     """
     Lightweight background endpoint called by the dashboard.
 
-    Existing gmail_sync_purchases() performs the actual
+    Existing gmail_sync_expenses() performs the actual
     Gmail scan and retains duplicate protection.
     """
 
@@ -9289,7 +9289,7 @@ def gmail_auto_sync():
 
     try:
         # Reuse the already-tested Gmail sync engine.
-        gmail_sync_purchases()
+        gmail_sync_expenses()
 
         return {
             "status": "completed"
@@ -9299,8 +9299,12 @@ def gmail_auto_sync():
 
         print(
             "Gmail automatic sync error:",
-            type(exc).__name__
+            type(exc).__name__,
+            str(exc)
         )
+
+        import traceback
+        traceback.print_exc()
 
         return {
             "status": "error"

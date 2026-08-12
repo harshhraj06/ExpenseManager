@@ -1,37 +1,35 @@
 (() => {
     "use strict";
 
-
     const PIE_COLORS = [
-        "#7b899c",
-        "#9b8371",
-        "#788f86",
-        "#8b7d94",
-        "#9a9074",
-        "#788893",
-        "#927d7d",
-        "#728593"
+        "#7896C4",
+        "#C47E68",
+        "#7FA487",
+        "#9A7BA8",
+        "#B99A5E",
+        "#6E98A8",
+        "#B56F7D",
+        "#75848C"
     ];
 
 
     function money(value) {
-
-        return "₹" +
-            Number(value || 0)
-            .toLocaleString(
+        return (
+            "₹" +
+            Number(value || 0).toLocaleString(
                 "en-IN",
                 {
                     maximumFractionDigits: 2
                 }
-            );
+            )
+        );
     }
 
 
     function getChart(id) {
-
         if (
-            !window.Chart
-            || !Chart.getChart
+            !window.Chart ||
+            typeof Chart.getChart !== "function"
         ) {
             return null;
         }
@@ -40,24 +38,49 @@
     }
 
 
-    /* ==================================================
-       PIE
-       ================================================== */
+    /*
+     * IMPORTANT:
+     * chart.options is Chart.js's resolved/proxied option object.
+     * Do not replace objects on that proxy.
+     *
+     * chart.config.options is the normal configuration object
+     * and is safe for our styling changes.
+     */
+    function getConfigOptions(chart) {
+        if (!chart.config.options) {
+            chart.config.options = {};
+        }
+
+        return chart.config.options;
+    }
+
+
+    function safeUpdate(chart) {
+        try {
+            chart.update("none");
+        } catch (error) {
+            console.warn(
+                "Chart style update skipped:",
+                error
+            );
+        }
+    }
+
+
+    /* =====================================================
+       EXPENSE PIE CHART
+       ===================================================== */
 
     function stylePie() {
-
         const chart =
-            getChart(
-                "expenseChart"
-            );
+            getChart("expenseChart");
 
         if (!chart) {
             return false;
         }
 
-
         const dataset =
-            chart.data.datasets[0];
+            chart.data?.datasets?.[0];
 
         if (!dataset) {
             return false;
@@ -65,7 +88,7 @@
 
 
         dataset.backgroundColor =
-            chart.data.labels.map(
+            (chart.data.labels || []).map(
                 (_, index) =>
                     PIE_COLORS[
                         index %
@@ -89,40 +112,31 @@
             7;
 
 
-        chart.options.layout = {
-            padding: 8
-        };
+        const options =
+            getConfigOptions(chart);
 
 
-        chart.options.plugins =
-            chart.options.plugins
-            || {};
+        options.layout =
+            options.layout || {};
+
+        options.layout.padding =
+            8;
 
 
-        chart.options.plugins.legend = {
+        options.plugins =
+            options.plugins || {};
 
-            position:
-                "right",
+
+        options.plugins.legend = {
+            position: "right",
 
             labels: {
-
-                color:
-                    "#98a3ae",
-
-                usePointStyle:
-                    true,
-
-                pointStyle:
-                    "circle",
-
-                boxWidth:
-                    8,
-
-                boxHeight:
-                    8,
-
-                padding:
-                    14,
+                color: "#98a3ae",
+                usePointStyle: true,
+                pointStyle: "circle",
+                boxWidth: 8,
+                boxHeight: 8,
+                padding: 14,
 
                 font: {
                     size: 11,
@@ -132,50 +146,30 @@
         };
 
 
-        chart.options.plugins.tooltip = {
-
-            backgroundColor:
-                "#171d24",
-
-            titleColor:
-                "#eef1f4",
-
-            bodyColor:
-                "#aeb8c2",
+        options.plugins.tooltip = {
+            backgroundColor: "#171d24",
+            titleColor: "#eef1f4",
+            bodyColor: "#aeb8c2",
 
             borderColor:
                 "rgba(255,255,255,.10)",
 
-            borderWidth:
-                1,
-
-            padding:
-                11,
-
-            displayColors:
-                true,
-
-            boxWidth:
-                8,
-
-            boxHeight:
-                8,
-
-            cornerRadius:
-                9,
+            borderWidth: 1,
+            padding: 11,
+            displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            cornerRadius: 9,
 
             callbacks: {
-
                 label(context) {
-
                     const value =
                         Number(
                             context.raw || 0
                         );
 
                     const values =
-                        context.dataset.data
-                        || [];
+                        context.dataset.data || [];
 
                     const total =
                         values.reduce(
@@ -196,7 +190,6 @@
                             ).toFixed(1)
                             : "0.0";
 
-
                     return (
                         " " +
                         context.label +
@@ -211,20 +204,17 @@
         };
 
 
-        chart.update();
+        safeUpdate(chart);
 
         return true;
     }
 
 
-    /* ==================================================
-       TREND
-       ================================================== */
+    /* =====================================================
+       TREND CHART
+       ===================================================== */
 
-    function styleTrendById(
-        id
-    ) {
-
+    function styleTrendById(id) {
         const chart =
             getChart(id);
 
@@ -234,32 +224,31 @@
 
 
         const colors = [
-            "#789681",
-            "#a27f7d"
+            "#79A889",
+            "#B96F73"
         ];
 
 
-        chart.data.datasets
+        (chart.data?.datasets || [])
         .forEach(
             (dataset, index) => {
-
-                dataset.borderColor =
+                const color =
                     colors[
                         index %
                         colors.length
                     ];
+
+                dataset.borderColor =
+                    color;
 
                 dataset.backgroundColor =
                     "transparent";
 
                 dataset.borderWidth =
-                    2;
+                    2.4;
 
                 dataset.pointBackgroundColor =
-                    colors[
-                        index %
-                        colors.length
-                    ];
+                    color;
 
                 dataset.pointBorderColor =
                     "#10151b";
@@ -274,7 +263,7 @@
                     5;
 
                 dataset.tension =
-                    .35;
+                    0.35;
 
                 dataset.fill =
                     false;
@@ -282,42 +271,31 @@
         );
 
 
-        chart.options.interaction = {
+        const options =
+            getConfigOptions(chart);
+
+
+        options.interaction = {
             intersect: false,
             mode: "index"
         };
 
 
-        chart.options.plugins =
-            chart.options.plugins
-            || {};
+        options.plugins =
+            options.plugins || {};
 
 
-        chart.options.plugins.legend = {
-
+        options.plugins.legend = {
             position: "top",
-
             align: "end",
 
             labels: {
-
-                color:
-                    "#8995a0",
-
-                usePointStyle:
-                    true,
-
-                pointStyle:
-                    "circle",
-
-                boxWidth:
-                    8,
-
-                boxHeight:
-                    8,
-
-                padding:
-                    14,
+                color: "#8995a0",
+                usePointStyle: true,
+                pointStyle: "circle",
+                boxWidth: 8,
+                boxHeight: 8,
+                padding: 14,
 
                 font: {
                     size: 11
@@ -326,89 +304,66 @@
         };
 
 
-        chart.options.plugins.tooltip = {
-
-            backgroundColor:
-                "#171d24",
-
-            titleColor:
-                "#eef1f4",
-
-            bodyColor:
-                "#abb5bf",
+        options.plugins.tooltip = {
+            backgroundColor: "#171d24",
+            titleColor: "#eef1f4",
+            bodyColor: "#abb5bf",
 
             borderColor:
                 "rgba(255,255,255,.10)",
 
-            borderWidth:
-                1,
-
-            padding:
-                11,
-
-            cornerRadius:
-                9,
+            borderWidth: 1,
+            padding: 11,
+            cornerRadius: 9,
 
             callbacks: {
-
                 label(context) {
-
                     return (
                         " " +
                         context.dataset.label +
                         ": " +
-                        money(
-                            context.raw
-                        )
+                        money(context.raw)
                     );
                 }
             }
         };
 
 
-        if (
-            chart.options.scales
-        ) {
+        options.scales =
+            options.scales || {};
 
-            ["x", "y"]
-            .forEach((axis) => {
 
-                if (
-                    !chart.options.scales[
-                        axis
-                    ]
-                ) {
+        ["x", "y"].forEach(
+            (axis) => {
+                const scale =
+                    options.scales[axis];
+
+                if (!scale) {
                     return;
                 }
 
 
-                const scale =
-                    chart.options.scales[
-                        axis
-                    ];
+                scale.border =
+                    scale.border || {};
+
+                scale.border.display =
+                    false;
 
 
-                scale.border = {
-                    display: false
-                };
+                scale.grid =
+                    scale.grid || {};
 
+                scale.grid.color =
+                    axis === "y"
+                        ? "rgba(255,255,255,.055)"
+                        : "rgba(255,255,255,.025)";
 
-                scale.grid = {
-
-                    color:
-                        axis === "y"
-                            ? "rgba(255,255,255,.055)"
-                            : "rgba(255,255,255,.025)",
-
-                    drawTicks:
-                        false
-                };
+                scale.grid.drawTicks =
+                    false;
 
 
                 scale.ticks =
-                    scale.ticks
-                    || {};
-
+                    scale.ticks || {};
 
                 scale.ticks.color =
                     "#687480";
@@ -421,13 +376,9 @@
                 };
 
 
-                if (
-                    axis === "y"
-                ) {
-
+                if (axis === "y") {
                     scale.ticks.callback =
-                        function(value) {
-
+                        function (value) {
                             const number =
                                 Number(value);
 
@@ -440,8 +391,7 @@
                                     (
                                         number /
                                         100000
-                                    )
-                                    .toFixed(1) +
+                                    ).toFixed(1) +
                                     "L"
                                 );
                             }
@@ -455,8 +405,7 @@
                                     (
                                         number /
                                         1000
-                                    )
-                                    .toFixed(0) +
+                                    ).toFixed(0) +
                                     "k"
                                 );
                             }
@@ -467,19 +416,17 @@
                             );
                         };
                 }
+            }
+        );
 
-            });
-        }
 
-
-        chart.update();
+        safeUpdate(chart);
 
         return true;
     }
 
 
     function styleAll() {
-
         stylePie();
 
         styleTrendById(
@@ -492,60 +439,52 @@
     }
 
 
+    function scheduleStyle(
+        delay = 0
+    ) {
+        window.setTimeout(
+            function () {
+                window.requestAnimationFrame(
+                    styleAll
+                );
+            },
+            delay
+        );
+    }
+
+
     document.addEventListener(
         "DOMContentLoaded",
-        () => {
-
-            setTimeout(
-                styleAll,
-                100
-            );
-
-            setTimeout(
-                styleAll,
-                500
-            );
-
+        function () {
+            scheduleStyle(120);
+            scheduleStyle(650);
         }
     );
 
 
     /*
-     * Trend charts may be created only
-     * after their Show button is clicked.
+     * Trend charts may only be created after
+     * clicking their Show buttons.
      */
-
     [
         "toggleTrendChartBtn",
         "aiTrendToggle"
-    ]
-    .forEach((id) => {
+    ].forEach(
+        function (id) {
+            const button =
+                document.getElementById(id);
 
-        const button =
-            document.getElementById(id);
-
-        if (!button) {
-            return;
-        }
-
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                setTimeout(
-                    styleAll,
-                    80
-                );
-
-                setTimeout(
-                    styleAll,
-                    300
-                );
-
+            if (!button) {
+                return;
             }
-        );
 
-    });
+            button.addEventListener(
+                "click",
+                function () {
+                    scheduleStyle(120);
+                }
+            );
+        }
+    );
 
 })();

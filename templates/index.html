@@ -108,6 +108,11 @@
 <link rel="stylesheet" href="/static/admin-dashboard-entry.css?v=20260812">
 <link rel="stylesheet" href="/static/security-biometric.css?v=20260812">
 <link rel="stylesheet" href="/static/dashboard-heist-pro.css?v=20260812">
+<link rel="stylesheet" href="/static/financial-control-center-pro.css?v=20260812-v2">
+<link rel="stylesheet" href="/static/mobile-menu-integrated.css?v=20260812-final2">
+<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="stylesheet" href="/static/grow-static-colors.css?v=20260812-final">
+<link rel="stylesheet" href="/static/dashboard-stat-cards-fix.css?v=20260812-final">
 </head>
 
 <body class="pro-dashboard-page">
@@ -115,6 +120,19 @@
 <div class="container">
 
     <div class="nav">
+
+        <button
+            type="button"
+            class="mobile-sidebar-toggle"
+            id="mobile-sidebar-toggle"
+            aria-label="Open navigation"
+            aria-expanded="false">
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+        </button>
         <div class="brand">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
         </div>
@@ -344,7 +362,7 @@
                 </span>
 
                 <span class="hero-line">
-                    <span class="hero-letter c5">G</span><span class="hero-letter c1">R</span><span class="hero-letter c2">O</span><span class="hero-letter c3">W</span><span class="hero-letter c6">.</span>
+                    <span class="hero-letter c5 grow-static">G</span><span class="hero-letter c1 grow-static">R</span><span class="hero-letter c2 grow-static">O</span><span class="hero-letter c3 grow-static">W</span><span class="hero-letter c6 grow-static">.</span>
                 </span>
 
             </h1>
@@ -654,7 +672,15 @@
                 </div>
             </div>
 
-            <div class="pro-actions">
+
+            <div class="pro-actions-heading">
+                <div class="pro-actions-heading-copy">
+                    <strong>Quick Actions</strong>
+                    <span>Frequently used financial tools</span>
+                </div>
+            </div>
+
+<div class="pro-actions">
 
                 <a
                     class="pro-action primary"
@@ -1386,18 +1412,7 @@ var trendExpense = [
 
 <!-- MOBILE SIDEBAR START -->
 
-<button
-    type="button"
-    class="mobile-sidebar-toggle"
-    id="mobile-sidebar-toggle"
-    aria-label="Open navigation"
-    aria-expanded="false">
 
-    <span></span>
-    <span></span>
-    <span></span>
-
-</button>
 
 
 <div
@@ -1900,15 +1915,15 @@ var trendExpense = [
 <script src="/static/js/dashboard-premium-v2.js?v=20260812"></script>
 <script src="/static/js/notification-center-pro.js?v=20260812b"></script>
 <script src="/static/js/expense-history-final.js?v=20260812-final"></script>
-<script src="/static/js/dashboard-charts-pro.js?v=20260812-final"></script>
+<script src="/static/js/dashboard-charts-pro.js?v=20260812-rich"></script>
 <script src="/static/js/quick-actions-pro.js?v=20260812-final"></script>
 <script src="/static/js/profile-menu-link.js?v=20260812-prod2"></script>
 <script src="/static/js/profile-picture-nav.js?v=20260812-prod2"></script>
 <script src="/static/js/mobile-navbar-rearrange.js?v=20260812"></script>
-<script src="/static/js/dashboard-heist-pro.js?v=20260812"></script>
+<script src="/static/js/dashboard-heist-pro.js?v=20260812-panelremoved"></script>
 <script src="/static/js/dashboard-sponsored.js?v=20260812"></script>
 <script src="/static/js/admin-dashboard-entry.js?v=20260812"></script>
 <script src="/static/js/security-dashboard-entry.js?v=20260812"></script>
-<script src="/static/js/mobile-sidebar.js?v=20260812-prod2"></script>
+<script src="/static/js/mobile-sidebar.js?v=20260812-accessibility"></script>
 </body>
 </html>

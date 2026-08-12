@@ -1,6 +1,8 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+        "use strict";
+
 
         const sidebar =
             document.getElementById(
@@ -24,9 +26,9 @@ document.addEventListener(
 
 
         if (
-            !sidebar
-            || !overlay
-            || !openButton
+            !sidebar ||
+            !overlay ||
+            !openButton
         ) {
             console.warn(
                 "Mobile sidebar elements missing."
@@ -36,7 +38,41 @@ document.addEventListener(
         }
 
 
+        /*
+         * Closed sidebar should not contain
+         * keyboard-focusable content.
+         */
+        sidebar.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        sidebar.setAttribute(
+            "inert",
+            ""
+        );
+
+        openButton.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+
         function openSidebar() {
+
+            /*
+             * Remove inert BEFORE opening,
+             * otherwise controls cannot receive focus.
+             */
+            sidebar.removeAttribute(
+                "inert"
+            );
+
+            sidebar.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
 
             sidebar.classList.add(
                 "open"
@@ -50,19 +86,63 @@ document.addEventListener(
                 "mobile-sidebar-open"
             );
 
-            sidebar.setAttribute(
-                "aria-hidden",
-                "false"
-            );
 
             openButton.setAttribute(
                 "aria-expanded",
                 "true"
             );
+
+
+            /*
+             * Move keyboard focus into drawer.
+             */
+            window.requestAnimationFrame(
+                function () {
+                    if (closeButton) {
+                        try {
+                            closeButton.focus({
+                                preventScroll: true
+                            });
+                        } catch (_) {
+                            closeButton.focus();
+                        }
+                    }
+                }
+            );
         }
 
 
         function closeSidebar() {
+
+            /*
+             * IMPORTANT:
+             * Move focus OUT of the sidebar BEFORE
+             * aria-hidden/inert is applied.
+             *
+             * This fixes:
+             * "Blocked aria-hidden because descendant
+             * retained focus."
+             */
+
+            document.body.classList.remove(
+                "mobile-sidebar-open"
+            );
+
+
+            if (
+                sidebar.contains(
+                    document.activeElement
+                )
+            ) {
+                try {
+                    openButton.focus({
+                        preventScroll: true
+                    });
+                } catch (_) {
+                    openButton.focus();
+                }
+            }
+
 
             sidebar.classList.remove(
                 "open"
@@ -72,14 +152,17 @@ document.addEventListener(
                 "open"
             );
 
-            document.body.classList.remove(
-                "mobile-sidebar-open"
-            );
 
             sidebar.setAttribute(
                 "aria-hidden",
                 "true"
             );
+
+            sidebar.setAttribute(
+                "inert",
+                ""
+            );
+
 
             openButton.setAttribute(
                 "aria-expanded",
@@ -94,10 +177,12 @@ document.addEventListener(
         );
 
 
-        closeButton?.addEventListener(
-            "click",
-            closeSidebar
-        );
+        if (closeButton) {
+            closeButton.addEventListener(
+                "click",
+                closeSidebar
+            );
+        }
 
 
         overlay.addEventListener(
@@ -110,7 +195,12 @@ document.addEventListener(
             "keydown",
             function (event) {
 
-                if (event.key === "Escape") {
+                if (
+                    event.key === "Escape" &&
+                    sidebar.classList.contains(
+                        "open"
+                    )
+                ) {
                     closeSidebar();
                 }
 
@@ -118,6 +208,10 @@ document.addEventListener(
         );
 
 
+        /*
+         * Hash links inside drawer:
+         * close first, then scroll smoothly.
+         */
         sidebar
             .querySelectorAll(
                 'a[href^="#"]'
@@ -134,22 +228,38 @@ document.addEventListener(
                                     "href"
                                 );
 
-                            const target =
-                                document.querySelector(
-                                    selector
-                                );
+                            if (
+                                !selector ||
+                                selector === "#"
+                            ) {
+                                return;
+                            }
+
+
+                            let target = null;
+
+                            try {
+                                target =
+                                    document.querySelector(
+                                        selector
+                                    );
+                            } catch (_) {
+                                return;
+                            }
+
 
                             if (!target) {
                                 return;
                             }
 
+
                             event.preventDefault();
 
                             closeSidebar();
 
-                            setTimeout(
-                                function () {
 
+                            window.setTimeout(
+                                function () {
                                     target.scrollIntoView({
                                         behavior:
                                             "smooth",
@@ -157,11 +267,9 @@ document.addEventListener(
                                         block:
                                             "start"
                                     });
-
                                 },
-                                180
+                                120
                             );
-
                         }
                     );
 
@@ -169,153 +277,20 @@ document.addEventListener(
             );
 
 
-
-        // =================================================
-        // MOBILE MENU AUTO HIDE
-        // =================================================
-
-        let lastScrollY =
-            window.scrollY;
-
-        let ticking =
-            false;
-
-
-        function updateMobileMenuVisibility() {
-
-            if (
-                window.innerWidth > 768
-            ) {
-                openButton.classList.remove(
-                    "scroll-hidden",
-                    "near-top"
-                );
-
-                return;
-            }
-
-
-            const currentScrollY =
-                Math.max(
-                    window.scrollY,
-                    0
-                );
-
-
-            // Always show menu near top
-            if (
-                currentScrollY < 80
-            ) {
-                openButton.classList.remove(
-                    "scroll-hidden"
-                );
-
-                openButton.classList.add(
-                    "near-top"
-                );
-
-                lastScrollY =
-                    currentScrollY;
-
-                ticking =
-                    false;
-
-                return;
-            }
-
-
-            openButton.classList.remove(
-                "near-top"
-            );
-
-
-            const difference =
-                currentScrollY
-                - lastScrollY;
-
-
-            // Ignore tiny movements
-            if (
-                Math.abs(
-                    difference
-                ) < 6
-            ) {
-                ticking =
-                    false;
-
-                return;
-            }
-
-
-            // Swiping upward on phone /
-            // scrolling DOWN the page:
-            // hide hamburger button.
-            if (
-                currentScrollY
-                > lastScrollY
-            ) {
-                openButton.classList.add(
-                    "scroll-hidden"
-                );
-            }
-
-            // Scrolling back UP the page:
-            // show hamburger button again.
-            else {
-                openButton.classList.remove(
-                    "scroll-hidden"
-                );
-            }
-
-
-            lastScrollY =
-                currentScrollY;
-
-            ticking =
-                false;
-        }
-
-
-        window.addEventListener(
-            "scroll",
-            function () {
-
-                if (
-                    document.body.classList.contains(
-                        "mobile-sidebar-open"
-                    )
-                ) {
-                    return;
-                }
-
-
-                if (!ticking) {
-
-                    window.requestAnimationFrame(
-                        updateMobileMenuVisibility
-                    );
-
-                    ticking =
-                        true;
-                }
-
-            },
-            {
-                passive: true
-            }
+        /*
+         * No scroll auto-hide.
+         * Hamburger is now permanently part
+         * of the mobile header.
+         */
+        openButton.classList.remove(
+            "scroll-hidden",
+            "near-top"
         );
-
-
-        // Show button whenever sidebar closes
-        const originalCloseSidebar =
-            closeSidebar;
-
 
 
         console.log(
             "Mobile sidebar ready.",
             window.innerWidth
         );
-
     }
 );

@@ -1,0 +1,307 @@
+/* =========================================================
+   DASHBOARD SUMMARY CARDS — VISIBILITY FIX
+   Income / Expenses / Balance
+   ========================================================= */
+
+.dashboard > .stat-card {
+    position: relative !important;
+
+    min-height: 118px !important;
+    padding: 22px 22px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #181e25,
+            #13191f
+        ) !important;
+
+    border:
+        1px solid rgba(255,255,255,.11) !important;
+
+    border-radius: 16px !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    box-shadow:
+        0 10px 26px rgba(0,0,0,.18) !important;
+
+    overflow: hidden;
+}
+
+
+/* subtle top line for definition */
+
+.dashboard > .stat-card::before {
+    content: "";
+
+    position: absolute;
+    top: 0;
+    left: 18px;
+    right: 18px;
+
+    height: 2px;
+
+    background: #5f6871;
+
+    opacity: .8;
+}
+
+
+/* =========================================================
+   LABEL — INCOME / EXPENSES / BALANCE
+   ========================================================= */
+
+.dashboard > .stat-card h3 {
+    margin: 0 0 10px !important;
+
+    color: #aeb6bd !important;
+
+    opacity: 1 !important;
+
+    font-size: .68rem !important;
+    font-weight: 750 !important;
+
+    letter-spacing: .11em !important;
+    line-height: 1.2 !important;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   AMOUNT
+   ========================================================= */
+
+.dashboard > .stat-card h2 {
+    margin: 0 !important;
+
+    color: #f2f4f5 !important;
+
+    opacity: 1 !important;
+
+    font-size: clamp(1.45rem, 2.2vw, 1.9rem) !important;
+
+    font-weight: 760 !important;
+
+    line-height: 1.1 !important;
+
+    letter-spacing: -.035em !important;
+
+    text-shadow: none !important;
+}
+
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.dashboard > .stat-card .icon {
+    width: 42px !important;
+    height: 42px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    border-radius: 12px !important;
+
+    opacity: 1 !important;
+
+    background: rgba(255,255,255,.055) !important;
+
+    border:
+        1px solid rgba(255,255,255,.09) !important;
+
+    font-size: 1rem !important;
+
+    box-shadow: none !important;
+}
+
+
+/* Income — restrained muted green */
+
+.dashboard > .stat-card:nth-child(1)::before {
+    background: #708d7a;
+}
+
+.dashboard > .stat-card:nth-child(1) .income-icon {
+    color: #91ab99 !important;
+    background: rgba(112,141,122,.10) !important;
+}
+
+
+/* Expenses — restrained muted red */
+
+.dashboard > .stat-card:nth-child(2)::before {
+    background: #8f6666;
+}
+
+.dashboard > .stat-card:nth-child(2) .expense-icon {
+    color: #b18484 !important;
+    background: rgba(143,102,102,.10) !important;
+}
+
+
+/* Balance — restrained slate */
+
+.dashboard > .stat-card:nth-child(3)::before {
+    background: #708091;
+}
+
+.dashboard > .stat-card:nth-child(3) .balance-icon {
+    color: #94a4b3 !important;
+    background: rgba(112,128,145,.10) !important;
+}
+
+
+/* =========================================================
+   LIGHT MODE
+   ========================================================= */
+
+html[data-theme="light"] .dashboard > .stat-card {
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #f6f7f8
+        ) !important;
+
+    border-color: rgba(20,30,40,.10) !important;
+
+    box-shadow:
+        0 8px 22px rgba(20,30,40,.07) !important;
+}
+
+
+html[data-theme="light"] .dashboard > .stat-card h3 {
+    color: #66717a !important;
+}
+
+
+html[data-theme="light"] .dashboard > .stat-card h2 {
+    color: #1e252b !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 760px) {
+
+    .dashboard > .stat-card {
+        min-height: 105px !important;
+
+        padding: 18px !important;
+    }
+
+
+    .dashboard > .stat-card h2 {
+        font-size: 1.45rem !important;
+    }
+
+
+    .dashboard > .stat-card .icon {
+        width: 38px !important;
+        height: 38px !important;
+    }
+
+}
+
+/* =========================================================
+   SUMMARY CARDS — BUBBLES BEHIND CONTENT FIX
+   ========================================================= */
+
+.dashboard > .stat-card {
+    position: relative !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+}
+
+
+/* Any decorative bubble/pseudo layer stays in background */
+.dashboard > .stat-card::before,
+.dashboard > .stat-card::after {
+    z-index: 0 !important;
+    pointer-events: none !important;
+}
+
+
+/* Keep the top accent line above bubble but below content */
+.dashboard > .stat-card::before {
+    opacity: .95 !important;
+}
+
+
+/* If card uses generated bubble as ::after */
+.dashboard > .stat-card::after {
+    opacity: .22 !important;
+    filter: blur(8px) !important;
+}
+
+
+/* Put all actual content above bubbles */
+.dashboard > .stat-card > * {
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+
+/* Strong readable labels */
+.dashboard > .stat-card h3 {
+    position: relative !important;
+    z-index: 3 !important;
+    color: #aab2b9 !important;
+    opacity: 1 !important;
+}
+
+
+/* Strong readable amounts */
+.dashboard > .stat-card h2 {
+    position: relative !important;
+    z-index: 3 !important;
+    color: #f4f6f7 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+
+
+/* Icon always above background */
+.dashboard > .stat-card .icon {
+    position: relative !important;
+    z-index: 3 !important;
+}
+
+
+/* If any custom bubble element exists inside card */
+.dashboard > .stat-card .bubble,
+.dashboard > .stat-card .blob,
+.dashboard > .stat-card .card-bubble,
+.dashboard > .stat-card .bg-bubble,
+.dashboard > .stat-card .stat-bubble {
+    position: absolute !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    opacity: .18 !important;
+    filter: blur(10px) !important;
+}
+
+
+/* Make bubble sit nicely in top-left background only */
+.dashboard > .stat-card .bubble,
+.dashboard > .stat-card .blob,
+.dashboard > .stat-card .card-bubble,
+.dashboard > .stat-card .bg-bubble,
+.dashboard > .stat-card .stat-bubble,
+.dashboard > .stat-card::after {
+    top: -44px !important;
+    left: -10px !important;
+}
+
+
+/* Ensure card text block stays clear */
+.dashboard > .stat-card > div:first-child {
+    position: relative !important;
+    z-index: 3 !important;
+}
