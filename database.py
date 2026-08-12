@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS bills (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS bill_invoice_settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     bill_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
 

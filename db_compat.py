@@ -320,7 +320,26 @@ class PostgresCursorWrapper:
         if not isinstance(sql, str):
             return sql
 
-        return sql.replace("?", "%s")
+        # SQLite auto-increment primary keys are not valid
+        # PostgreSQL syntax. Convert them to PostgreSQL SERIAL.
+        sql = sql.replace(
+            "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "SERIAL PRIMARY KEY"
+        )
+
+        # Safety fallback for any remaining SQLite keyword.
+        sql = sql.replace(
+            "AUTOINCREMENT",
+            ""
+        )
+
+        # Application SQL uses SQLite-style ? placeholders.
+        sql = sql.replace(
+            "?",
+            "%s"
+        )
+
+        return sql
 
     def execute(self, sql, params=()):
         sql = self._convert_sql(sql)
